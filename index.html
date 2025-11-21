@@ -4780,7 +4780,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       } else if (flankerLevel === 4) {
         isFlanker = true;
         flankerBullets = 1;
-        flankerAngle = Math.PI; // Fire backwards
       }
     }
     
@@ -4840,32 +4839,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       spawnParticles(player.x, player.y, 'rgba(255,100,0,0.9)', 20, Math.PI*2, 150);
       // Don't return - continue to fire regular bullet
     }
-    
     if (isFlanker && flankerLevel > 0) {
       if (flankerLevel === 4) {
-        // Fire backwards
-        const flankerAngle = Math.atan2(aim.y, aim.x) + Math.PI;
-        const dx = Math.cos(flankerAngle);
-        const dy = Math.sin(flankerAngle);
-        
-        const bullet = { 
-          x: player.x + dx*player.r*1.6, 
-          y: player.y + dy*player.r*1.6, 
-          dx, dy, 
-          t:0, 
-          life: player.bulletLife,
-          speed: player.bulletSpeed,
-          size: player.bulletSize,
-          willExplode: false,
-          damage: 1 * player.damageMultiplier,
-          flanker: true
-        };
-        
-        bullets.push(bullet);
-      } else {
-        // Fire 2 bullets with a little angle
+        const spreadAngle = Math.PI / 6;
         for (let i = 0; i < flankerBullets; i++) {
-          const angleOffset = (i - (flankerBullets - 1) / 2) * flankerAngle;
+          const angleOffset = (i - (flankerBullets - 1) / 2) * spreadAngle;
           const flankerAngle = Math.atan2(aim.y, aim.x) + angleOffset;
           const dx = Math.cos(flankerAngle);
           const dy = Math.sin(flankerAngle);
@@ -4885,6 +4863,25 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           
           bullets.push(bullet);
         }
+      } else {
+        const flankerAngle = Math.atan2(aim.y, aim.x) + Math.PI;
+        const dx = Math.cos(flankerAngle);
+        const dy = Math.sin(flankerAngle);
+        
+        const bullet = { 
+          x: player.x + dx*player.r*1.6, 
+          y: player.y + dy*player.r*1.6, 
+          dx, dy, 
+          t:0, 
+          life: player.bulletLife,
+          speed: player.bulletSpeed,
+          size: player.bulletSize,
+          willExplode: false,
+          damage: 1 * player.damageMultiplier,
+          flanker: true
+        };
+        
+        bullets.push(bullet);
       }
     }
     
