@@ -487,11 +487,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     autoFire: 0, autoFireRate: 0,
     workers: [], maxWorkers: 0, workerLevel: 0,
     damageMultiplier: 1.0,
-    autoAim: false,
-    autoFireToggle: false,
+    autoAim: true,
+    autoFireToggle: true,
     sprint: { level: 0, max: 3, rarity: 'rare' },
     stats: {
-      fireRate: {level: 0, max: 5, rarity: 'common'},
+      fireRate: {level: 0, max: 10, rarity: 'common'},
       bulletSpeed: {level: 0, max: 5, rarity: 'common'},
       movement: {level: 0, max: 10, rarity: 'common'},
       dash: {level: 0, max: 3, rarity: 'legendary'},
@@ -4550,8 +4550,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     recordTimer = 0; echoSpawnTimer = 0; fireTimer = 0; autoFireTimer = 0; workerFireTimer = 0; bossSpawnTimer = 0;
     upgradeAvailable = false;
     lastMouseMove = performance.now();
-    player.autoAim = false;
-    player.autoFireToggle = false;
+    player.autoAim = true;
+    player.autoFireToggle = true;
     bossSpawnEffect = null;
     upgradeSelectionCooldown = 0;
     killBoostTimer = 0;
@@ -4623,11 +4623,13 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       player.stats.shield.max = 0;
       player.stats.health.max = 0;
       player.stats.holyLife.max = 0;
+      player.stats.adrenaline.max = 0;
     } else {
       player.stats.extraLife.max = 1;
       player.stats.shield.max = 3;
       player.stats.health.max = 2;
       player.stats.holyLife.max = 1;
+      player.stats.adrenaline.max = 3;
     }
     
     updateUI();
@@ -5337,7 +5339,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         } else if (player.stats.workerCollector.level === 2) {
           for (const worker of player.workers) {
             if (worker instanceof WorkerCollector) {
-              worker.xpMultiplier = 2;
+              worker.xpMultiplier = 1.5;
               worker.speed *= 1.5;
             }
           }
@@ -5363,8 +5365,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         break;
       case 'music':
         playAdamMusic();
-        player.damageMultiplier *= 1.4; // +50% damage
-        player.fireRate = Math.max(0.2, player.fireRate * 0.4); // +50% fire rate (halved cooldown)
+        player.damageMultiplier *= 1.4; // % damage
+        player.fireRate = Math.max(0.2, player.fireRate * 0.6); // % fire rate (halved cooldown)
         break;
       case 'damageZone':
         // Make damage zone passive
