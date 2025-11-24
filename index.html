@@ -516,7 +516,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       powerBullet: {level: 0, max: 3, rarity: 'rare'},
       knockbackBullets: {level: 0, max: 3, rarity: 'rare'},
       workerCollector: {level: 0, max: 4, rarity: 'rare'},
-      flanker: {level: 0, max: 4, rarity: 'common'},
+      flanker: {level: 0, max: 7, rarity: 'common'},
       shockwave: {level: 0, max: 1, rarity: 'mythical'},
       guards: {level: 0, max: 1, rarity: 'mythical'},
       freeze: {level: 0, max: 1, rarity: 'legendary'},
@@ -568,6 +568,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     if ((e.key === 'l' || e.key === 'L') && emergencyAbilityCooldown <= 0 && !emergencyAbilityActive) {
       activateEmergencyAbility();
     }
+
     // Pause game
     if (e.key === 'p' || e.key === 'P') {
       if (gameStarted && running) {
@@ -687,16 +688,16 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
   // Update upgrade chances over time
   function updateUpgradeChances(dt) {
-    if (timeAlive >= 90) return;
+    if (timeAlive >= 200) return;
     
     lastChanceUpdate += dt;
     if (lastChanceUpdate >= 3) {
       lastChanceUpdate = 0;
       
-      commonChance = Math.max(10, commonChance - 1);
-      rareChance = Math.min(40, rareChance + 0.6);
-      legendaryChance = Math.min(15, legendaryChance + 0.3);
-      mythicalChance = Math.min(10, mythicalChance + 0.1);
+      commonChance = Math.max(10, commonChance - 0.4);
+      rareChance = Math.min(40, rareChance + 0.25);
+      legendaryChance = Math.min(15, legendaryChance + 0.5);
+      mythicalChance = Math.min(10, mythicalChance + 0.5);
     }
   }
 
@@ -4759,27 +4760,31 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       else if (shotgunLevel === 5) shotgunBullets = 6;
     }
     
-    const flankerLevel = player.stats.flanker.level;
+        const flankerLevel = player.stats.flanker.level;
     let isFlanker = false;
     let flankerBullets = 0;
-    let flankerAngle = 0;
-    
+    let flankerAngle = Math.PI / 12;
+
     if (flankerLevel > 0) {
-      if (flankerLevel === 1 && bulletCounter % 3 === 0) {
+      // activation timing
+      const canActivate =
+        (flankerLevel === 1 && bulletCounter % 3 === 0) ||
+        (flankerLevel === 2 && bulletCounter % 2 === 0) ||
+        flankerLevel >= 3;
+
+      if (canActivate) {
         isFlanker = true;
-        flankerBullets = 2;
-        flankerAngle = Math.PI / 12;
-      } else if (flankerLevel === 2 && bulletCounter % 2 === 0) {
-        isFlanker = true;
-        flankerBullets = 2;
-        flankerAngle = Math.PI / 12;
-      } else if (flankerLevel === 3) {
-        isFlanker = true;
-        flankerBullets = 2;
-        flankerAngle = Math.PI / 12;
-      } else if (flankerLevel === 4) {
-        isFlanker = true;
-        flankerBullets = 1;
+
+        // bullet count per level
+        const lvl = flankerLevel;
+        flankerBullets =
+          lvl === 1 ? 2 :
+          lvl === 2 ? 3 :
+          lvl === 3 ? 3 :
+          lvl === 4 ? 4 :
+          lvl === 5 ? 5 :
+          lvl === 6 ? 7 :
+          lvl === 7 ? 10 : 0;
       }
     }
     
@@ -6250,6 +6255,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
                      b.worker ? 'rgba(77,171,247,0.9)' : 'rgba(255,255,255,0.9)';
         const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' : 
                         b.shotgun ? 'rgba(255,200,100,0.02)' :
+                        b.flanker ? 'rgba(255,200,100, 0.3)' : 
                         b.powerBullet ? 'rgba(255,100,100,0.02)' :
                         b.worker ? 'rgba(77,171,247,0.02)' : 'rgba(255,255,255,0.02)';
         gg.addColorStop(0, color);
