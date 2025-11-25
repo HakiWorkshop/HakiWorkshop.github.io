@@ -515,57 +515,74 @@
             }
         }
 
-        @media (max-width: 720px){
-        .app {
-            padding: 5px;
-        }
-        
-        canvas{
-            width: 100%;
-            max-width: 100%;
-            height: auto !important;
-            aspect-ratio: 800/700; /* Maintain original aspect ratio */
-        }
-        
-        .joystick, .fire-btn, .auto-fire-btn, .upgrade-btn {
-            transform: scale(0.85);
-        }
-        
-        .joystick {
-            bottom: 80px;
-            left: 10px;
-        }
-        
-        .fire-btn {
-            bottom: 10px;
-            right: 10px;
-        }
-        
-        .auto-fire-btn {
-            bottom: 10px;
-            right: 80px;
-        }
-        
-        .upgrade-btn {
-            bottom: 10px;
-            left: 80px;
-        }
-        
-        .ability-cooldown {
-            bottom: 90px;
-            right: 10px;
-            transform: scale(0.85);
-        }
-        
-        .hud {
-            gap: 5px;
-            margin-bottom: 8px;
-        }
-        
-        .card {
-            padding: 4px 6px;
-            font-size: 11px;
-        }
+        @media (max-width: 720px) {
+            .app {
+                padding: 5px;
+                height: 100vh;
+                overflow: hidden;
+            }
+            
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+                max-height: 70vh;
+                object-fit: contain;
+            }
+            
+            .joystick, .fire-btn, .auto-fire-btn, .upgrade-btn {
+                transform: scale(0.85);
+            }
+            
+            .joystick {
+                bottom: 15vh;
+                left: 10px;
+            }
+            
+            .fire-btn {
+                bottom: 5vh;
+                right: 10px;
+            }
+            
+            .auto-fire-btn {
+                bottom: 5vh;
+                right: 80px;
+            }
+            
+            .upgrade-btn {
+                bottom: 5vh;
+                left: 80px;
+            }
+            
+            .ability-cooldown {
+                bottom: 15vh;
+                right: 10px;
+                transform: scale(0.85);
+            }
+            
+            .hud {
+                gap: 5px;
+                margin-bottom: 8px;
+                flex-wrap: wrap;
+            }
+            
+            .card {
+                padding: 4px 6px;
+                font-size: 11px;
+                flex: 1;
+                min-width: calc(50% - 10px);
+                text-align: center;
+            }
+            
+            .header {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .meta {
+                margin-left: 0;
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
@@ -573,7 +590,7 @@
     <div class="app">
         <div class="header">
             <div>
-                <h1>EchoNigger — Mobile</h1>
+                <h1>EchoRun — Mobile</h1>
                 <div class="subtitle">Survive the echoes in this arena shooter</div>
             </div>
             <div class="meta">
@@ -691,6 +708,46 @@
             const levelUpSubtitle = document.getElementById('levelUpSubtitle');
             const pauseBtn = document.getElementById('pauseBtn');
 
+            // Canvas sizing function
+            function resizeCanvas() {
+                const container = document.querySelector('.app');
+                const canvas = document.getElementById('c');
+                
+                const containerWidth = container.clientWidth - 20;
+                const containerHeight = window.innerHeight - 200;
+                
+                // Calculate dimensions while maintaining aspect ratio
+                const aspectRatio = 800 / 700;
+                let newWidth = containerWidth;
+                let newHeight = containerWidth / aspectRatio;
+                
+                // If height is too big, scale based on height instead
+                if (newHeight > containerHeight) {
+                    newHeight = containerHeight;
+                    newWidth = containerHeight * aspectRatio;
+                }
+                
+                canvas.style.width = newWidth + 'px';
+                canvas.style.height = newHeight + 'px';
+                
+                // Update the actual canvas dimensions for rendering
+                canvas.width = 800;
+                canvas.height = 700;
+                
+                W = 800;
+                H = 700;
+                
+                // Reposition player if needed
+                if (player) {
+                    player.x = Math.min(player.x, W - player.r);
+                    player.y = Math.min(player.y, H - player.r);
+                }
+            }
+
+            // Call on load and resize
+            window.addEventListener('load', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas);
+
             // Game state
             let lastTime = performance.now(), running = false, gameStarted = false;
             let timeAlive = 0, score = 0, high = Number(localStorage.getItem('echorun-hi') || 0);
@@ -727,17 +784,25 @@
                 damageMultiplier: 1.0,
                 autoFireToggle: false,
                 pulse: 0,
+                // All upgrades with proper values
                 stats: {
-                    fireRate: {level: 0, max: 3, name: "Fire Rate", rarity: 'common'},
-                    bulletSpeed: {level: 0, max: 3, name: "Bullet Speed", rarity: 'common'},
-                    movement: {level: 0, max: 5, name: "Movement", rarity: 'common'},
-                    knockback: {level: 0, max: 1, name: "Knockback", rarity: 'common'},
-                    bulletSize: {level: 0, max: 2, name: "Bullet Size", rarity: 'common'},
-                    bulletLife: {level: 0, max: 1, name: "Bullet Life", rarity: 'common'},
-                    xpBoost: {level: 0, max: 3, name: "XP Boost", rarity: 'common'},
-                    extraLife: {level: 0, max: 1, name: "Extra Life", rarity: 'rare'},
-                    damage: {level: 0, max: 5, name: "Damage", rarity: 'common'},
-                    tripleShot: {level: 0, max: 1, name: "Triple Shot", rarity: 'rare'}
+                    fireRate: {level: 0, max: 5, name: "Fire Rate", rarity: 'common', description: "Increases firing speed"},
+                    bulletSpeed: {level: 0, max: 5, name: "Bullet Speed", rarity: 'common', description: "Bullets travel faster"},
+                    movement: {level: 0, max: 5, name: "Movement Speed", rarity: 'common', description: "Move around quicker"},
+                    knockback: {level: 0, max: 3, name: "Knockback", rarity: 'uncommon', description: "Enemies get pushed back on hit"},
+                    bulletSize: {level: 0, max: 4, name: "Bullet Size", rarity: 'common', description: "Larger bullet hitboxes"},
+                    bulletLife: {level: 0, max: 3, name: "Bullet Life", rarity: 'common', description: "Bullets last longer"},
+                    xpBoost: {level: 0, max: 3, name: "XP Boost", rarity: 'rare', description: "Gain more experience"},
+                    extraLife: {level: 0, max: 3, name: "Extra Life", rarity: 'rare', description: "Gain additional lives"},
+                    damage: {level: 0, max: 5, name: "Damage", rarity: 'common', description: "Increased bullet damage"},
+                    tripleShot: {level: 0, max: 1, name: "Triple Shot", rarity: 'epic', description: "Shoot three bullets at once"},
+                    piercing: {level: 0, max: 2, name: "Piercing Shot", rarity: 'uncommon', description: "Bullets pierce through enemies"},
+                    shield: {level: 0, max: 1, name: "Energy Shield", rarity: 'epic', description: "Temporary damage immunity"},
+                    homing: {level: 0, max: 2, name: "Homing Bullets", rarity: 'rare', description: "Bullets track nearby enemies"},
+                    explosion: {level: 0, max: 2, name: "Explosive Rounds", rarity: 'uncommon', description: "Bullets explode on impact"},
+                    lifesteal: {level: 0, max: 2, name: "Life Steal", rarity: 'rare', description: "Heal when damaging enemies"},
+                    rapidFire: {level: 0, max: 1, name: "Rapid Fire", rarity: 'epic', description: "Extremely high fire rate"},
+                    bulletBounce: {level: 0, max: 2, name: "Bullet Bounce", rarity: 'uncommon', description: "Bullets bounce off walls"}
                 }
             };
 
@@ -750,6 +815,8 @@
             let fireTimer = 0, autoFireTimer = 0;
             let shake = 0;
             let bossSpawnEffect = null;
+            let playerShield = 0;
+            let shieldCooldown = 0;
 
             // helpers
             const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
@@ -1173,7 +1240,14 @@
                         xpBoost: '#ffa94d',
                         extraLife: '#ff8787',
                         damage: '#ff6b6b',
-                        tripleShot: '#a78bfa'
+                        tripleShot: '#a78bfa',
+                        piercing: '#ff6b6b',
+                        shield: '#4dabf7',
+                        homing: '#7ee787',
+                        explosion: '#ff9e44',
+                        lifesteal: '#ff8787',
+                        rapidFire: '#da77f2',
+                        bulletBounce: '#ffd43b'
                     };
                     this.life = 15;
                     this.float = 0;
@@ -1206,7 +1280,9 @@
                         fireRate: '⚡', bulletSpeed: '➤', movement: '↕',
                         knockback: '↶', bulletSize: '●', bulletLife: '—',
                         xpBoost: '⭐', extraLife: '❤', damage: '💥',
-                        tripleShot: '🔺'
+                        tripleShot: '🔺', piercing: '➰', shield: '🛡️',
+                        homing: '🎯', explosion: '💣', lifesteal: '🩸',
+                        rapidFire: '🔫', bulletBounce: '↔️'
                     };
                     
                     ctx.fillText(icons[this.type], this.x, this.y + floatY);
@@ -1228,11 +1304,25 @@
                     emergencyAbilityCooldown = 15;
                     abilityCooldown.style.display = 'block';
                     abilityCooldown.classList.remove('ready');
+                } else if (emergencyAbility === 'shield') {
+                    playerShield = 5; // 5 seconds of shield
+                    shieldCooldown = 20;
+                    abilityCooldown.style.display = 'block';
+                    abilityCooldown.classList.remove('ready');
+                    spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 20, Math.PI*2, 100);
                 }
             }
 
             // Update emergency abilities
             function updateEmergencyAbilities(dt) {
+                // Update shield
+                if (playerShield > 0) {
+                    playerShield -= dt;
+                    if (playerShield <= 0) {
+                        playerShield = 0;
+                    }
+                }
+                
                 // Update cooldown
                 if (emergencyAbilityCooldown > 0) {
                     emergencyAbilityCooldown -= dt;
@@ -1307,6 +1397,8 @@
                 bulletCounter = 0;
                 endlessMode = false;
                 lastHealthIncrease = 0;
+                playerShield = 0;
+                shieldCooldown = 0;
                 
                 bossHealth.style.display = 'none';
                 levelUpNotification.style.display = 'none';
@@ -1329,6 +1421,7 @@
                 deathScreen.style.display = 'none';
                 resetGame();
                 createBackgroundParticles();
+                setTimeout(resizeCanvas, 100);
             }
 
             document.getElementById('restart').addEventListener('click', () => { 
@@ -1355,7 +1448,11 @@
                         nearestDist = d;
                     }
                 }
-                if (nearest) {
+                
+                if (nearest && player.stats.homing.level > 0) {
+                    // Homing bullets
+                    aim = vecTo(player.x, player.y, nearest.x, nearest.y);
+                } else if (nearest) {
                     aim = vecTo(player.x, player.y, nearest.x, nearest.y);
                 } else {
                     // If no enemies, shoot in the direction the player is moving
@@ -1368,25 +1465,33 @@
                 }
                 
                 const spread = player.spread;
-                const angleOffset = rand(-spread/2, spread/2);
-                const cos = Math.cos(angleOffset), sin = Math.sin(angleOffset);
+                const bulletCount = player.stats.tripleShot.level > 0 ? 3 : 1;
                 
-                const dx = aim.x * cos - aim.y * sin;
-                const dy = aim.x * sin + aim.y * cos;
-                
-                const bullet = { 
-                    x: player.x + dx*player.r*1.6, 
-                    y: player.y + dy*player.r*1.6, 
-                    dx, dy, 
-                    t:0, 
-                    life: player.bulletLife,
-                    speed: player.bulletSpeed,
-                    size: player.bulletSize,
-                    damage: 1 * player.damageMultiplier,
-                    glow: Math.random() > 0.7
-                };
-                
-                bullets.push(bullet);
+                for (let shot = 0; shot < bulletCount; shot++) {
+                    const angleOffset = rand(-spread/2, spread/2) + (shot - 1) * 0.3;
+                    const cos = Math.cos(angleOffset), sin = Math.sin(angleOffset);
+                    
+                    const dx = aim.x * cos - aim.y * sin;
+                    const dy = aim.x * sin + aim.y * cos;
+                    
+                    const bullet = { 
+                        x: player.x + dx*player.r*1.6, 
+                        y: player.y + dy*player.r*1.6, 
+                        dx, dy, 
+                        t:0, 
+                        life: player.bulletLife,
+                        speed: player.bulletSpeed,
+                        size: player.bulletSize,
+                        damage: 1 * player.damageMultiplier,
+                        glow: Math.random() > 0.7,
+                        pierce: player.stats.piercing.level,
+                        bounce: player.stats.bulletBounce.level,
+                        homing: player.stats.homing.level > 0,
+                        explosion: player.stats.explosion.level > 0
+                    };
+                    
+                    bullets.push(bullet);
+                }
                 
                 spawnParticles(player.x + aim.x*player.r, player.y + aim.y*player.r, 'rgba(200,255,200,0.9)', 4, Math.PI/2, 30);
                 
@@ -1440,7 +1545,14 @@
                     xpBoost: 'XP Gain Boosted',
                     extraLife: 'Extra Life Gained',
                     damage: 'Damage Increased',
-                    tripleShot: 'Triple Shot Unlocked'
+                    tripleShot: 'Triple Shot Unlocked',
+                    piercing: 'Piercing Shot Unlocked',
+                    shield: 'Energy Shield Unlocked',
+                    homing: 'Homing Bullets Unlocked',
+                    explosion: 'Explosive Rounds Unlocked',
+                    lifesteal: 'Life Steal Unlocked',
+                    rapidFire: 'Rapid Fire Unlocked',
+                    bulletBounce: 'Bullet Bounce Unlocked'
                 };
                 
                 return descriptions[type] || 'New Ability Unlocked';
@@ -1451,36 +1563,60 @@
                 
                 switch(type){
                     case 'fireRate':
-                        player.fireRate = Math.max(0.3, player.fireRate * 0.8);
+                        player.fireRate = Math.max(0.1, player.fireRate * 0.85);
                         break;
                     case 'bulletSpeed':
-                        player.bulletSpeed *= 1.3;
+                        player.bulletSpeed *= 1.25;
                         break;
                     case 'movement':
                         player.speed *= 1.15;
                         break;
                     case 'knockback':
-                        player.knockback = 0;
+                        player.knockback += 0.5;
                         break;
                     case 'bulletSize':
-                        player.bulletSize *= 1.5;
+                        player.bulletSize *= 1.3;
                         break;
                     case 'bulletLife':
-                        player.bulletLife *= 1.3;
+                        player.bulletLife *= 1.2;
                         break;
                     case 'xpBoost':
+                        // Handled in XP calculation
                         break;
                     case 'extraLife':
-                        player.lives += 2;
+                        player.lives += 1;
                         livesEl.textContent = player.lives;
                         break;
                     case 'damage':
-                        player.damageMultiplier *= 1.25;
+                        player.damageMultiplier *= 1.3;
                         break;
                     case 'tripleShot':
                         emergencyAbility = 'tripleShot';
                         abilityCooldown.style.display = 'block';
                         abilityCooldown.classList.add('ready');
+                        break;
+                    case 'piercing':
+                        // Handled in bullet collision
+                        break;
+                    case 'shield':
+                        emergencyAbility = 'shield';
+                        abilityCooldown.style.display = 'block';
+                        abilityCooldown.classList.add('ready');
+                        break;
+                    case 'homing':
+                        // Handled in bullet logic
+                        break;
+                    case 'explosion':
+                        // Handled in bullet collision
+                        break;
+                    case 'lifesteal':
+                        // Handled in damage calculation
+                        break;
+                    case 'rapidFire':
+                        player.fireRate *= 0.5;
+                        break;
+                    case 'bulletBounce':
+                        // Handled in bullet movement
                         break;
                 }
                 
@@ -1588,6 +1724,40 @@
                     const b = bullets[i];
                     b.t += dt;
                     
+                    // Homing bullets
+                    if (b.homing) {
+                        let nearest = null;
+                        let nearestDist = Infinity;
+                        for (const e of echoes) {
+                            const d = dist({x: b.x, y: b.y}, e);
+                            if (d < nearestDist && d < 200) {
+                                nearest = e;
+                                nearestDist = d;
+                            }
+                        }
+                        if (nearest) {
+                            const toEnemy = vecTo(b.x, b.y, nearest.x, nearest.y);
+                            b.dx = (b.dx + toEnemy.x * 0.1) / 1.1;
+                            b.dy = (b.dy + toEnemy.y * 0.1) / 1.1;
+                            // Normalize
+                            const mag = Math.hypot(b.dx, b.dy);
+                            b.dx /= mag;
+                            b.dy /= mag;
+                        }
+                    }
+                    
+                    // Bullet bounce
+                    if (b.bounce > 0) {
+                        if (b.x < b.size || b.x > W - b.size) {
+                            b.dx = -b.dx;
+                            b.bounce--;
+                        }
+                        if (b.y < b.size || b.y > H - b.size) {
+                            b.dy = -b.dy;
+                            b.bounce--;
+                        }
+                    }
+                    
                     if ((b.x < -50 || b.x > W+50 || b.y < -50 || b.y > H+50 || b.t >= b.life)) {
                         bullets.splice(i,1);
                         continue;
@@ -1597,41 +1767,70 @@
                     b.y += b.dy * b.speed * dt;
                     
                     if (!b.enemy) {
+                        let hitEnemies = [];
                         for (let j = echoes.length - 1; j >= 0; j--){
                             const e = echoes[j];
                             const d = Math.hypot(b.x - e.x, b.y - e.y);
                             if (d < e.r + b.size){
-                                const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0);
+                                hitEnemies.push({enemy: e, index: j});
                                 
-                                if (e.takeDamage(b.damage)) {
-                                    score += 8;
-                                    echoesKilled++;
-                                    playerXP += 15 * xpMultiplier;
-                                    
-                                    checkLevelUp();
-                                    spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 12, Math.PI*2, 100);
-                                    
-                                    if (e instanceof Boss) {
-                                        bossesKilled++;
-                                        bossHealth.style.display = 'none';
-                                        
-                                        if (bossesKilled >= 2) {
-                                            endlessMode = true;
-                                        }
-                                    }
-                                    
-                                    echoes.splice(j,1);
-                                    echoCountEl.textContent = echoes.length;
+                                if (b.pierce <= 0) {
+                                    bullets.splice(i,1);
+                                    break;
+                                } else {
+                                    b.pierce--;
+                                }
+                            }
+                        }
+                        
+                        // Process hit enemies
+                        for (const hit of hitEnemies) {
+                            const e = hit.enemy;
+                            const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0);
+                            
+                            if (e.takeDamage(b.damage)) {
+                                score += 8;
+                                echoesKilled++;
+                                playerXP += 15 * xpMultiplier;
+                                
+                                // Life steal
+                                if (player.stats.lifesteal.level > 0 && player.lives < 10) {
+                                    player.lives += 0.1 * player.stats.lifesteal.level;
+                                    livesEl.textContent = Math.floor(player.lives);
                                 }
                                 
-                                bullets.splice(i,1);
-                                break;
+                                checkLevelUp();
+                                
+                                // Explosion effect
+                                if (b.explosion) {
+                                    spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 20, Math.PI*2, 150);
+                                    // Damage nearby enemies
+                                    for (const otherE of echoes) {
+                                        if (otherE !== e && dist(otherE, e) < 60) {
+                                            otherE.takeDamage(b.damage * 0.5);
+                                        }
+                                    }
+                                } else {
+                                    spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 12, Math.PI*2, 100);
+                                }
+                                
+                                if (e instanceof Boss) {
+                                    bossesKilled++;
+                                    bossHealth.style.display = 'none';
+                                    
+                                    if (bossesKilled >= 2) {
+                                        endlessMode = true;
+                                    }
+                                }
+                                
+                                echoes.splice(hit.index,1);
+                                echoCountEl.textContent = echoes.length;
                             }
                         }
                     }
                     else if (b.enemy) {
                         const d = Math.hypot(b.x - player.x, b.y - player.y);
-                        if (d < player.r + b.size) {
+                        if (d < player.r + b.size && playerShield <= 0) {
                             player.lives--;
                             livesEl.textContent = player.lives;
                             shake = 10;
@@ -1687,7 +1886,7 @@
                     
                     const dx = player.x - e.x, dy = player.y - e.y;
                     const d = Math.hypot(dx, dy);
-                    if (d < player.r + e.r - 3) {
+                    if (d < player.r + e.r - 3 && playerShield <= 0) {
                         player.lives--;
                         livesEl.textContent = player.lives;
                         shake = 10;
@@ -1802,6 +2001,20 @@
                 // Draw player with pulse effect
                 const playerPulseSize = player.r * (1 + Math.sin(player.pulse) * 0.05);
                 
+                // Draw shield if active
+                if (playerShield > 0) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(77,171,247,0.7)';
+                    ctx.lineWidth = 3;
+                    ctx.arc(player.x, player.y, playerPulseSize * 1.5, 0, Math.PI*2);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(77,171,247,0.2)';
+                    ctx.arc(player.x, player.y, playerPulseSize * 1.5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                
                 // Player glow
                 ctx.beginPath();
                 ctx.fillStyle = 'rgba(126,231,135,0.3)';
@@ -1870,7 +2083,7 @@
                 echoCountEl.textContent = echoes.length; 
                 hiEl.textContent = high; 
                 levelEl.textContent = playerLevel;
-                livesEl.textContent = player.lives;
+                livesEl.textContent = Math.floor(player.lives);
             }
 
             function loop(now){
