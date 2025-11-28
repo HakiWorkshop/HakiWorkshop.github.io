@@ -1,8 +1,19 @@
 # HakiWorkshop.github.io
+---
+# V17 - Coming
+
+
+---
+# V17 - Working (10/10)
+
+
+---
+# V16 - Bugged (7/10)
+
 
 ---
 
-# V14 - Working/ish (7/10)
+# V14 - Bugged (7/10)
 
 📝 Oppsumert - 
 lett vanskelighetsgrad.
