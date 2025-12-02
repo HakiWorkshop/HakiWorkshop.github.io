@@ -1,1 +1,204 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presentasjon: Reformatorer og Kirkekritikk</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    <div class="particles-container" id="particles"></div>
+    
+    <!-- Presentasjonskontroller -->
+    <div class="presentation-controls">
+        <button id="prev-btn" class="control-btn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">4</span>
+        </div>
+        <button id="next-btn" class="control-btn">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <button id="fullscreen-btn" class="control-btn">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button id="auto-play-btn" class="control-btn">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+    
+    <header class="header">
+        <div class="header-content">
+            <h1 class="title-main">Reformatorer & Kirkekritikk</h1>
+            <p class="title-sub">En visuell presentasjon av tidlig kristen reformasjon</p>
+        </div>
+        <div class="presentation-progress">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </header>
 
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-scroll"></i> Presentasjonsmeny</h3>
+            <div class="theme-indicator" id="theme-indicator"></div>
+        </div>
+        <ul>
+            <li onclick="loadTheme('intro')" class="nav-item active" data-slide="1">
+                <i class="fas fa-star"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Introduksjon</span>
+                    <span class="nav-desc">Om reformasjonsbevegelsen</span>
+                </div>
+            </li>
+            <li onclick="loadTheme('luther')" class="nav-item" data-slide="2">
+                <i class="fas fa-cross"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Martin Luther</span>
+                    <span class="nav-desc">95 teser og protest</span>
+                </div>
+            </li>
+            <li onclick="loadTheme('calvin')" class="nav-item" data-slide="3">
+                <i class="fas fa-church"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Jean Calvin</span>
+                    <span class="nav-desc">Predestinasjon og reform</span>
+                </div>
+            </li>
+            <li onclick="loadTheme('erasmus')" class="nav-item" data-slide="4">
+                <i class="fas fa-book"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Erasmus av Rotterdam</span>
+                    <span class="nav-desc">Humanistisk kritikk</span>
+                </div>
+            </li>
+            <li onclick="loadTheme('hus')" class="nav-item" data-slide="5">
+                <i class="fas fa-fire"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Jan Hus</span>
+                    <span class="nav-desc">Forløper til reformasjonen</span>
+                </div>
+            </li>
+            <li onclick="loadTheme('impact')" class="nav-item" data-slide="6">
+                <i class="fas fa-history"></i>
+                <div class="nav-content">
+                    <span class="nav-title">Kritikkens Arv</span>
+                    <span class="nav-desc">Langtidseffekter av reformasjonen</span>
+                </div>
+            </li>
+        </ul>
+        
+        <div class="timeline">
+            <h4><i class="fas fa-timeline"></i> Tidslinje</h4>
+            <div class="timeline-bar">
+                <div class="timeline-progress" id="timeline-progress"></div>
+            </div>
+            <div class="timeline-labels">
+                <span>1400</span>
+                <span>1500</span>
+                <span>1600</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="slide-container">
+            <section id="content" class="slide active">
+                <div class="slide-header">
+                    <h1 class="slide-title">Reformasjonens Ånd</h1>
+                    <div class="slide-subtitle">Kritikk av kirke og samfunn i tidlig moderne tid</div>
+                </div>
+                
+                <div class="slide-content">
+                    <div class="content-text">
+                        <p class="lead">Reformasjonen var en religiøs, kulturell og politisk omveltning som splittet den europeiske kristenheten i det 16. århundre.</p>
+                        
+                        <div class="key-points">
+                            <div class="point">
+                                <i class="fas fa-balance-scale"></i>
+                                <h3>Kjernekritikk</h3>
+                                <p>Reformatorer angrep kirkens rikdom, maktmisbruk og avvik fra bibelske prinsipper.</p>
+                            </div>
+                            <div class="point">
+                                <i class="fas fa-book-open"></i>
+                                <h3>Bibelens Autoritet</h3>
+                                <p>«Sola Scriptura» – kun Skriften som autoritet, ikke kirkens tradisjoner.</p>
+                            </div>
+                            <div class="point">
+                                <i class="fas fa-users"></i>
+                                <h3>Allmenn Prestedømme</h3>
+                                <p>Alle troende er prester for Gud – et angrep på kirkens hierarki.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quote">
+                        <i class="fas fa-quote-left"></i>
+                        <p>"Kirken trenger stadig reformasjon" – Ecclesia semper reformanda est</p>
+                        <i class="fas fa-quote-right"></i>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="images">
+            <div class="image-header">
+                <h2 id="image-title"><i class="fas fa-image"></i> Visuell Kontekst</h2>
+                <div class="image-nav">
+                    <button id="prev-img" class="img-btn"><i class="fas fa-chevron-left"></i></button>
+                    <button id="next-img" class="img-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="img-container">
+                <img id="theme-image" src="https://images.unsplash.com/photo-1544716278-e513176f20b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Reformasjonen" />
+                <div class="image-overlay">
+                    <p class="image-caption">Reformasjonen utfordret den etablerte kirkens autoritet og praksis</p>
+                    <div class="image-source">Kilde: Historisk illustrasjon</div>
+                </div>
+            </div>
+            <div class="image-gallery">
+                <div class="gallery-item active" data-index="0">
+                    <img src="https://images.unsplash.com/photo-1544716278-e513176f20b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Reformasjon">
+                </div>
+                <div class="gallery-item" data-index="1">
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Kirke">
+                </div>
+                <div class="gallery-item" data-index="2">
+                    <img src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Manuskript">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span class="footer-title">Presentasjon: Reformatorer og Kirkekritikk</span>
+                <span class="footer-subtitle">Tidlig moderne tid (1400-1600)</span>
+            </div>
+            <div class="footer-center">
+                <div class="presentation-time">
+                    <i class="fas fa-clock"></i>
+                    <span id="current-time">00:00</span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <button id="toggle-effects" class="footer-btn">
+                    <i class="fas fa-magic"></i> Effekter
+                </button>
+                <button id="toggle-music" class="footer-btn">
+                    <i class="fas fa-music"></i> Musikk
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <audio id="bg-music" loop>
+        <source src="https://assets.mixkit.co/music/preview/mixkit-medieval-showdown-829.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
