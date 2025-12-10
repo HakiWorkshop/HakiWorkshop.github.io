@@ -383,10 +383,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let refreshUsed = false;
 
   // Upgrade chance tracking
-  let commonChance = 60;
+  let commonChance = 70;
   let rareChance = 30;
-  let legendaryChance = 8;
-  let mythicalChance = 2;
+  let legendaryChance = 0;
+  let mythicalChance = 0;
   let lastChanceUpdate = 0;
 
   // Emergency ability tracking
@@ -427,41 +427,40 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let saferSpacesWall = null;
 
   // Audio elements
-  let backgroundMusic, passiveMusic, adamMusic;
+  let backgroundsong, passive, adamMusic;
   let isAdamPlaying = false;
 
-  // Initialize audio
-  function initAudio() {
-    // Create dummy audio elements since we don't have actual audio files
-    backgroundMusic = new Audio();
-    backgroundMusic.loop = true;
-    backgroundMusic.volume = 0.1;
-    
-    passiveMusic = new Audio();
-    passiveMusic.loop = true;
-    passiveMusic.volume = 0.01;
-    
-    adamMusic = new Audio();
-    adamMusic.loop = true;
-    adamMusic.volume = 0.3;
-    
-    // Start passive music immediately
-    passiveMusic.play().catch(e => console.log('Audio play failed:', e));
-  }
-
+// Initialize audio
+function initAudio() {
+  // Create audio elements with actual file sources
+  backgroundsong = new Audio('backgroundsong.mp3');
+  backgroundsong.loop = true;
+  backgroundsong.volume = 0.1;
+  
+  passive = new Audio('passive.mp3');
+  passive.loop = true;
+  passive.volume = 0.01;
+  
+  adamMusic = new Audio('adam.mp3');
+  adamMusic.loop = true;
+  adamMusic.volume = 0.3;
+  
+  // Start passive music immediately
+  passive.play().catch(e => console.log('Passive music play failed:', e));
+}
   // Play background music
-  function playBackgroundMusic() {
-    passiveMusic.pause(); // Stop passive music when starting game
-    backgroundMusic.currentTime = 0;
-    backgroundMusic.play().catch(e => console.log('Background music play failed:', e));
+  function playbackgroundsong() {
+    passive.pause(); // Stop passive music when starting game
+    backgroundsong.currentTime = 0;
+    backgroundsong.play().catch(e => console.log('Background music play failed:', e));
   }
 
   // Play Adam music
   function playAdamMusic() {
     if (isAdamPlaying) return;
     
-    backgroundMusic.pause();
-    passiveMusic.pause();
+    backgroundsong.pause();
+    passive.pause();
     adamMusic.currentTime = 0;
     adamMusic.play().catch(e => console.log('Adam music play failed:', e));
     isAdamPlaying = true;
@@ -469,8 +468,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
   // Stop all music
   function stopAllMusic() {
-    backgroundMusic.pause();
-    passiveMusic.pause();
+    backgroundsong.pause();
+    passive.pause();
     adamMusic.pause();
     isAdamPlaying = false;
   }
@@ -594,18 +593,18 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   function audioResume(){ 
-    if (!audioCtx) audioCtx = new AudioCtx(); 
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    // Resume music if needed
-    if (gameStarted && backgroundMusic.paused && !isAdamPlaying) {
-      backgroundMusic.play().catch(e => console.log('Background music resume failed:', e));
-    } else if (!gameStarted && passiveMusic.paused && !isAdamPlaying) {
-      passiveMusic.play().catch(e => console.log('Passive music resume failed:', e));
-    } else if (isAdamPlaying && adamMusic.paused) {
-      adamMusic.play().catch(e => console.log('Adam music resume failed:', e));
-    }
+  if (!audioCtx) audioCtx = new AudioCtx(); 
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  
+  // Resume music if needed
+  if (gameStarted && backgroundsong && backgroundsong.paused && !isAdamPlaying) {
+    backgroundsong.play().catch(e => console.log('Background music resume failed:', e));
+  } else if (!gameStarted && passive && passive.paused && !isAdamPlaying) {
+    passive.play().catch(e => console.log('Passive music resume failed:', e));
+  } else if (isAdamPlaying && adamMusic && adamMusic.paused) {
+    adamMusic.play().catch(e => console.log('Adam music resume failed:', e));
   }
+}
   
   function sfx(freq, dur=0.06, vol=0.02, type='sine'){ try{
     if(!audioCtx) audioCtx = new AudioCtx();
@@ -691,13 +690,13 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     if (timeAlive >= 200) return;
     
     lastChanceUpdate += dt;
-    if (lastChanceUpdate >= 3) {
+    if (lastChanceUpdate >= 1) {
       lastChanceUpdate = 0;
       
-      commonChance = Math.max(10, commonChance - 0.4);
-      rareChance = Math.min(40, rareChance + 0.25);
-      legendaryChance = Math.min(15, legendaryChance + 0.5);
-      mythicalChance = Math.min(10, mythicalChance + 0.5);
+      commonChance = Math.max(10, commonChance - 0.1);
+      rareChance = Math.min(40, rareChance);
+      legendaryChance = Math.min(15, legendaryChance + 0.07);
+      mythicalChance = Math.min(10, mythicalChance + 0.03);
     }
   }
 
@@ -2518,10 +2517,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       this.x = x;
       this.y = y;
       this.r = 12;
-      this.life = 10.0;
-      this.maxLife = 10.0;
-      this.speed = 100;
-      this.damage = 4;
+      this.life = 5.0;
+      this.maxLife = 5.0;
+      this.speed = 125;
+      this.damage = 1;
       this.color = '#a78bfa';
       this.target = null;
       this.damageTimer = 0;
@@ -4199,19 +4198,19 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       }
       
       if (this.health <= 0 && player.stats.ghost.level > 0) {
-        const ghostChance = player.stats.ghost.level === 1 ? 0.1 : 
-                           player.stats.ghost.level === 2 ? 0.1 : 0.15;
+        const ghostChance = player.stats.ghost.level === 1 ? 0.25 : 
+                           player.stats.ghost.level === 2 ? 0.4 : 0.5;
         
         if (Math.random() < ghostChance) {
           const ghost = new Ghost(this.x, this.y);
           
           if (player.stats.ghost.level >= 2) {
-            ghost.speed *= 1.25;
-            ghost.damage *= 1.25;
+            ghost.speed == 150;
+            ghost.damage == 2;
           }
           if (player.stats.ghost.level >= 3) {
-            ghost.speed *= 1.5;
-            ghost.damage *= 1.5;
+            ghost.speed == 160;
+            ghost.damage == 3;
           }
           
           ghosts.push(ghost);
@@ -4611,10 +4610,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     abilityCooldown.style.display = 'none';
     freezeOverlay.style.display = 'none';
     
-    commonChance = 60;
+    commonChance = 70;
     rareChance = 30;
-    legendaryChance = 8;
-    mythicalChance = 2;
+    legendaryChance = 0;
+    mythicalChance = 0;
     lastChanceUpdate = 0;
     
     emergencyAbility = 'tripleShot';
@@ -4669,7 +4668,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     levelUpNotification.style.display = 'none';
     resetGame();
     audioResume();
-    playBackgroundMusic();
+    playbackgroundsong();
   }
 
   document.getElementById('restart').addEventListener('click', () => { 
@@ -5189,8 +5188,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       workers: player.stats.workers.level === 0 ? 'Add a mini bot that attacks enemies' :
               player.stats.workers.level === 1 ? 'Add 2 mini bots' :
               player.stats.workers.level === 2 ? 'Add 3 mini bots' : 'Add 5 mini bots',
-      ghost: player.stats.ghost.level === 0 ? '10% chance to summon ghost on kill' :
-            player.stats.ghost.level === 1 ? '+25% ghost speed & damage' : '+50% ghost speed & damage & 15% chance',
+      ghost: player.stats.ghost.level === 0 ? '25% chance to summon ghost on kill' :
+            player.stats.ghost.level === 1 ? '40% Chance to summon a ghost on kill | +20% ghost speed & +100% ghost damage' : '50% Chance to summon a ghost on kill | +6.7% ghost speed & +50% ghost damage',
       holyLife: 'Tripple your current lives',
       killBoost: player.stats.killBoost.level === 0 ? '+40% speed for 3s after kill' :
                 player.stats.killBoost.level === 1 ? '+70% speed for 5s after kill' : '+100% speed for 6s after kill',
@@ -5231,9 +5230,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       freeze: 'Replace emergency ability with Freeze: Freeze all enemies for 10 seconds',
       lastResort: player.stats.lastResort.level === 0 ? 'Replace emergency ability with Last Resort: Become invincible and move 50% faster for 3 seconds' :
                 'Last Resort now has 12 second cooldown',
-      music: 'Play epic Adam music +40% bullet damage +40% fire rate',
-      damageZone: player.stats.damageZone.level === 0 ? 'Passive: Creates a damage zone around you that continuously damages enemies' :
-                 'Damage zone +30% damage and +50% area',
+      music: 'Play epic Adam music & +50% fire rate',
+      damageZone: player.stats.damageZone.level === 0 ? 'Passive: Creates a damage zone around you that continuously damages enemies (NOTE! NO XP recived from damage-zone kills)' :
+                 'Damage zone +30% increased damage and +50% larger area',
       minigun: player.stats.minigun.level === 0 ? 'Fire an additional tiny bullet every 0.5 seconds' :
               player.stats.minigun.level === 1 ? 'Now fires every 0.3 seconds' :
               player.stats.minigun.level === 2 ? 'Now fires every 0.15 seconds' :
@@ -5341,7 +5340,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       case 'rocket':
         // Boosted: Rockets are now stronger
         if (player.stats.rocket.level === 1) {
-          player.damageMultiplier *= 1.1;
+          player.damageMultiplier *= 1;
         } else if (player.stats.rocket.level === 2) {
           player.damageMultiplier *= 1.2;
         }
@@ -5387,8 +5386,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         break;
       case 'music':
         playAdamMusic();
-        player.damageMultiplier *= 1.4; // % damage
-        player.fireRate = Math.max(0.2, player.fireRate * 0.6); // % fire rate (halved cooldown)
+        player.fireRate = Math.max(0.2, player.fireRate * 0.5); // % fire rate (halved cooldown)
         break;
       case 'damageZone':
         // Damage zone is now always active passive
@@ -6175,7 +6173,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     // Draw damage zone (passive)
     if (damageZoneActive && player.stats.damageZone.level > 0) {
       const swordCount = player.stats.damageZone.level === 1 ? 1 : 2;
-      const damageMultiplier = player.stats.damageZone.level === 2 ? 1.3 : 1.0;
+      const damageMultiplier = player.stats.damageZone.level === 2 ? 2 : 1.5;
       const areaMultiplier = player.stats.damageZone.level === 2 ? 1.5 : 1.0;
       
       for (let i = 0; i < swordCount; i++) {
