@@ -194,6 +194,57 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Hardcore Mode Styles */
+.hardcore-mode .card {
+  border-color: rgba(255, 107, 107, 0.1);
+  background: linear-gradient(180deg, rgba(255, 107, 107, 0.05), rgba(255, 107, 107, 0.02));
+}
+
+.hardcore-mode .btn {
+  background: linear-gradient(180deg, #2a1515, #1a0a0a);
+  border-color: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+}
+
+.hardcore-mode .start-btn {
+  background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+}
+
+.hardcore-mode .start-title {
+  background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+}
+
+.hardcore-mode canvas {
+  box-shadow: 0 12px 40px rgba(255, 0, 0, 0.3);
+  border: 1px solid rgba(255, 107, 107, 0.1);
+}
+
+/* Freemode Styles */
+.freemode-mode .card {
+  border-color: rgba(77, 171, 247, 0.1);
+  background: linear-gradient(180deg, rgba(77, 171, 247, 0.05), rgba(77, 171, 247, 0.02));
+}
+
+.freemode-mode .btn {
+  background: linear-gradient(180deg, #15253a, #0a1a2a);
+  border-color: rgba(77, 171, 247, 0.1);
+  color: #4dabf7;
+}
+
+.freemode-mode .start-btn {
+  background: linear-gradient(90deg, #4dabf7, #63e6be);
+}
+
+.freemode-mode .start-title {
+  background: linear-gradient(90deg, #4dabf7, #63e6be);
+}
+
+.freemode-mode canvas {
+  box-shadow: 0 12px 40px rgba(0, 100, 255, 0.3);
+  border: 1px solid rgba(77, 171, 247, 0.1);
+}
+
 </style>
 </head>
 <body>
@@ -429,6 +480,30 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   // Audio elements
   let backgroundsong, passive, adamMusic;
   let isAdamPlaying = false;
+
+// Function to change background based on game mode
+function updateBackgroundForGameMode(mode) {
+  const app = document.querySelector('.app');
+  
+  // Remove any existing game mode classes
+  app.classList.remove('hardcore-mode', 'freemode-mode');
+  
+  // Add appropriate class for the game mode
+  if (mode === 'hardcore') {
+    app.classList.add('hardcore-mode');
+    document.body.style.background = 
+      'radial-gradient(1200px 700px at 10% 20%, #2a0a0a 0%, #1a0505 30%, #0a0202 100%)';
+  } else if (mode === 'freemode') {
+    app.classList.add('freemode-mode');
+    document.body.style.background = 
+      'radial-gradient(1200px 700px at 10% 20%, #0a2a3a 0%, #051525 30%, #020a15 100%)';
+  } else {
+    // Classic mode - reset to defaults
+    app.classList.remove('hardcore-mode', 'freemode-mode');
+    document.body.style.background = 
+      'radial-gradient(1200px 700px at 10% 20%, #071226 0%, #05101a 30%, #02060a 100%)';
+  }
+}
 
 // Initialize audio
 function initAudio() {
@@ -4539,8 +4614,8 @@ function initAudio() {
       player.lives = 1;
     } else if (gameMode === 'freemode') {
       player.lives = 10;
-      // Give 10 random upgrades in freemode
-      for (let i = 0; i < 10; i++) {
+      // Give 3 random upgrades in freemode
+      for (let i = 0; i < 3; i++) {
         const availableTypes = [];
         for (const stat in player.stats) {
           if (player.stats[stat].level < player.stats[stat].max) {
@@ -4658,6 +4733,7 @@ function initAudio() {
   }
 
   function startGame(mode){
+  updateBackgroundForGameMode(mode); // ADD THIS LINE HERE
     gameMode = mode;
     gameStarted = true;
     running = true;
