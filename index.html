@@ -408,11 +408,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let saferSpacesActive = false;
   let saferSpacesTimer = 0;
   let saferSpacesHealth = 4;
-  
+
   // Adrenaline tracking
   let adrenalineActive = false;
   let adrenalineTimer = 0;
-
   // New abilities
   let damageZoneActive = false;
   let damageZoneTimer = 0;
@@ -569,16 +568,17 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       activateEmergencyAbility();
     }
 
-    // Pause game
+    // Pause game - FIXED: Can't pause while upgrade menu is open
+    //YAYYY
     if (e.key === 'p' || e.key === 'P') {
-      if (gameStarted && running) {
-        gamePaused = !gamePaused;
-        if (gamePaused) {
-          showPauseMenu();
-        } else {
-          hidePauseMenu();
+        if (gameStarted && running && upgradeMenu.style.display !== 'block') {
+            gamePaused = !gamePaused;
+            if (gamePaused) {
+                showPauseMenu();
+            } else {
+                hidePauseMenu();
+            }
         }
-      }
     }
     audioResume();
   });
@@ -780,13 +780,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         spawnParticles(player.x, player.y, 'rgba(255, 255, 100, 0.9)', 30, Math.PI*2, 150);
         break;
         
-      case 'damageZone':
-        damageZoneActive = true;
-        damageZoneTimer = 10;
-        emergencyAbilityCooldown = 10;
-        playSound('damageZone');
-        break;
-        
       case 'saferSpaces':
         saferSpacesActive = true;
         saferSpacesTimer = 10;
@@ -952,7 +945,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       emergencyAbilityCooldown = 15;
       playSound('shockwave');
     }
-    
+    /*
     // Update damage zone
     if (damageZoneActive) {
       damageZoneTimer -= dt;
@@ -977,7 +970,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         damageZoneActive = false;
       }
     }
-    
+    */
     // Update safer spaces
     if (saferSpacesActive) {
       saferSpacesTimer -= dt;
@@ -1048,7 +1041,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       if (adrenalineTimer <= 0) {
         adrenalineActive = false;
         player.fireRate *= 2;
-        player.speed /= 2;
+        player.speed == player.speed -100;
 
       }
     }
@@ -4509,6 +4502,33 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     }
   }
 
+    // Update passive damage zone
+    if (damageZoneActive) {
+      damageZoneAngle += dt * 5;
+      
+      // Get damage and area multipliers
+      const damageMultiplier = player.stats.damageZone.level === 2 ? 1.3 : 1.0;
+      const areaMultiplier = player.stats.damageZone.level === 2 ? 1.5 : 1.0;
+      const baseDamage = 1.5 * player.damageMultiplier; // Scales with player damage
+      
+      // Damage enemies in the zone - affects all enemies within range
+      for (let i = echoes.length - 1; i >= 0; i--) {
+        const e = echoes[i];
+        const d = dist({x: player.x, y: player.y}, e);
+        if (d < player.r * 6 * areaMultiplier) { // 6x player radius area
+          if (e.takeDamage(baseDamage * damageMultiplier * dt)) {
+            if (gameMode !== 'freemode' || player.lives > 0) {
+              score += 5;
+            }
+            echoesKilled++;
+            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
+            echoes.splice(i, 1);
+            echoCountEl.textContent = echoes.length;
+          }
+        }
+      }
+    }
+
   // Reset
   function resetGame(){
     player.x = W/2; player.y = H/2; player.vx = player.vy = 0; player.dashCD = 0; player.invul = 0;
@@ -5212,8 +5232,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       lastResort: player.stats.lastResort.level === 0 ? 'Replace emergency ability with Last Resort: Become invincible and move 50% faster for 3 seconds' :
                 'Last Resort now has 12 second cooldown',
       music: 'Play epic Adam music +40% bullet damage +40% fire rate',
-      damageZone: player.stats.damageZone.level === 0 ? 'Passive: Spinning swords around player (3x size)' :
-                 'Damage area +50% and damage +30%',
+      damageZone: player.stats.damageZone.level === 0 ? 'Passive: Creates a damage zone around you that continuously damages enemies' :
+                 'Damage zone +30% damage and +50% area',
       minigun: player.stats.minigun.level === 0 ? 'Fire an additional tiny bullet every 0.5 seconds' :
               player.stats.minigun.level === 1 ? 'Now fires every 0.3 seconds' :
               player.stats.minigun.level === 2 ? 'Now fires every 0.15 seconds' :
@@ -5371,8 +5391,14 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         player.fireRate = Math.max(0.2, player.fireRate * 0.6); // % fire rate (halved cooldown)
         break;
       case 'damageZone':
-        // Make damage zone passive
+        // Damage zone is now always active passive
         damageZoneActive = true;
+        // Level 2 increases damage and area
+        if (player.stats.damageZone.level === 2) {
+          // These multipliers will be used in the damage zone logic
+          player.damageZoneMultiplier = 1.3;
+          player.damageZoneArea = 1.5;
+        }
         break;
       case 'minigun':
         minigunActive = true;
@@ -5806,7 +5832,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
             if (player.stats.adrenaline.level === 1) {
               adrenalineActive = true;
               adrenalineTimer = 2;
-              player.speed *= 2;
+              player.speed == player.speed + 100;
               player.fireRate = Math.max(0.05, player.fireRate * 0.5);
             }
 
@@ -5824,7 +5850,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
               if (player.stats.adrenaline.level === 1) {
                 adrenalineActive = true;
                 adrenalineTimer = 2;
-                player.speed *= 2;
+                player.speed == player.speed + 100;
                 player.fireRate = Math.max(0.05, player.fireRate * 0.5);              }
 
             
@@ -5941,7 +5967,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           if (player.stats.adrenaline.level === 1) {
             adrenalineActive = true;
             adrenalineTimer = 2;
-            player.speed *= 2;
+            player.speed == player.speed + 100;
             player.fireRate = Math.max(0.05, player.fireRate * 0.5);          
           }
         } else if (shield <= 0) {
@@ -5958,7 +5984,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           if (player.stats.adrenaline.level === 1) {
             adrenalineActive = true;
             adrenalineTimer = 2;
-            player.speed *= 2;
+            player.speed == player.speed + 100;
             player.fireRate = Math.max(0.05, player.fireRate * 0.5);
           }
           
@@ -6147,7 +6173,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     }
 
     // Draw damage zone (passive)
-    if (damageZoneActive) {
+    if (damageZoneActive && player.stats.damageZone.level > 0) {
       const swordCount = player.stats.damageZone.level === 1 ? 1 : 2;
       const damageMultiplier = player.stats.damageZone.level === 2 ? 1.3 : 1.0;
       const areaMultiplier = player.stats.damageZone.level === 2 ? 1.5 : 1.0;
@@ -6157,30 +6183,32 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         const swordX = player.x + Math.cos(angle) * player.r * 2;
         const swordY = player.y + Math.sin(angle) * player.r * 2;
         
-        ctx.beginPath();
-        ctx.strokeStyle = '#ff6b6b';
-        ctx.lineWidth = 4;
-        ctx.moveTo(swordX, swordY);
-        ctx.lineTo(
-          swordX + Math.cos(angle + Math.PI/4) * player.r,
-          swordY + Math.sin(angle + Math.PI/4) * player.r
-        );
-        ctx.lineTo(
-          swordX + Math.cos(angle - Math.PI/4) * player.r,
-          swordY + Math.sin(angle - Math.PI/4) * player.r
-        );
-        ctx.closePath();
-        ctx.stroke();
+        // Draw rotating swords
+        ctx.save();
+        ctx.translate(swordX, swordY);
+        ctx.rotate(angle);
         
-        // Sword trail - 3x bigger radius
-        const g = ctx.createRadialGradient(swordX, swordY, 1, swordX, swordY, player.r*9 * areaMultiplier);
+        ctx.beginPath();
+        ctx.fillStyle = '#ff6b6b';
+        ctx.moveTo(0, -player.r * 0.5);
+        ctx.lineTo(player.r * 0.3, player.r * 0.5);
+        ctx.lineTo(0, player.r * 0.3);
+        ctx.lineTo(-player.r * 0.3, player.r * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+        
+        // Sword trail/effect area
+        const g = ctx.createRadialGradient(swordX, swordY, 1, swordX, swordY, player.r * 6 * areaMultiplier);
         g.addColorStop(0, 'rgba(255,107,107,0.3)');
+        g.addColorStop(0.5, 'rgba(255,107,107,0.1)');
         g.addColorStop(1, 'rgba(255,107,107,0.0)');
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(swordX, swordY, player.r*9 * areaMultiplier, 0, Math.PI*2);
+        ctx.arc(swordX, swordY, player.r * 6 * areaMultiplier, 0, Math.PI*2);
         ctx.fill();
-        
+
         // Damage enemies in the zone
         for (const e of echoes) {
           const d = dist({x: swordX, y: swordY}, e);
@@ -6485,9 +6513,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     }
     
     if (player.maxWorkers > 0) {
-      ctx.fillStyle = '#63e6be';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Bots: ' + player.workers.length + '/' + player.maxWorkers, W - 210, 65);
+        ctx.fillStyle = '#63e6be';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('Bots: ' + player.workers.length, W - 210, 65);
     }
     
     if (pendingUpgrades > 0 && !maxLevelReached) {
