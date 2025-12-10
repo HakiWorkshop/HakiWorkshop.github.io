@@ -5131,7 +5131,7 @@ function initAudio() {
       fireRate: 'Rapid Fire',
       bulletSpeed: 'Hyper Velocity',
       movement: 'Agility Boost',
-      dash: 'Auto Dash',
+      dash: 'NOT ACTIVE',
       knockback: 'Recoil Dampener',
       bulletSize: 'Heavy Caliber',
       bulletLife: 'Extended Range',
@@ -5172,8 +5172,8 @@ function initAudio() {
       fireRate: 'Increase fire rate by 20%',
       bulletSpeed: 'Bullets travel 30% faster',
       movement: 'Movement speed increased by 15%',
-      dash: player.stats.dash.level === 0 ? 'Auto dash away from enemies (invincible during dash, deals 1 damage)' : 
-           player.stats.dash.level === 1 ? '+50% dash length, halved dash cooldown, fire trail, deals 2 damage' : '+50% length & fire trail, deals 3 damage',
+      dash: player.stats.dash.level === 0 ? 'NOT ACTIVE' : 
+           player.stats.dash.level === 1 ? 'NOT ACTIVE' : 'NOT ACTIVE',
       knockback: 'Remove recoil',
       bulletSize: player.stats.bulletSize.level === 0 ? 'Increase bullet size by 100%' :
                  player.stats.bulletSize.level === 1 ? 'Increase bullet size by 50% (total 150%)' : 'Increase bullet size by 50% (total 200%)',
