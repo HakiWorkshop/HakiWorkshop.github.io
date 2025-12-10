@@ -552,7 +552,7 @@ function initAudio() {
   // player
   const player = { 
     x: W/2, y: H/2, r: 14, vx:0, vy:0, speed:250, dashCD:0, invul:0,
-    fireRate: 0.72,
+    fireRate: 0.6,
     bulletSpeed: 460, bulletSize: 6, bulletLife: 0.5,
     spread: 0.18, dashPower: 3.2, dashCooldown: 5.0, dashLength: 1.0,
     knockback: 1.0, lives: 3,
@@ -759,6 +759,15 @@ function initAudio() {
   const rand = (a,b) => a + Math.random()*(b-a);
   const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
   function vecTo(fromX, fromY, toX, toY){ const dx = toX-fromX, dy = toY-fromY; const m = Math.hypot(dx,dy)||1; return {x:dx/m,y:dy/m,mag:m}; }
+  
+  
+  // Set hardcore mode starting stats - COMPACT VERSION
+function setHardcoreStartingStats() {
+  // Better base stats
+  player.speed = 200;           // -50 speed
+  player.fireRate = 1;        // Super slow firing
+  player.damageMultiplier = 1; //Same damage multiplier
+}
 
   // Update upgrade chances over time
   function updateUpgradeChances(dt) {
@@ -811,7 +820,7 @@ function initAudio() {
         }
         guardsActive = true;
         guardsTimer = 20;
-        emergencyAbilityCooldown = 30;
+        emergencyAbilityCooldown = 35;
         playSound('guards');
         break;
         
@@ -1019,32 +1028,7 @@ function initAudio() {
       emergencyAbilityCooldown = 15;
       playSound('shockwave');
     }
-    /*
-    // Update damage zone
-    if (damageZoneActive) {
-      damageZoneTimer -= dt;
-      damageZoneAngle += dt * 5;
-      
-      // Damage enemies in the zone - 3x bigger radius
-      for (const e of echoes) {
-        const d = dist({x: player.x, y: player.y}, e);
-        if (d < player.r * 9) { // Increased from 3 to 9 (3x bigger)
-          if (e.takeDamage(2 * dt)) {
-            echoesKilled++;
-            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-            const index = echoes.indexOf(e);
-            if (index > -1) {
-              echoes.splice(index, 1);
-            }
-          }
-        }
-      }
-      
-      if (damageZoneTimer <= 0) {
-        damageZoneActive = false;
-      }
-    }
-    */
+
     // Update safer spaces
     if (saferSpacesActive) {
       saferSpacesTimer -= dt;
@@ -1126,10 +1110,9 @@ function initAudio() {
     switch(emergencyAbility) {
       case 'tripleShot': return 15;
       case 'shockwave': return 15;
-      case 'guards': return 30;
+      case 'guards': return 35;
       case 'freeze': return 30;
       case 'lastResort': return 20;
-      case 'damageZone': return 15;
       case 'saferSpaces': return 30;
       case 'dash': return player.dashCooldown;
       default: return 15;
@@ -4609,35 +4592,36 @@ function initAudio() {
     player.trail = [];
     player.workers = [];
     
-    // Set initial lives based on game mode
-    if (gameMode === 'hardcore') {
-      player.lives = 1;
-    } else if (gameMode === 'freemode') {
-      player.lives = 10;
-      // Give 3 random upgrades in freemode
-      for (let i = 0; i < 3; i++) {
-        const availableTypes = [];
-        for (const stat in player.stats) {
-          if (player.stats[stat].level < player.stats[stat].max) {
-            availableTypes.push(stat);
-          }
-        }
-        
-        if (availableTypes.length > 0) {
-          const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-          player.stats[type].level++;
+  // Set initial lives based on game mode
+  if (gameMode === 'hardcore') {
+    player.lives = 1;
+    // Apply hardcore starting stats
+    setHardcoreStartingStats();
+  } else if (gameMode === 'freemode') {
+    player.lives = 10;
+    // Give 3 random upgrades in freemode
+    for (let i = 0; i < 3; i++) {
+      const availableTypes = [];
+      for (const stat in player.stats) {
+        if (player.stats[stat].level < player.stats[stat].max) {
+          availableTypes.push(stat);
         }
       }
       
-      // Ensure worker collector works in freemode
-      if (player.stats.workerCollector.level > 0) {
-        const worker = new WorkerCollector();
-        player.workers.push(worker);
+      if (availableTypes.length > 0) {
+        const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+        player.stats[type].level++;
       }
-    } else {
-      player.lives = 3;
     }
     
+    // Ensure worker collector works in freemode
+    if (player.stats.workerCollector.level > 0) {
+      const worker = new WorkerCollector();
+      player.workers.push(worker);
+    }
+  } else {
+    player.lives = 3;
+  }    
     playerLevel = 1;
     playerXP = 0;
     xpToNextLevel = 100;
