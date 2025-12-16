@@ -40,7 +40,8 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 .rarity-rare{background:rgba(77,171,247,0.3);color:#4dabf7}
 .rarity-legendary{background:rgba(255,215,0,0.3);color:#ffd700}
 .rarity-mythical{background:rgba(148,0,211,0.3);color:#da70d6}
-.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,6,12,0.9);z-index:50}
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,6,12,0.9);z-index:50;opacity:1;visibility:visible;transition:opacity 0.2s ease, visibility 0.2s ease;}
+.screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
 .start-screen{background:radial-gradient(circle at 50% 30%, #0a1a2a 0%, #02060a 100%)}
 .start-title{font-size:48px;font-weight:bold;margin-bottom:10px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center;text-shadow:0 0 20px rgba(126,231,135,0.5)}
 .start-subtitle{font-size:18px;color:var(--muted);margin-bottom:40px;text-align:center;max-width:600px}
@@ -297,11 +298,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   
   <div class="controls">
     <div class="control-group">
-      <div class="control-title">Movement</div>
+      <div class="control-title">Control</div>
       <div class="control-item"><span>Move</span><span class="control-key">WASD / Arrows</span></div>
       <div class="control-item"><span>Upgrade Menu</span><span class="control-key">TAB</span></div>
-      <div class="control-item"><span>Auto Aim</span><span class="control-key">N</span></div>
-      <div class="control-item"><span>Auto Fire</span><span class="control-key">M</span></div>
       <div class="control-item"><span>Emergency Ability</span><span class="control-key">L</span></div>
       <div class="control-item"><span>Pause</span><span class="control-key">P</span></div>
     </div>
@@ -309,6 +308,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       <div class="control-title">Combat</div>
       <div class="control-item"><span>Aim</span><span class="control-key">MOUSE</span></div>
       <div class="control-item"><span>Fire</span><span class="control-key">MOUSE CLICK/HOLD</span></div>
+      <div class="control-item"><span>Auto Aim</span><span class="control-key">N</span></div>
+      <div class="control-item"><span>Auto Fire</span><span class="control-key">M</span></div>
     </div>
   </div>
 </div>
@@ -763,10 +764,10 @@ function initAudio() {
   
   // Set hardcore mode starting stats - COMPACT VERSION
 function setHardcoreStartingStats() {
-  // Better base stats
+  // Worse base stats
   player.speed = 200;           // -50 speed
   player.fireRate = 1;        // Super slow firing
-  player.damageMultiplier = 1; //Same damage multiplier
+  player.damageMultiplier = 1.5; //Same damage multiplier
 }
 
   // Update upgrade chances over time
@@ -4712,23 +4713,42 @@ function setHardcoreStartingStats() {
       player.stats.holyLife.max = 1;
       player.stats.adrenaline.max = 1;
     }
-    
     updateUI();
   }
 
+  // Start game
   function startGame(mode){
-  updateBackgroundForGameMode(mode); // ADD THIS LINE HERE
+    updateBackgroundForGameMode(mode);
     gameMode = mode;
-    gameStarted = true;
-    running = true;
-    startScreen.style.display = 'none';
-    deathScreen.style.display = 'none';
-    upgradeMenu.style.display = 'none';
-    pauseMenu.style.display = 'none';
-    levelUpNotification.style.display = 'none';
+    
+    // First, reset the game immediately to clear any existing XP orbs
     resetGame();
-    audioResume();
-    playbackgroundsong();
+    
+    // Add fade-out transition to start screen
+    startScreen.classList.add('hidden');
+    
+    // After transition completes, start the game
+    setTimeout(() => {
+      startScreen.style.display = 'none';
+      deathScreen.style.display = 'none';
+      upgradeMenu.style.display = 'none';
+      pauseMenu.style.display = 'none';
+      levelUpNotification.style.display = 'none';
+      
+      // Now set the game as started and running
+      gameStarted = true;
+      running = true;
+      
+      audioResume();
+      playbackgroundsong();
+      
+      // Add a subtle fade-in effect for the game canvas
+      canvas.style.opacity = '0';
+      canvas.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => {
+        canvas.style.opacity = '1';
+      }, 50);
+    }, 200); // Wait for CSS transition to complete 
   }
 
   document.getElementById('restart').addEventListener('click', () => { 
@@ -4740,6 +4760,7 @@ function setHardcoreStartingStats() {
   classicBtn.addEventListener('click', () => { startGame('classic'); });
   hardcoreBtn.addEventListener('click', () => { startGame('hardcore'); });
   freemodeBtn.addEventListener('click', () => { startGame('freemode'); });
+  
   restartFromDeath.addEventListener('click', () => { 
     if (confirm("Refresh the game to start a new run?")) {
       location.reload();
@@ -4847,28 +4868,50 @@ function setHardcoreStartingStats() {
     let flankerAngle = Math.PI / 12;
 
     if (flankerLevel > 0) {
-      // activation timing
-      const canActivate =
-        (flankerLevel === 1 && bulletCounter % 3 === 0) ||
-        (flankerLevel === 2 && bulletCounter % 2 === 0) ||
-        flankerLevel >= 3;
+      // activation timing - FIXED: Proper activation conditions
+      let canActivate = false;
+      
+      if (flankerLevel === 1) {
+        // Level 1: Every 3rd bullet
+        canActivate = (bulletCounter % 3 === 0);
+      } else if (flankerLevel === 2) {
+        // Level 2: Every 2nd bullet  
+        canActivate = (bulletCounter % 2 === 0);
+      } else if (flankerLevel === 3) {
+        // Level 3: Every bullet
+        canActivate = true;
+      } else if (flankerLevel === 4) {
+        // Level 4: Every bullet + more bullets
+        canActivate = true;
+      } else if (flankerLevel >= 5) {
+        // Level 5+: Every bullet with increased count
+        canActivate = true;
+      }
 
       if (canActivate) {
         isFlanker = true;
 
-        // bullet count per level
-        const lvl = flankerLevel;
+        // FIXED: Proper bullet count per level
         flankerBullets =
-          lvl === 1 ? 2 :
-          lvl === 2 ? 3 :
-          lvl === 3 ? 3 :
-          lvl === 4 ? 4 :
-          lvl === 5 ? 5 :
-          lvl === 6 ? 7 :
-          lvl === 7 ? 10 : 0;
+          flankerLevel === 1 ? 2 :
+          flankerLevel === 2 ? 3 :
+          flankerLevel === 3 ? 3 :
+          flankerLevel === 4 ? 4 :
+          flankerLevel === 5 ? 5 :
+          flankerLevel === 6 ? 7 :
+          flankerLevel === 7 ? 10 : 0;
+        
+        // FIXED: Proper spread angle based on level
+        flankerAngle = 
+          flankerLevel === 1 ? Math.PI / 12 :  // 15 degrees
+          flankerLevel === 2 ? Math.PI / 9 :   // 20 degrees
+          flankerLevel === 3 ? Math.PI / 8 :   // 22.5 degrees
+          flankerLevel === 4 ? Math.PI / 4 :   // 45 degrees - wider spread
+          flankerLevel === 5 ? Math.PI / 3 :   // 60 degrees
+          flankerLevel === 6 ? Math.PI / 2.5 : // ~72 degrees
+          Math.PI / 2;                         // 90 degrees
       }
-    }
-    
+    }    
     const powerBulletLevel = player.stats.powerBullet.level;
     let isPowerBullet = false;
     let powerBulletMultiplier = 1;
@@ -4925,34 +4968,45 @@ function setHardcoreStartingStats() {
       spawnParticles(player.x, player.y, 'rgba(255,100,0,0.9)', 20, Math.PI*2, 150);
       // Don't return - continue to fire regular bullet
     }
-    if (isFlanker && flankerLevel > 0) {
-      if (flankerLevel === 4) {
-        const spreadAngle = Math.PI / 6;
-        for (let i = 0; i < flankerBullets; i++) {
-          const angleOffset = (i - (flankerBullets - 1) / 2) * spreadAngle;
-          const flankerAngle = Math.atan2(aim.y, aim.x) + angleOffset;
-          const dx = Math.cos(flankerAngle);
-          const dy = Math.sin(flankerAngle);
-          
-          const bullet = { 
-            x: player.x + dx*player.r*1.6, 
-            y: player.y + dy*player.r*1.6, 
-            dx, dy, 
-            t:0, 
-            life: player.bulletLife,
-            speed: player.bulletSpeed,
-            size: player.bulletSize,
-            willExplode: false,
-            damage: 1 * player.damageMultiplier,
-            flanker: true
-          };
-          
-          bullets.push(bullet);
-        }
-      } else {
-        const flankerAngle = Math.atan2(aim.y, aim.x) + Math.PI;
-        const dx = Math.cos(flankerAngle);
-        const dy = Math.sin(flankerAngle);
+
+      if (isFlanker && flankerLevel > 0) {
+    // FIXED: Flanker bullets fire BACKWARDS with spread
+    const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
+    
+    if (flankerLevel === 7) {
+      // Level 7: Fire 10 bullets in a full backward circle
+      for (let i = 0; i < flankerBullets; i++) {
+        const angle = baseBackwardAngle + (i / flankerBullets) * Math.PI * 2;
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
+        
+        const bullet = { 
+          x: player.x + dx*player.r*1.6, 
+          y: player.y + dy*player.r*1.6, 
+          dx, dy, 
+          t:0, 
+          life: player.bulletLife * 0.8,
+          speed: player.bulletSpeed * 0.9,
+          size: player.bulletSize * 0.8,
+          willExplode: false,
+          damage: 0.8 * player.damageMultiplier,
+          flanker: true,
+          color: '#74c0fc'
+        };
+        
+        bullets.push(bullet);
+      }
+    } else if (flankerLevel === 4) {
+      // Level 4: Fire 4 bullets in a backward cross pattern
+      const angles = [
+        baseBackwardAngle, // Straight back
+        baseBackwardAngle + Math.PI/4, // Back-left diagonal
+        baseBackwardAngle - Math.PI/4, // Back-right diagonal
+        baseBackwardAngle + Math.PI/2  // Perpendicular back
+      ];
+      for (let i = 0; i < Math.min(flankerBullets, angles.length); i++) {
+        const dx = Math.cos(angles[i]);
+        const dy = Math.sin(angles[i]);
         
         const bullet = { 
           x: player.x + dx*player.r*1.6, 
@@ -4964,13 +5018,40 @@ function setHardcoreStartingStats() {
           size: player.bulletSize,
           willExplode: false,
           damage: 1 * player.damageMultiplier,
-          flanker: true
+          flanker: true,
+          color: '#74c0fc'
+        };
+        
+        bullets.push(bullet);
+      }
+    } else {
+      // Levels 1-6: Fire backward bullets in a spread pattern
+      for (let i = 0; i < flankerBullets; i++) {
+        // Calculate angle offset for backward spread
+        const spreadOffset = (i - Math.floor(flankerBullets / 2)) * flankerAngle;
+        const bulletAngle = baseBackwardAngle + spreadOffset;
+        const dx = Math.cos(bulletAngle);
+        const dy = Math.sin(bulletAngle);
+        
+        const bullet = { 
+          x: player.x + dx*player.r*1.6, 
+          y: player.y + dy*player.r*1.6, 
+          dx, dy, 
+          t:0, 
+          life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
+          speed: player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1),
+          size: player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1),
+          willExplode: false,
+          damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
+          flanker: true,
+          color: '#74c0fc'
         };
         
         bullets.push(bullet);
       }
     }
-    
+  }
+  
     const spread = player.spread * (1 + Math.min(1.5, (difficulty-1)/2));
     const angleOffset = rand(-spread/2, spread/2);
     const cos = Math.cos(angleOffset), sin = Math.sin(angleOffset);
@@ -5137,6 +5218,12 @@ function setHardcoreStartingStats() {
             (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
           continue;
         }
+
+        // Remove multiple upgrades
+        const upgradesToRemove = ['autodash', 'adrenaline'];
+        if (upgradesToRemove.includes(stat)) {
+          continue;
+        }
         
         if (player.stats[stat].rarity === rarity && 
             player.stats[stat].level < player.stats[stat].max) {
@@ -5252,7 +5339,7 @@ function setHardcoreStartingStats() {
             player.stats.ghost.level === 1 ? '40% Chance to summon a ghost on kill | +20% ghost speed & +100% ghost damage' : '50% Chance to summon a ghost on kill | +6.7% ghost speed & +50% ghost damage',
       holyLife: 'Tripple your current lives',
       killBoost: player.stats.killBoost.level === 0 ? '+40% speed for 3s after kill' :
-                player.stats.killBoost.level === 1 ? '+70% speed for 5s after kill' : '+100% speed for 6s after kill',
+                player.stats.killBoost.level === 1 ? '+50% speed for 4s after kill' : '+60% speed for 5s after kill',
       boomerang: player.stats.boomerang.level === 0 ? '20% chance for bullets to return' :
                 player.stats.boomerang.level === 1 ? '50% chance for bullets to return' : '100% chance for bullets to return',
       fire: player.stats.fire.level === 0 ? 'Every 20th bullet becomes a fire pulse (5 damage + DoT) with fire area' : 'Fire area +100% and duration +60%',
@@ -5282,9 +5369,13 @@ function setHardcoreStartingStats() {
                       player.stats.workerCollector.level === 1 ? 'Workers gain an additional 100% xp from xp orbs and move 100% faster' :
                       player.stats.workerCollector.level === 2 ? 'Workers leave a fire trail dealing burning damage to enemies' :
                       'Workers are equipped with auto-aim weapon that fires 2 bullets every second',
-      flanker: player.stats.flanker.level === 0 ? 'Every 3rd bullet fires 2 additional bullets with a small angle' :
-              player.stats.flanker.level === 1 ? 'Every 2nd bullet fires 2 additional bullets' :
-              player.stats.flanker.level === 2 ? 'Every bullet fires 2 additional bullets' : 'Every bullet fires 1 additional bullet backwards',
+    flanker: player.stats.flanker.level === 0 ? 'Every 3rd bullet fires 2 additional bullets backwards (15° spread)' :
+        player.stats.flanker.level === 1 ? 'Every 2nd bullet fires 3 bullets backwards (20° spread)' :
+        player.stats.flanker.level === 2 ? 'Every bullet fires 3 bullets backwards (22.5° spread)' :
+        player.stats.flanker.level === 3 ? 'Every bullet fires 4 bullets backwards in cross pattern' :
+        player.stats.flanker.level === 4 ? 'Every bullet fires 5 bullets backwards (60° spread)' :
+        player.stats.flanker.level === 5 ? 'Every bullet fires 7 bullets backwards (72° spread)' :
+        'Every bullet fires 10 bullets backwards in full circle',
       shockwave: 'Replace emergency ability with Shockwave: Fire an electrical shockwave every 4 seconds that expands and freezes enemies',
       guards: 'Replace emergency ability with Guards: Summon 5 guards',
       freeze: 'Replace emergency ability with Freeze: Freeze all enemies for 10 seconds',
@@ -5483,6 +5574,9 @@ function setHardcoreStartingStats() {
 
   // Spawn random upgrade
   function spawnUpgrade(){
+    // Don't spawn upgrades if game hasn't started
+    if (!gameStarted || !running) return;
+    
     if(upgrades.length < 2 && Math.random() < 0.015){
       const availableTypes = [];
       for (const stat in player.stats) {
@@ -5507,7 +5601,6 @@ function setHardcoreStartingStats() {
       }
     }
   }
-
   // Check for boss spawn
   function checkBossSpawn(dt) {
     if (endlessMode) {
@@ -5670,8 +5763,8 @@ function setHardcoreStartingStats() {
     const baseSpeed = player.speed;
     const killBoostMultiplier = killBoostTimer > 0 ? 
                                (player.stats.killBoost.level === 1 ? 1.4 :
-                                player.stats.killBoost.level === 2 ? 1.7 : 
-                                player.stats.killBoost.level === 4 ? 3.0 : 2.0) : 1;
+                                player.stats.killBoost.level === 2 ? 1.5 : 
+                                player.stats.killBoost.level === 4 ? 3.0 : 1.6) : 1;
     const effectiveSpeed = baseSpeed * killBoostMultiplier;
 
     let ax = 0, ay = 0;
@@ -6099,7 +6192,8 @@ function setHardcoreStartingStats() {
         sfx(1000, 0.08, 0.025, 'sine');
       }
     }
-
+    
+    if (gameStarted && running) {
     const upgradeChance = 0.015 * (1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0));
     if(upgrades.length < 2 && Math.random() < upgradeChance){
       const availableTypes = [];
@@ -6124,6 +6218,7 @@ function setHardcoreStartingStats() {
         upgrades.push(new Upgrade(type));
       }
     }
+  }
     
     checkBossSpawn(dt);
 
@@ -6337,14 +6432,16 @@ function setHardcoreStartingStats() {
         gg.addColorStop(1, `rgba(255, ${40 * pulse}, ${40 * pulse}, 0.02)`);
       } else {
         const color = b.boomerang ? 'rgba(255,100,255,0.9)' : 
-                     b.shotgun ? 'rgba(255,200,100,0.9)' :
-                     b.powerBullet ? 'rgba(255,100,100,0.9)' :
-                     b.worker ? 'rgba(77,171,247,0.9)' : 'rgba(255,255,255,0.9)';
-        const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' : 
-                        b.shotgun ? 'rgba(255,200,100,0.02)' :
-                        b.flanker ? 'rgba(255,200,100, 0.3)' : 
-                        b.powerBullet ? 'rgba(255,100,100,0.02)' :
-                        b.worker ? 'rgba(77,171,247,0.02)' : 'rgba(255,255,255,0.02)';
+             b.shotgun ? 'rgba(255,200,100,0.9)' :
+             b.powerBullet ? 'rgba(255,100,100,0.9)' :
+             b.worker ? 'rgba(77,171,247,0.9)' :
+             b.flanker ? 'rgba(116,192,252,0.9)' : // Blue color for flanker bullets
+             'rgba(255,255,255,0.9)';
+const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' : 
+                b.shotgun ? 'rgba(255,200,100,0.02)' :
+                b.flanker ? 'rgba(116,192,252,0.02)' : // Blue trail for flanker bullets
+                b.powerBullet ? 'rgba(255,100,100,0.02)' :
+                b.worker ? 'rgba(77,171,247,0.02)' : 'rgba(255,255,255,0.02)';
         gg.addColorStop(0, color);
         gg.addColorStop(1, endColor);
       }
@@ -6353,14 +6450,43 @@ function setHardcoreStartingStats() {
       ctx.arc(b.x,b.y,18,0,Math.PI*2); 
       ctx.fill();
       
-      if (b.powerBullet) {
-        ctx.strokeStyle = 'rgba(255,100,100,0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.size * 1.2, 0, Math.PI*2);
-        ctx.stroke();
-      }
+    if (b.powerBullet) {
+      ctx.strokeStyle = 'rgba(255,100,100,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size * 1.2, 0, Math.PI*2);
+      ctx.stroke();
     }
+    
+    // === FLANKER VISUAL EFFECT ===
+    if (b.flanker) {
+      // Add a pulsing glow effect
+      const pulse = 0.7 + Math.sin(timeAlive * 10) * 0.3;
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(116,192,252,${pulse * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.arc(b.x, b.y, b.size * 1.5, 0, Math.PI*2);
+      ctx.stroke();
+      
+      // Add wing-like effect for flanker bullets (pointing backwards)
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(Math.atan2(b.dy, b.dx));
+      
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(116,192,252,${pulse * 0.3})`;
+      ctx.moveTo(0, -b.size * 1.5);
+      ctx.lineTo(-b.size * 2, -b.size * 0.5);
+      ctx.lineTo(-b.size * 2, b.size * 0.5);
+      ctx.lineTo(0, b.size * 1.5);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    // === END FLANKER VISUAL EFFECT ===
+    
+  } // End of for (const b of bullets) loop
 
     const invulEffect = (player.invul > 0 || isDashing) ? Math.sin((player.invul > 0 ? player.invul : dashInvulTimer) * 10) * 0.5 + 0.5 : 1;
     const playerAlpha = (player.invul > 0 || isDashing) ? 0.5 + invulEffect * 0.5 : 1;
@@ -6432,21 +6558,10 @@ function setHardcoreStartingStats() {
       ctx.fillText('AUTO-FIRE ACTIVE', 10, H - 40);
     }
 
-    if (player.stats.dash.level > 0) {
-      const dashPercent = 1 - (player.dashCD / player.dashCooldown);
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(10, H - 60, 100, 8);
-      ctx.fillStyle = '#b197fc';
-      ctx.fillRect(10, H - 60, 100 * dashPercent, 8);
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('DASH', 12, H - 52);
-    }
-
     if (killBoostTimer > 0) {
       const boostDuration = player.stats.killBoost.level === 1 ? 3 : 
-                           player.stats.killBoost.level === 2 ? 5 : 
-                           player.stats.killBoost.level === 4 ? 1 : 6;
+                           player.stats.killBoost.level === 2 ? 4 : 
+                           player.stats.killBoost.level === 4 ? 1 : 5;
       ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(10, H - 80, 100, 8);
       ctx.fillStyle = '#ffd700';
@@ -6620,12 +6735,13 @@ function setHardcoreStartingStats() {
     requestAnimationFrame(loop);
   }
 
+  
+
   // Initialize the game
   initAudio();
   requestAnimationFrame(loop);
 
   window.es = { bullets, echoes, paints, particles, player };
-
 })();
 </script>
 </body>
