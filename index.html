@@ -442,11 +442,13 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let lastChanceUpdate = 0;
 
   // Emergency ability tracking
-  let emergencyAbility = 'tripleShot';
+  let emergencyAbility = 'mineLayer';
   let emergencyAbilityCooldown = 0;
   let emergencyAbilityActive = false;
   let emergencyAbilityTimer = 0;
-  let tripleShotBullets = 0;
+  let minesActive = false;
+  let mines = [];
+  let mineTimer = 0;
   let freezeActive = false;
   let freezeTimer = 0;
   let lastResortActive = false;
@@ -461,9 +463,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let saferSpacesTimer = 0;
   let saferSpacesHealth = 4;
 
-  // Adrenaline tracking
-  let adrenalineActive = false;
-  let adrenalineTimer = 0;
+ 
   // New abilities
   let damageZoneActive = false;
   let damageZoneTimer = 0;
@@ -475,6 +475,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   // Guards array
   const guards = [];
 
+  let lastResortEffectTimer = 0;
+  
   // Safer Spaces wall
   let saferSpacesWall = null;
 
@@ -519,7 +521,7 @@ function initAudio() {
   
   adamMusic = new Audio('adam.mp3');
   adamMusic.loop = true;
-  adamMusic.volume = 0.3;
+  adamMusic.volume = 0.2;
   
   // Start passive music immediately
   passive.play().catch(e => console.log('Passive music play failed:', e));
@@ -565,10 +567,10 @@ function initAudio() {
     autoFireToggle: true,
     sprint: { level: 0, max: 3, rarity: 'rare' },
     stats: {
-      fireRate: {level: 0, max: 10, rarity: 'common'},
-      bulletSpeed: {level: 0, max: 5, rarity: 'common'},
-      movement: {level: 0, max: 10, rarity: 'common'},
-      dash: {level: 0, max: 3, rarity: 'legendary'},
+      fireRate: {level: 0, max: 5, rarity: 'common'},
+      bulletSpeed: {level: 0, max: 3, rarity: 'common'},
+      movement: {level: 0, max: 5, rarity: 'common'},
+      dash: {level: 0, max: 0, rarity: 'legendary'},
       knockback: {level: 0, max: 1, rarity: 'common'},
       bulletSize: {level: 0, max: 3, rarity: 'common'},
       bulletLife: {level: 0, max: 2, rarity: 'common'},
@@ -584,7 +586,7 @@ function initAudio() {
       shield: {level: 0, max: 3, rarity: 'rare'},
       shieldRegen: {level: 0, max: 3, rarity: 'legendary'},
       health: {level: 0, max: 2, rarity: 'common'},
-      damage: {level: 0, max: 10, rarity: 'common'},
+      damage: {level: 0, max: 5, rarity: 'common'},
       sprint: {level: 0, max: 3, rarity: 'rare'},
       rocket: {level: 0, max: 2, rarity: 'legendary'},
       powerBullet: {level: 0, max: 3, rarity: 'rare'},
@@ -599,7 +601,7 @@ function initAudio() {
       damageZone: {level: 0, max: 2, rarity: 'legendary'},
       minigun: {level: 0, max: 5, rarity: 'rare'},
       saferSpaces: {level: 0, max: 1, rarity: 'legendary'},
-      adrenaline: {level: 0, max: 1, rarity: 'rare'}
+      mineCount: {level: 0, max: 3, rarity: 'common'},
     }
   };
 
@@ -762,20 +764,20 @@ function initAudio() {
   function vecTo(fromX, fromY, toX, toY){ const dx = toX-fromX, dy = toY-fromY; const m = Math.hypot(dx,dy)||1; return {x:dx/m,y:dy/m,mag:m}; }
   
   
-  // Set hardcore mode starting stats - COMPACT VERSION
+  // Set hardcore mode hardcore starting hardcore stats - COMPACT VERSION
 function setHardcoreStartingStats() {
   // Worse base stats
-  player.speed = 200;           // -50 speed
+  player.speed = 210;           // -40 speed
   player.fireRate = 1;        // Super slow firing
-  player.damageMultiplier = 1.5; //Same damage multiplier
+  player.damageMultiplier = 1.5; //Higher damage multiplier
 }
 
   // Update upgrade chances over time
   function updateUpgradeChances(dt) {
-    if (timeAlive >= 200) return;
+    if (timeAlive >= 100) return;
     
     lastChanceUpdate += dt;
-    if (lastChanceUpdate >= 1) {
+    if (lastChanceUpdate >= 0.5) {
       lastChanceUpdate = 0;
       
       commonChance = Math.max(10, commonChance - 0.1);
@@ -790,13 +792,40 @@ function setHardcoreStartingStats() {
     emergencyAbilityActive = true;
     
     switch(emergencyAbility) {
-      case 'tripleShot':
-        tripleShotBullets = 3;
-        emergencyAbilityTimer = 0;
-        emergencyAbilityCooldown = 15;
-        sfx(1200, 0.1, 0.03, 'sine');
-        break;
+      case 'mineLayer':
+        minesActive = true;
+        mineTimer = 8; // Mines last 8 seconds
         
+        const baseMines = 3;
+        // Safe check for mineCount stat
+        const mineCountLevel = player.stats.mineCount ? player.stats.mineCount.level : 0;
+        const extraMines = mineCountLevel * 2;
+        const totalMines = baseMines + extraMines;
+
+        // Launch mines in a full circle
+        for (let i = 0; i < totalMines; i++) {
+          const angle = (i / totalMines) * Math.PI * 2;
+          const speed = 150;
+          const distance = baseMines * 20 + extraMines * 10;
+          
+          const mine = {
+            x: player.x + Math.cos(angle) * distance,
+            y: player.y + Math.sin(angle) * distance,
+            r: 12,
+            active: true,
+            life: 4.0 + mineCountLevel, // Mines last longer with upgrades
+            damage: 1 + mineCountLevel,
+            explosionRadius: 75,
+            speedX: Math.cos(angle) * speed,
+            speedY: Math.sin(angle) * speed,
+            pulse: 0,
+            color: totalMines > 3 ? (totalMines > 5 ? '#ff5500' : '#ff8800') : '#ffaa00'
+          };
+          mines.push(mine);
+        }        
+        emergencyAbilityCooldown = 15;
+        sfx(600, 0.1, 0.03, 'square');
+        break;        
       case 'shockwave':
         shockwaveDamage = 1 + Math.floor(echoesKilled / 10);
         shockwaves.push(new Shockwave(player.x, player.y, shockwaveDamage));
@@ -805,16 +834,16 @@ function setHardcoreStartingStats() {
         break;
         
       case 'guards':
-        for (let i = 0; i < 7; i++) {
-          const angle = (i / 7) * Math.PI * 2;
-          const distance = 150; // Increased distance between guards
+        for (let i = 0; i < 1 + bossesKilled * 2; i++) {
+          const angle = (i / 4 + bossesKilled * 2) * Math.PI * 2;
+          const distance = 20 * (bossesKilled + 1); // Increased distance between guards
           const guardX = player.x + Math.cos(angle) * distance;
           const guardY = player.y + Math.sin(angle) * distance;
           guards.push(new Guard(guardX, guardY, 'ranged'));
         }
-        for (let i = 0; i < 5; i++) {
-          const angle = (i / 5) * Math.PI * 2 + Math.PI/4;
-          const distance = 300; // Increased distance between guards
+        for (let i = 0; i < bossesKilled; i++) {
+          const angle = (i / bossesKilled) * Math.PI * 2 + Math.PI/4;
+          const distance = 40 * bossesKilled; // Increased distance between guards
           const guardX = player.x + Math.cos(angle) * distance;
           const guardY = player.y + Math.sin(angle) * distance;
           guards.push(new Guard(guardX, guardY, 'melee'));
@@ -853,16 +882,21 @@ function setHardcoreStartingStats() {
         break;
         
       case 'lastResort':
-        lastResortActive = true;
-        lastResortTimer = 3;
-        emergencyAbilityCooldown = player.stats.lastResort.level === 1 ? 20 : 12;
-        
-        player.invul = 3;
-        player.speed *= 1.5;
-        playSound('lastResort');
-        
-        spawnParticles(player.x, player.y, 'rgba(255, 255, 100, 0.9)', 30, Math.PI*2, 150);
-        break;
+          lastResortActive = true;
+          lastResortTimer = 3;
+          emergencyAbilityCooldown = player.stats.lastResort.level === 1 ? 15 : 10;
+          
+          player.invul = 3;
+          player.speed *= 1.5;
+          playSound('lastResort');
+          
+          // Reset effect timer
+          lastResortEffectTimer = 0;
+          
+          // Big explosion effect
+          spawnParticles(player.x, player.y, 'rgba(255, 255, 100, 0.9)', 50, Math.PI*2, 200);
+          spawnParticles(player.x, player.y, 'rgba(255, 200, 0, 0.7)', 30, Math.PI*2, 150);
+          break;
         
       case 'saferSpaces':
         saferSpacesActive = true;
@@ -930,16 +964,73 @@ function setHardcoreStartingStats() {
     }
     
     // Update active abilities
-    if (tripleShotBullets > 0 && emergencyAbilityActive) {
-      emergencyAbilityTimer += dt;
-      if (emergencyAbilityTimer >= player.fireRate) {
-        emergencyAbilityTimer = 0;
-        fireShot();
-        tripleShotBullets--;
+    // Update mines
+    if (minesActive) {
+      mineTimer -= dt;
+      
+      for (let i = mines.length - 1; i >= 0; i--) {
+        const mine = mines[i];
+        mine.pulse += dt * 5;
         
-        if (tripleShotBullets <= 0) {
-          emergencyAbilityActive = false;
+        // Initial launch movement
+        if (Math.hypot(mine.speedX, mine.speedY) > 10) {
+          mine.x += mine.speedX * dt;
+          mine.y += mine.speedY * dt;
+          mine.speedX *= 0.9; // Slow down
+          mine.speedY *= 0.9;
         }
+        
+        mine.life -= dt;
+        
+        if (mine.life <= 0) {
+          // Mine expires
+          spawnParticles(mine.x, mine.y, 'rgba(255,170,0,0.7)', 8, Math.PI*2, 60);
+          mines.splice(i, 1);
+          continue;
+        }
+        
+        // Check for enemy collisions
+        let exploded = false;
+        for (let j = echoes.length - 1; j >= 0; j--) {
+          const e = echoes[j];
+          const d = Math.hypot(mine.x - e.x, mine.y - e.y);
+          if (d < mine.r + e.r && mine.active) {
+            // Detonate mine
+            exploded = true;
+            
+            // Damage nearby enemies
+            for (let k = echoes.length - 1; k >= 0; k--) {
+              const enemy = echoes[k];
+              const explosionDist = Math.hypot(mine.x - enemy.x, mine.y - enemy.y);
+              if (explosionDist < mine.explosionRadius + enemy.r) {
+                if (enemy.takeDamage(mine.damage)) {
+                  echoesKilled++;
+                  spawnParticles(enemy.x, enemy.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
+                  echoes.splice(k, 1);
+                  echoCountEl.textContent = echoes.length;
+                } else {
+                  spawnParticles(enemy.x, enemy.y, 'rgba(255,100,0,0.7)', 5, Math.PI/4, 40);
+                }
+              }
+            }
+            
+            // Explosion effect
+            spawnParticles(mine.x, mine.y, 'rgba(255,200,0,0.9)', 25, Math.PI*2, 150);
+            spawnParticles(mine.x, mine.y, 'rgba(255,100,0,0.7)', 20, Math.PI*2, 120);
+            playSound('rocket');
+            shake = 8;
+            
+            break;
+          }
+        }
+        
+        if (exploded) {
+          mines.splice(i, 1);
+        }
+      }
+      
+      if (mineTimer <= 0 && mines.length === 0) {
+        minesActive = false;
       }
     }
     
@@ -979,26 +1070,45 @@ function setHardcoreStartingStats() {
       }
     }
     
-    if (lastResortActive) {
-      lastResortTimer -= dt;
-      
-      if (Math.random() < 0.3) {
-        particles.push({
-          x: player.x + (Math.random()-0.5)*player.r*2,
-          y: player.y + (Math.random()-0.5)*player.r*2,
-          vx: (Math.random()-0.5)*30,
-          vy: (Math.random()-0.5)*30,
-          life: 0.5 + Math.random() * 0.5,
-          col: `rgba(255, 255, 100, 0.7)`,
-          r: 2 + Math.random() * 3
-        });
+      if (lastResortActive) {
+          lastResortTimer -= dt;
+          lastResortEffectTimer += dt;
+          
+          // Create a pulsing energy field around player
+          if (Math.random() < 0.5) {
+              const angle = Math.random() * Math.PI * 2;
+              const distance = player.r * (2 + Math.sin(lastResortEffectTimer * 8) * 0.5);
+              particles.push({
+                  x: player.x + Math.cos(angle) * distance,
+                  y: player.y + Math.sin(angle) * distance,
+                  vx: (Math.random()-0.5)*40,
+                  vy: (Math.random()-0.5)*40,
+                  life: 0.3 + Math.random() * 0.3,
+                  col: `rgba(255, 255, ${50 + Math.random()*150}, 0.8)`,
+                  r: 3 + Math.random() * 3
+              });
+          }
+          
+          // Golden trail effect
+          if (Math.random() < 0.4) {
+              player.trail.push({
+                  x: player.x,
+                  y: player.y,
+                  life: 0.4,
+                  alpha: 0.6
+              });
+              if (player.trail.length > 12) player.trail.shift();
+          }
+          
+          if (lastResortTimer <= 0) {
+              lastResortActive = false;
+              player.speed /= 1.5;
+              
+              // End explosion
+              spawnParticles(player.x, player.y, 'rgba(255, 200, 100, 0.9)', 30, Math.PI*2, 180);
+              shake = 8;
+          }
       }
-      
-      if (lastResortTimer <= 0) {
-        lastResortActive = false;
-        player.speed /= 1.5;
-      }
-    }
     
     if (guardsActive) {
       guardsTimer -= dt;
@@ -1024,9 +1134,9 @@ function setHardcoreStartingStats() {
     
     // Auto-activate shockwave when cooldown is over
     if (emergencyAbility === 'shockwave' && emergencyAbilityCooldown <= 0 && !emergencyAbilityActive) {
-      shockwaveDamage = 1 + Math.floor(echoesKilled / 10);
+      shockwaveDamage = 0 + Math.floor(echoesKilled / 20);
       shockwaves.push(new Shockwave(player.x, player.y, shockwaveDamage));
-      emergencyAbilityCooldown = 15;
+      emergencyAbilityCooldown = 12;
       playSound('shockwave');
     }
 
@@ -1083,8 +1193,8 @@ function setHardcoreStartingStats() {
     // Update minigun
     if (minigunActive) {
       minigunTimer += dt;
-      const fireRate = player.stats.minigun.level === 1 ? 0.5 :
-                      player.stats.minigun.level === 2 ? 0.3 :
+      const fireRate = player.stats.minigun.level === 1 ? 0.4 :
+                      player.stats.minigun.level === 2 ? 0.25 :
                       player.stats.minigun.level === 3 ? 0.15 :
                       player.stats.minigun.level === 4 ? 0.1 : 0.05;
       
@@ -1093,24 +1203,13 @@ function setHardcoreStartingStats() {
         fireMinigunBullet();
       }
     }
-    
-    // Update adrenaline
-    if (adrenalineActive) {
-      adrenalineTimer -= dt;
-      if (adrenalineTimer <= 0) {
-        adrenalineActive = false;
-        player.fireRate *= 2;
-        player.speed == player.speed -100;
-
-      }
-    }
   }
 
   // Get max cooldown for current ability
   function getMaxCooldown() {
     switch(emergencyAbility) {
-      case 'tripleShot': return 15;
-      case 'shockwave': return 15;
+      case 'mineLayer': return 15;
+      case 'shockwave': return 12;
       case 'guards': return 35;
       case 'freeze': return 30;
       case 'lastResort': return 20;
@@ -1156,7 +1255,7 @@ function setHardcoreStartingStats() {
       life: 1.0,
       speed: player.bulletSpeed * 1,
       size: 7,
-      damage: 0.3 * player.damageMultiplier,
+      damage: 0.35 * player.damageMultiplier,
       minigun: true
     });
     
@@ -1213,7 +1312,7 @@ function setHardcoreStartingStats() {
       this.y = y;
       this.radius = 100;
       this.maxRadius = player.r * 40;
-      this.duration = 6;
+      this.duration = 4;
       this.timer = 0;
       this.damage = damage;
       this.damageTimer = 0;
@@ -1333,7 +1432,7 @@ function setHardcoreStartingStats() {
       this.life = 25;
       this.maxLife = 25;
       this.speed = type === 'ranged' ? 0 : 250;
-      this.color = type === 'ranged' ? '#ffabf7' : '#0e008c';
+      this.color = type === 'ranged' ? '#ffabf7' : '#ff4acc';
       this.target = null;
       this.fireTimer = 0;
       this.fireCooldown = type === 'ranged' ? 0.5 : 1; // Ranged: half reload speed
@@ -1895,7 +1994,7 @@ function setHardcoreStartingStats() {
       this.x = spawnX;
       this.y = spawnY;
       this.r = 13; // bigger than regular slim
-      this.health = 10;
+      this.health = 1 + echoesKilled * 0.2; // Scales with echoes killed
       this.maxHealth = 100;
       this.speed = 45; // faster than regular slim
       this.color = '#ff4500';
@@ -1905,6 +2004,7 @@ function setHardcoreStartingStats() {
       this.originalSpeed = 45;
       this.healTimer = 0;
     }
+
     
     update(dt) {
       if (this.frozen) return true;
@@ -1979,8 +2079,8 @@ function setHardcoreStartingStats() {
       this.x = spawnX;
       this.y = spawnY;
       this.r = 20;
-      this.health = 6;
-      this.maxHealth = 6;
+      this.health = 6 + bossesKilled;
+      this.maxHealth = 6 + bossesKilled;
       this.speed = 15;
       this.maxSpeed = 30;
       this.color = '#8b4513';
@@ -2549,10 +2649,10 @@ function setHardcoreStartingStats() {
       spawnParticles(this.x, this.y, 'rgba(0,100,0,0.9)', 5, Math.PI*2, 40);
       
       if (this.health <= 0) {
-        // Spawn 5 slims on death with improved explosion particles
-        for (let i = 0; i < 5; i++) {
-          const angle = (i / 5) * Math.PI * 2;
-          const distance = 30;
+        // Spawn 3 slims on death with improved explosion particles
+        for (let i = 0; i < 3; i++) {
+          const angle = (i / 3) * Math.PI * 2;
+          const distance = 70;
           const spawnX = this.x + Math.cos(angle) * distance;
           const spawnY = this.y + Math.sin(angle) * distance;
           echoes.push(new Slim(spawnX, spawnY));
@@ -3258,8 +3358,8 @@ function setHardcoreStartingStats() {
       this.y = clamp(this.y, 200, H-200);
       
       this.r = 80;
-      this.health = 600;
-      this.maxHealth = 600;
+      this.health = 600 + bossesKilled * 100;
+      this.maxHealth = 600 + bossesKilled * 100;
       this.speed = 50;
       this.color = '#4b0082';
       this.attackTimer = 0;
@@ -3587,8 +3687,8 @@ function setHardcoreStartingStats() {
       this.y = clamp(this.y, 250, H-250);
       
       this.r = 100;
-      this.health = 2000;
-      this.maxHealth = 2000;
+      this.health = 1000 + bossesKilled * 500;
+      this.maxHealth = 1000 + bossesKilled * 500;
       this.speed = 0;
       this.color = '#006400';
       this.attackTimer = 0;
@@ -3755,7 +3855,7 @@ function setHardcoreStartingStats() {
         // Spawn enemies on death
         for (let i = 0; i < 20; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const distance = 50;
+          const distance = 150;
           const spawnX = this.x + Math.cos(angle) * distance;
           const spawnY = this.y + Math.sin(angle) * distance;
           echoes.push(new Slim(spawnX, spawnY));
@@ -3763,7 +3863,7 @@ function setHardcoreStartingStats() {
         
         for (let i = 0; i < 10; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const distance = 70;
+          const distance = 100;
           const spawnX = this.x + Math.cos(angle) * distance;
           const spawnY = this.y + Math.sin(angle) * distance;
           echoes.push(new ArmoredSlim(spawnX, spawnY));
@@ -3771,7 +3871,7 @@ function setHardcoreStartingStats() {
         
         for (let i = 0; i < 5; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const distance = 100;
+          const distance = 50;
           const spawnX = this.x + Math.cos(angle) * distance;
           const spawnY = this.y + Math.sin(angle) * distance;
           echoes.push(new Tank(spawnX, spawnY));
@@ -4013,7 +4113,7 @@ function setHardcoreStartingStats() {
         damageZone: '#ff6b6b',
         minigun: '#ffa94d',
         saferSpaces: '#00ffff',
-        adrenaline: '#ff4500'
+        mineCount: '#ffaa00',  // Orange-yellow color for mines
       };
       this.life = 15;
       this.float = 0;
@@ -4060,7 +4160,7 @@ function setHardcoreStartingStats() {
         damageZone: '⚔',
         minigun: '🔫',
         saferSpaces: '🛡',
-        adrenaline: '💥'
+        mineCount: '💣',
       };
       
       ctx.fillText(icons[this.type], this.x, this.y + floatY);
@@ -4321,10 +4421,10 @@ function setHardcoreStartingStats() {
     echoCountEl.textContent = echoes.length;
   }
 
-  function spawnRandomEnemy() {
+    function spawnRandomEnemy() {
     // Spawn bosses as regular enemies in endless mode after certain times
     if (endlessMode) {
-      if (timeAlive > 600 && Math.random() < 0.02) {
+      if (timeAlive > 600 && Math.random() < 0.015) {
         echoes.push(new MegaCreeperBoss());
         return;
       } else if (timeAlive > 550 && Math.random() < 0.02) {
@@ -4335,6 +4435,12 @@ function setHardcoreStartingStats() {
         return;
       } else if (timeAlive > 450 && Math.random() < 0.04) {
         echoes.push(new EasyBoss());
+        return;
+      }
+      
+      // In endless mode (after final boss), spawn witches more frequently
+      if (Math.random() < 0.08) { // 8% chance to spawn witch in endless mode
+        spawnWitchFromOutside();
         return;
       }
       
@@ -4356,7 +4462,7 @@ function setHardcoreStartingStats() {
       spawnRoyalGiantFromOutside();
     } else if (timeAlive > 30 && randVal < 0.05) {
       spawnBomberFromOutside();
-    } else if (timeAlive > 30 && randVal < 0.05) {
+    } else if (timeAlive > 25 && randVal < 0.04) { // Fixed: changed to 25 seconds and 4% chance
       spawnWitchFromOutside();
     } else if (timeAlive > 20 && randVal < 0.1) {
       spawnTankFromOutside();
@@ -4540,8 +4646,8 @@ function setHardcoreStartingStats() {
     if (!isShooting) {
       sprintTimer += dt;
       
-      const speedBonus = player.stats.sprint.level === 1 ? 1 : 
-                        player.stats.sprint.level === 2 ? 1.5 : 2;
+      const speedBonus = player.stats.sprint.level === 1 ? 0.5 : 
+                        player.stats.sprint.level === 2 ? 0.75 : 1;
       player.speed = 250 * (1 + speedBonus);
       
       // Sprint upgrade 2: Light healing of 1hp every 10 seconds (no cap)
@@ -4661,8 +4767,7 @@ function setHardcoreStartingStats() {
     saferSpacesTimer = 0;
     saferSpacesHealth = 4;
     saferSpacesWall = null;
-    adrenalineActive = false;
-    adrenalineTimer = 0;
+
     bossHealth.style.display = 'none';
     levelUpNotification.style.display = 'none';
     upgradeMenu.style.display = 'none';
@@ -4676,7 +4781,7 @@ function setHardcoreStartingStats() {
     mythicalChance = 0;
     lastChanceUpdate = 0;
     
-    emergencyAbility = 'tripleShot';
+    emergencyAbility = 'mineLayer';
     emergencyAbilityCooldown = 0;
     emergencyAbilityActive = false;
     emergencyAbilityTimer = 0;
@@ -4690,7 +4795,7 @@ function setHardcoreStartingStats() {
     shockwaveActive = false;
     shockwaveTimer = 0;
     shockwaveRadius = 0;
-    shockwaveDamage = 1;
+    shockwaveDamage = 0;
     
     // Reset stats based on game mode
     if (gameMode !== 'freemode') {
@@ -4705,13 +4810,11 @@ function setHardcoreStartingStats() {
       player.stats.shield.max = 0;
       player.stats.health.max = 0;
       player.stats.holyLife.max = 0;
-      player.stats.adrenaline.max = 0;
     } else {
       player.stats.extraLife.max = 1;
       player.stats.shield.max = 3;
       player.stats.health.max = 2;
       player.stats.holyLife.max = 1;
-      player.stats.adrenaline.max = 1;
     }
     updateUI();
   }
@@ -4801,7 +4904,7 @@ function setHardcoreStartingStats() {
     const abilityItem = document.createElement('div');
     abilityItem.className = 'upgrade-item';
     const abilityNames = {
-      tripleShot: 'TRIPLE SHOT',
+      mineLayer: 'MINE LAYER',      
       shockwave: 'SHOCKWAVE',
       guards: 'GUARDS',
       freeze: 'FREEZE',
@@ -5220,7 +5323,7 @@ function setHardcoreStartingStats() {
         }
 
         // Remove multiple upgrades
-        const upgradesToRemove = ['autodash', 'adrenaline'];
+        const upgradesToRemove = ['autodash',];
         if (upgradesToRemove.includes(stat)) {
           continue;
         }
@@ -5309,7 +5412,8 @@ function setHardcoreStartingStats() {
       damageZone: 'Damage Zone',
       minigun: 'Minigun',
       saferSpaces: 'Safer Spaces',
-      adrenaline: 'Adrenaline'
+      mineLayer: 'Mine Layer',
+      mineCount: 'Mine Capacity'
     };
     return titles[type];
   }
@@ -5318,6 +5422,7 @@ function setHardcoreStartingStats() {
     const descs = {
       fireRate: 'Increase fire rate by 20%',
       bulletSpeed: 'Bullets travel 30% faster',
+      mineLayer: 'Deploy 3 mines that explode when touched (3 damage each)',
       movement: 'Movement speed increased by 15%',
       dash: player.stats.dash.level === 0 ? 'NOT ACTIVE' : 
            player.stats.dash.level === 1 ? 'NOT ACTIVE' : 'NOT ACTIVE',
@@ -5351,25 +5456,25 @@ function setHardcoreStartingStats() {
              player.stats.shield.level === 1 ? 'Gain 5 shield points' : 'Gain 6 shield points',
       shieldRegen: player.stats.shieldRegen.level === 0 ? 'Shield regen after 4s (was 10s)' :
                   player.stats.shieldRegen.level === 1 ? 'Shield regen +1 every 0.5s' : 'Passive shield regen 0.1 every 0.25s',
-      health: player.stats.health.level === 0 ? 'Gain +2 additional lives' : 'Gain +1 additional life',
-      damage: player.stats.damage.level < 3 ? 'Increase bullet damage by 25%' :
-             player.stats.damage.level < 5 ? 'Increase bullet damage by 30%' :
-             player.stats.damage.level < 7 ? 'Increase bullet damage by 40%' : 'Increase bullet damage by 50%',
-      sprint: player.stats.sprint.level === 0 ? 'Move 100% faster when not shooting' :
-             player.stats.sprint.level === 1 ? 'Move 150% faster when not shooting' : 'Move 200% Heal 1 HP every other second when not shooting (max 5)',
+      health: player.stats.health.level === 0 ? '+2 lives' : ' +1 life',
+      damage: player.stats.damage.level < 2 ? 'Increase bullet damage by 25%' :
+             player.stats.damage.level < 3 ? 'Increase bullet damage by 30%' :
+             player.stats.damage.level < 4 ? 'Increase bullet damage by 40%' : 'Increase bullet damage by 50%',
+      sprint: player.stats.sprint.level === 0 ? 'Move 50% faster when not shooting' :
+             player.stats.sprint.level === 1 ? 'Move 75% faster when not shooting' : 'Move 100% faster + Heal 1 HP every 10 seconds when not shooting',
       rocket: player.stats.rocket.level === 0 ? '10% chance for every bullet to fire a rocket (5 damage + DoT)' : '20% chance & increased DoT',
       powerBullet: player.stats.powerBullet.level === 0 ? 'Every 4th bullet deals double damage (half speed/range)' :
                   player.stats.powerBullet.level === 1 ? 'Every 3rd bullet deals triple damage' : 'Every 2nd bullet deals quadruple damage',
-      knockbackBullets: player.stats.knockbackBullets.level === 0 ? 'All bullets push hit enemies back a tiny distance' :
-                      player.stats.knockbackBullets.level === 1 ? 'All bullets push hit enemies back a distance' : 
-                      player.stats.knockbackBullets.level === 2 ? 'All bullets push all enemies hit in a small area back a distance' :
-                      player.stats.knockbackBullets.level === 3 ? 'All bullets push all enemies hit in a small area back 3x distance and freeze for 0.5s' :
+      knockbackBullets: player.stats.knockbackBullets.level === 0 ? 'Bullets push enemies back' :
+                      player.stats.knockbackBullets.level === 1 ? 'Bullets push enemies back a greater distance' : 
+                      player.stats.knockbackBullets.level === 2 ? 'Bullets push all enemies hit in a small area back a distance' :
+                      player.stats.knockbackBullets.level === 3 ? ' bullets push all enemies hit in a small area back a greater distance' :
                       'Bullets no longer break when hitting enemies but can only damage each enemy once',
       workerCollector: player.stats.workerCollector.level === 0 ? 'Adds a worker to the map that runs around collecting xp orbs for the player' :
                       player.stats.workerCollector.level === 1 ? 'Workers gain an additional 100% xp from xp orbs and move 100% faster' :
                       player.stats.workerCollector.level === 2 ? 'Workers leave a fire trail dealing burning damage to enemies' :
                       'Workers are equipped with auto-aim weapon that fires 2 bullets every second',
-    flanker: player.stats.flanker.level === 0 ? 'Every 3rd bullet fires 2 additional bullets backwards (15° spread)' :
+    flanker: player.stats.flanker.level === 0 ? 'Every 3rd bullet fires 2 bullets backwards (15° spread)' :
         player.stats.flanker.level === 1 ? 'Every 2nd bullet fires 3 bullets backwards (20° spread)' :
         player.stats.flanker.level === 2 ? 'Every bullet fires 3 bullets backwards (22.5° spread)' :
         player.stats.flanker.level === 3 ? 'Every bullet fires 4 bullets backwards in cross pattern' :
@@ -5380,16 +5485,17 @@ function setHardcoreStartingStats() {
       guards: 'Replace emergency ability with Guards: Summon 5 guards',
       freeze: 'Replace emergency ability with Freeze: Freeze all enemies for 10 seconds',
       lastResort: player.stats.lastResort.level === 0 ? 'Replace emergency ability with Last Resort: Become invincible and move 50% faster for 3 seconds' :
-                'Last Resort now has 12 second cooldown',
+                'Last Resort now has shorter cooldown',
       music: 'Play epic Adam music & +50% fire rate',
       damageZone: player.stats.damageZone.level === 0 ? 'Passive: Creates a damage zone around you that continuously damages enemies (NOTE! NO XP recived from damage-zone kills)' :
                  'Damage zone +30% increased damage and +50% larger area',
-      minigun: player.stats.minigun.level === 0 ? 'Fire an additional tiny bullet every 0.5 seconds' :
-              player.stats.minigun.level === 1 ? 'Now fires every 0.3 seconds' :
+      minigun: player.stats.minigun.level === 0 ? 'Fire an additional tiny bullet every 0.4 seconds' :
+              player.stats.minigun.level === 1 ? 'Now fires every 0.25 seconds' :
               player.stats.minigun.level === 2 ? 'Now fires every 0.15 seconds' :
               player.stats.minigun.level === 3 ? 'Now fires every 0.1 seconds' : 'Now fires every 0.05 seconds',
       saferSpaces: 'Replace emergency ability with Safer Spaces: Build a protective box around player for 10 seconds (8 HP)',
-      adrenaline: 'Taking damage increases reload and movement speed for 2s' ,
+      mineCount: player.stats.mineCount.level === 0 ? 'Increase mine count to 5, mines deal double damage and last 1 second longer' :
+          player.stats.mineCount.level === 1 ? 'Increase mine count to 7, mines deal 50% more damage and last 1 second longer' : 'Increase mine count to 9, mines deal 30% more damage and last 1 second longer (8seconds)',
     };
     return descs[type];
   }
@@ -5435,8 +5541,8 @@ function setHardcoreStartingStats() {
         else player.bulletSize *= 1.5 * legendaryBonus;
         break;
       case 'bulletLife':
-        if (player.stats.bulletLife.level === 1) player.bulletLife *= 1.5 * legendaryBonus;
-        else player.bulletLife *= 1.5 * legendaryBonus;
+        if (player.stats.bulletLife.level === 1) player.bulletLife *= 1.6 * legendaryBonus;
+        else player.bulletLife *= 1.4 * legendaryBonus;
         break;
       case 'xpBoost':
         break;
@@ -5478,9 +5584,9 @@ function setHardcoreStartingStats() {
       case 'damage':
         if (player.stats.damage.level < 2) {
           player.damageMultiplier *= 1.25 * legendaryBonus;
-        } else if (player.stats.damage.level < 4) {
+        } else if (player.stats.damage.level < 3) {
           player.damageMultiplier *= 1.3 * legendaryBonus;
-        } else if (player.stats.damage.level < 6) {
+        } else if (player.stats.damage.level < 4) {
           player.damageMultiplier *= 1.4 * legendaryBonus;
         } else {
           player.damageMultiplier *= 1.5 * legendaryBonus;
@@ -5537,14 +5643,13 @@ function setHardcoreStartingStats() {
         break;
       case 'music':
         playAdamMusic();
-        player.fireRate = Math.max(0.2, player.fireRate * 0.5); // % fire rate (halved cooldown)
+        player.health += bossesKilled;
+        player.fireRate = Math.max(0.2, player.fireRate * (bossesKilled / 2)); 
         break;
       case 'damageZone':
-        // Damage zone is now always active passive
         damageZoneActive = true;
         // Level 2 increases damage and area
         if (player.stats.damageZone.level === 2) {
-          // These multipliers will be used in the damage zone logic
           player.damageZoneMultiplier = 1.3;
           player.damageZoneArea = 1.5;
         }
@@ -5555,7 +5660,8 @@ function setHardcoreStartingStats() {
       case 'saferSpaces':
         emergencyAbility = 'saferSpaces';
         break;
-      case 'adrenaline':
+      case 'mineCount':
+        // Upgrade already applied in the activation logic
         break;
     }
     
@@ -5978,14 +6084,7 @@ function setHardcoreStartingStats() {
             spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 15, Math.PI*2, 80);
             sfx(600, 0.1, 0.03, 'square');
             bullets.splice(i,1);
-            
-            // Activate adrenaline if player has it
-            if (player.stats.adrenaline.level === 1) {
-              adrenalineActive = true;
-              adrenalineTimer = 2;
-              player.speed == player.speed + 100;
-              player.fireRate = Math.max(0.05, player.fireRate * 0.5);
-            }
+          
 
           } else if (shield <= 0) {
             player.lives--;
@@ -5996,14 +6095,7 @@ function setHardcoreStartingStats() {
             sfx(200, 0.3, 0.04, 'sawtooth');
             
             shieldTimer = 0;
-            
-            // Activate adrenaline if player has it
-              if (player.stats.adrenaline.level === 1) {
-                adrenalineActive = true;
-                adrenalineTimer = 2;
-                player.speed == player.speed + 100;
-                player.fireRate = Math.max(0.05, player.fireRate * 0.5);              }
-
+          
             
             if (player.lives <= 0 && gameMode !== 'freemode') {
               running = false;
@@ -6114,13 +6206,6 @@ function setHardcoreStartingStats() {
           spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 15, Math.PI*2, 80);
           sfx(600, 0.1, 0.03, 'square');
           
-          // Activate adrenaline if player has it
-          if (player.stats.adrenaline.level === 1) {
-            adrenalineActive = true;
-            adrenalineTimer = 2;
-            player.speed == player.speed + 100;
-            player.fireRate = Math.max(0.05, player.fireRate * 0.5);          
-          }
         } else if (shield <= 0) {
           player.lives--;
           livesEl.textContent = player.lives;
@@ -6130,14 +6215,6 @@ function setHardcoreStartingStats() {
           sfx(200, 0.3, 0.04, 'sawtooth');
           
           shieldTimer = 0;
-          
-          // Activate adrenaline if player has it
-          if (player.stats.adrenaline.level === 1) {
-            adrenalineActive = true;
-            adrenalineTimer = 2;
-            player.speed == player.speed + 100;
-            player.fireRate = Math.max(0.05, player.fireRate * 0.5);
-          }
           
           e.health = 0;
           echoes.splice(i,1);
@@ -6273,6 +6350,50 @@ function setHardcoreStartingStats() {
       const size = 1 + Math.sin(i + timeAlive) * 0.5;
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.fillRect(sx, sy, size, size);
+    }
+
+        // Draw golden glow during Last Resort
+    if (lastResortActive) {
+        const pulse = 0.7 + Math.sin(lastResortEffectTimer * 10) * 0.3;
+        
+        // Outer glow
+        const outerGlow = ctx.createRadialGradient(
+            player.x, player.y, player.r,
+            player.x, player.y, player.r * 4
+        );
+        outerGlow.addColorStop(0, `rgba(255, 255, 100, ${0.3 * pulse})`);
+        outerGlow.addColorStop(1, `rgba(255, 200, 0, 0)`);
+        
+        ctx.fillStyle = outerGlow;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.r * 4, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Inner glow
+        const innerGlow = ctx.createRadialGradient(
+            player.x, player.y, 0,
+            player.x, player.y, player.r * 2
+        );
+        innerGlow.addColorStop(0, `rgba(255, 255, 200, ${0.5 * pulse})`);
+        innerGlow.addColorStop(1, `rgba(255, 255, 100, 0)`);
+        
+        ctx.fillStyle = innerGlow;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.r * 2, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Draw golden trail
+        for (let i = 0; i < player.trail.length; i++) {
+            const point = player.trail[i];
+            const alpha = (i / player.trail.length) * 0.6;
+            
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+            ctx.arc(point.x, point.y, player.r * (i / player.trail.length), 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
     }
 
     for (const p of paints){
@@ -6415,6 +6536,42 @@ function setHardcoreStartingStats() {
     for (const u of upgrades) u.draw(ctx);
 
     for (const w of player.workers) w.draw(ctx);
+
+    // Draw mines
+    for (const mine of mines) {
+      const pulseSize = 1 + Math.sin(mine.pulse) * 0.2;
+      
+      // Outer glow
+      const g = ctx.createRadialGradient(mine.x, mine.y, 1, mine.x, mine.y, mine.r * 3);
+      g.addColorStop(0, mine.color + 'DD');
+      g.addColorStop(1, mine.color + '11');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(mine.x, mine.y, mine.r * 3, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Mine body
+      ctx.beginPath();
+      ctx.fillStyle = mine.color;
+      ctx.arc(mine.x, mine.y, mine.r * pulseSize, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Warning blink when about to expire
+      if (mine.life < 2) {
+        const blink = Math.sin(mine.life * 10) > 0 ? 1 : 0;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,50,50,${blink * 0.7})`;
+        ctx.arc(mine.x, mine.y, mine.r * 1.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      
+      // Danger symbol
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', mine.x, mine.y);
+    }
 
     for (const b of bullets){
       ctx.beginPath();
@@ -6610,11 +6767,7 @@ const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' :
     };
     ctx.fillText(`ABILITY: ${abilityNames[emergencyAbility]}`, 10, H - 140);
 
-    if (adrenalineActive) {
-      ctx.fillStyle = 'rgba(255,69,0,0.1)';
-      ctx.font = '12px sans-serif';
-      ctx.fillText(`ADRENALINE: ${adrenalineTimer.toFixed(1)}s`, 10, H - 160);
-    }
+
 
     if (bossHealth.style.display === 'block') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
