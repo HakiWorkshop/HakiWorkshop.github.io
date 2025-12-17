@@ -590,7 +590,7 @@ function initAudio() {
       sprint: {level: 0, max: 3, rarity: 'rare'},
       rocket: {level: 0, max: 2, rarity: 'legendary'},
       powerBullet: {level: 0, max: 3, rarity: 'rare'},
-      knockbackBullets: {level: 0, max: 3, rarity: 'rare'},
+      knockbackBullets: {level: 0, max: 4, rarity: 'rare'},
       workerCollector: {level: 0, max: 4, rarity: 'rare'},
       flanker: {level: 0, max: 7, rarity: 'common'},
       shockwave: {level: 0, max: 1, rarity: 'mythical'},
@@ -834,7 +834,7 @@ function setHardcoreStartingStats() {
         break;
         
       case 'guards':
-        for (let i = 0; i < 1 + bossesKilled * 2; i++) {
+        for (let i = 0; i < 3 + bossesKilled * 2; i++) {
           const angle = (i / 4 + bossesKilled * 2) * Math.PI * 2;
           const distance = 20 * (bossesKilled + 1); // Increased distance between guards
           const guardX = player.x + Math.cos(angle) * distance;
@@ -1134,7 +1134,7 @@ function setHardcoreStartingStats() {
     
     // Auto-activate shockwave when cooldown is over
     if (emergencyAbility === 'shockwave' && emergencyAbilityCooldown <= 0 && !emergencyAbilityActive) {
-      shockwaveDamage = 0 + Math.floor(echoesKilled / 20);
+      shockwaveDamage = 0 + Math.floor(echoesKilled / 20) + 1;
       shockwaves.push(new Shockwave(player.x, player.y, shockwaveDamage));
       emergencyAbilityCooldown = 12;
       playSound('shockwave');
@@ -1295,7 +1295,7 @@ function setHardcoreStartingStats() {
             
             e.knockbackX = toEnemy.x * knockbackForce;
             e.knockbackY = toEnemy.y * knockbackForce;
-            e.knockbackTimer = 0.25; // Half the time of regular bullets
+            e.knockbackTimer = 0.25; // 1/4 the time of regular bullets
           }
           
           minigunBullets.splice(i, 1);
@@ -5448,10 +5448,10 @@ function setHardcoreStartingStats() {
       boomerang: player.stats.boomerang.level === 0 ? '20% chance for bullets to return' :
                 player.stats.boomerang.level === 1 ? '50% chance for bullets to return' : '100% chance for bullets to return',
       fire: player.stats.fire.level === 0 ? 'Every 20th bullet becomes a fire pulse (5 damage + DoT) with fire area' : 'Fire area +100% and duration +60%',
-      shotgun: player.stats.shotgun.level === 0 ? 'Every 6th bullet fires +2 extra bullets' :
-              player.stats.shotgun.level === 1 ? 'Now every third bullet' :
-              player.stats.shotgun.level === 2 ? 'Now fires +4 extra bullets every third bullet' :
-              player.stats.shotgun.level === 3 ? 'Now every second bullet and +1 bullet' : 'Now every bullet with a total of 6 extra bullets',
+      shotgun: player.stats.shotgun.level === 0 ? 'Every third bullet fires +2 extra bullets' :
+              player.stats.shotgun.level === 1 ? 'More bullets' :
+              player.stats.shotgun.level === 2 ? 'Every other bullet' :
+              player.stats.shotgun.level === 3 ? 'Even more bullets' : 'Now every bullet with a total of 6 extra bullets',
       shield: player.stats.shield.level === 0 ? 'Gain 3 shield points' :
              player.stats.shield.level === 1 ? 'Gain 5 shield points' : 'Gain 6 shield points',
       shieldRegen: player.stats.shieldRegen.level === 0 ? 'Shield regen after 4s (was 10s)' :
@@ -5482,7 +5482,7 @@ function setHardcoreStartingStats() {
         player.stats.flanker.level === 5 ? 'Every bullet fires 7 bullets backwards (72° spread)' :
         'Every bullet fires 10 bullets backwards in full circle',
       shockwave: 'Replace emergency ability with Shockwave: Fire an electrical shockwave every 4 seconds that expands and freezes enemies',
-      guards: 'Replace emergency ability with Guards: Summon 5 guards',
+      guards: 'Replace emergency ability with Guards: Summon 2 guards for every boss youve killed + 3',
       freeze: 'Replace emergency ability with Freeze: Freeze all enemies for 10 seconds',
       lastResort: player.stats.lastResort.level === 0 ? 'Replace emergency ability with Last Resort: Become invincible and move 50% faster for 3 seconds' :
                 'Last Resort now has shorter cooldown',
