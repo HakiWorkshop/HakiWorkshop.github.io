@@ -418,7 +418,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let lastMouseMove = 0;
   let upgradeSelectionCooldown = 0;
   let killBoostTimer = 0;
-  let pendingUpgrades = 1;
+  let pendingUpgrades = 0;
   let tabPressed = false;
   let gamePaused = false;
   let shield = 0;
@@ -435,10 +435,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let refreshUsed = false;
 
   // Upgrade chance tracking
-  let commonChance = 70;
+  let commonChance = 60;
   let rareChance = 30;
-  let legendaryChance = 0;
-  let mythicalChance = 0;
+  let legendaryChance = 9; //maxed at 16
+  let mythicalChance = 1; // maxed at 7
   let lastChanceUpdate = 0;
 
   // Emergency ability tracking
@@ -777,7 +777,7 @@ function setHardcoreStartingStats() {
     if (timeAlive >= 100) return;
     
     lastChanceUpdate += dt;
-    if (lastChanceUpdate >= 0.5) {
+    if (lastChanceUpdate >= 1) {
       lastChanceUpdate = 0;
       
       commonChance = Math.max(10, commonChance - 0.1);
@@ -1171,7 +1171,7 @@ function setHardcoreStartingStats() {
         }
       }
       
-      // Block bullets with safer spaces
+            // Block ENEMY bullets with safer spaces (player bullets can pass through)
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         const wallLeft = saferSpacesWall.x - saferSpacesWall.width/2;
@@ -1179,14 +1179,14 @@ function setHardcoreStartingStats() {
         const wallTop = saferSpacesWall.y - saferSpacesWall.height/2;
         const wallBottom = saferSpacesWall.y + saferSpacesWall.height/2;
         
+        // Check if bullet is inside the safer spaces wall
         if (b.x > wallLeft && b.x < wallRight && b.y > wallTop && b.y < wallBottom) {
-          bullets.splice(i, 1);
-          spawnParticles(b.x, b.y, 'rgba(0,255,255,0.7)', 5, Math.PI*2, 40);
+          // Only block enemy bullets, let player bullets pass through
+          if (b.enemy) {
+            bullets.splice(i, 1);
+            spawnParticles(b.x, b.y, 'rgba(0,255,255,0.7)', 5, Math.PI*2, 40);
+          }
         }
-      }
-      
-      if (saferSpacesTimer <= 0) {
-        saferSpacesActive = false;
       }
     }
     
@@ -2678,7 +2678,7 @@ function setHardcoreStartingStats() {
       this.r = 12;
       this.life = 5.0;
       this.maxLife = 5.0;
-      this.speed = 125;
+      this.speed = 200;
       this.damage = 1;
       this.color = '#a78bfa';
       this.target = null;
@@ -3480,14 +3480,17 @@ function setHardcoreStartingStats() {
         }
       }
       
-      // Update cover blocks - break bullets
+            // Update cover blocks - break ENEMY bullets (player bullets can pass through)
       for (const block of this.coverBlocks) {
         for (let i = bullets.length - 1; i >= 0; i--) {
           const b = bullets[i];
           if (b.x > block.x - block.width/2 && b.x < block.x + block.width/2 &&
               b.y > block.y - block.height/2 && b.y < block.y + block.height/2) {
-            bullets.splice(i, 1);
-            spawnParticles(b.x, b.y, 'rgba(100,100,100,0.7)', 5, Math.PI*2, 40);
+            // Only block enemy bullets, let player bullets pass through
+            if (b.enemy) {
+              bullets.splice(i, 1);
+              spawnParticles(b.x, b.y, 'rgba(100,100,100,0.7)', 5, Math.PI*2, 40);
+            }
           }
         }
       }
@@ -4650,8 +4653,33 @@ function setHardcoreStartingStats() {
                         player.stats.sprint.level === 2 ? 0.75 : 1;
       player.speed = 250 * (1 + speedBonus);
       
-      // Sprint upgrade 2: Light healing of 1hp every 10 seconds (no cap)
+      // Healing for sprint upgrades 1 and 2
+      if (player.stats.sprint.level >= 1) {
+        const healTimer = 15; // Heal every 15 seconds for level 1
+        if (sprintTimer >= healTimer) {
+          sprintTimer = 0;
+          if (player.lives < 10) {
+            player.lives += 1; // Heal 1 HP for level 1
+            livesEl.textContent = player.lives;
+            playSound('heal');
+            spawnParticles(player.x, player.y, 'rgba(126,231,135,0.9)', 15, Math.PI*2, 80);
+          }
+        }
+      }
+      
+      // Sprint upgrade 2: Enhanced healing (every 10 seconds)
       if (player.stats.sprint.level >= 2 && sprintTimer >= 10.0) {
+        sprintTimer = 0;
+        if (player.lives < 10) {
+          player.lives += 1; // Heal 1 HP for level 2
+          livesEl.textContent = player.lives;
+          playSound('heal');
+          spawnParticles(player.x, player.y, 'rgba(126,231,135,0.9)', 15, Math.PI*2, 80);
+        }
+      }
+
+      // Sprint upgrade 2: Light healing of 1hp every 10 seconds (no cap)
+      if (player.stats.sprint.level >= 3 && sprintTimer >= 10.0) {
         sprintTimer = 0;
         if (player.lives < 10) {
           player.lives++;
@@ -4743,7 +4771,7 @@ function setHardcoreStartingStats() {
     bossSpawnEffect = null;
     upgradeSelectionCooldown = 0;
     killBoostTimer = 0;
-    pendingUpgrades = 1;
+    pendingUpgrades = 0;
     tabPressed = false;
     gamePaused = false;
     shield = 0;
@@ -5516,7 +5544,7 @@ function setHardcoreStartingStats() {
         player.bulletSpeed *= 1.3 * legendaryBonus;
         break;
       case 'movement':
-        player.speed *= 1.15 * legendaryBonus;
+        player.speed *= 1.20 * legendaryBonus;
         break;
       case 'dash':
         // Boosted: Auto dash is now stronger
@@ -5529,8 +5557,6 @@ function setHardcoreStartingStats() {
         } else if (player.stats.dash.level === 3) {
           player.dashPower *= 2.0;
           player.dashCooldown *= 0.3;
-          // Make dash an emergency ability
-          emergencyAbility = 'dash';
         }
         break;
       case 'knockback':
