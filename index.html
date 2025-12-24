@@ -65,6 +65,151 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 @keyframes pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
 .boss-spawn-effect{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border-radius:50%;background:radial-gradient(circle, rgba(255,0,0,0.8) 0%, rgba(255,0,0,0) 70%);animation:bossSpawn 1.5s ease-out;z-index:20;pointer-events:none}
 @keyframes bossSpawn{0%{transform:translate(-50%,-50%) scale(0);opacity:1}50%{transform:translate(-50%,-50%) scale(1.5);opacity:0.7}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
+@keyframes pulseExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+/* Pac-Man style health display - COMPACT VERSION */
+.health-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.health-title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.health-display {
+  display: flex;
+  gap: 6px; /* Reduced from 8px */
+  background: rgba(0,0,0,0.7);
+  padding: 8px; /* Reduced from 10px */
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 0 20px rgba(255,107,107,0.3);
+  flex-wrap: wrap;
+  max-width: 150px; /* Reduced from 170px */
+}
+
+.health-unit {
+  width: 24px; /* Reduced from 30px */
+  height: 24px; /* Reduced from 30px */
+  background: #ff6b6b;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(255,107,107,0.5); /* Reduced glow */
+  transition: all 0.3s ease;
+}
+
+/* Remove the .health-unit.empty class since we won't have empty spots */
+.health-unit.full {
+  background: #ff6b6b;
+  animation: healthPulse 2s infinite;
+}
+
+/* Pac-Man mouth effect */
+.health-unit::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 35%;
+  height: 60%;
+  background: #000;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  transform: translate(-50%, -50%) rotate(45deg);
+  animation: pacManMouth 0.5s infinite alternate;
+}
+
+@keyframes healthPulse {
+  0% { box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+  50% { box-shadow: 0 0 16px rgba(255,107,107,0.8); }
+  100% { box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+}
+
+@keyframes pacManMouth {
+  0% { clip-path: polygon(100% 0, 100% 100%, 0 50%); }
+  100% { clip-path: polygon(100% 25%, 100% 75%, 0 50%); }
+}
+
+/* Damage flash effect */
+.damage-flash {
+  animation: damageFlash 0.5s ease;
+}
+
+@keyframes damageFlash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); background: #fff; }
+  100% { transform: scale(1); background: #ff6b6b; }
+}
+
+/* Shield display - also compact */
+.shield-container {
+  margin-top: 8px; /* Reduced from 10px */
+}
+
+.shield-title {
+  color: #4dabf7;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(77,171,247,0.5);
+  background: rgba(0,0,0,0.5);
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.shield-display {
+  display: flex;
+  gap: 4px; /* Reduced from 6px */
+  background: rgba(0,0,0,0.5);
+  padding: 6px; /* Reduced from 8px */
+  border-radius: 8px;
+  border: 2px solid rgba(77,171,247,0.3);
+}
+
+.shield-unit {
+  width: 16px; /* Reduced from 20px */
+  height: 16px; /* Reduced from 20px */
+  background: #4dabf7;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 0 6px rgba(77,171,247,0.5); /* Reduced glow */
+  transition: all 0.3s ease;
+}
+
+.shield-unit.full::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  border: 1px solid #fff; /* Thinner border */
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Remove the .shield-unit.empty class since we won't have empty spots */
 .level-up-notification{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(126,231,135,0.2);border:2px solid rgba(126,231,135,0.5);border-radius:12px;padding:20px;text-align:center;z-index:25;display:none;animation:pulse 1.5s infinite}
 .level-up-text{font-size:24px;font-weight:bold;color:#7ee787;margin-bottom:10px}
 .level-up-hint{font-size:14px;color:var(--muted)}
@@ -78,6 +223,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 .upgrade-option.rarity-legendary {position: relative; overflow: hidden; border: 1px solid rgba(255,215,0,0.5);}
 .upgrade-option.rarity-rare {position: relative; overflow: hidden; border: 1px solid rgba(77,171,247,0.5);}
 .upgrade-option.rarity-mythical {position: relative; overflow: hidden; border: 1px solid rgba(148,0,211,0.5);}
+
 /* New ability effects */
 .freeze-overlay {
   position: absolute;
@@ -359,6 +505,21 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 <div id="freezeOverlay" class="freeze-overlay"></div>
 
+<!-- Pac-Man Style Health Display -->
+<div id="healthDisplay" class="health-container">
+  <div class="health-title">LIVES</div>
+  <div id="healthUnits" class="health-display">
+    <!-- Health units will be generated here -->
+  </div>
+  
+  <div id="shieldDisplay" class="shield-container">
+    <div class="shield-title">SHIELD</div>
+    <div id="shieldUnits" class="shield-display">
+      <!-- Shield units will be generated here -->
+    </div>
+  </div>
+</div>
+
 <script>
 // EchoRun — Amplified Edition
 // Enhanced with new abilities and features
@@ -433,6 +594,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let mythicalDropTimer = 0;
   let maxLevelReached = false;
   let refreshUsed = false;
+  let upgradeInvulTimer = 0;
 
   // Upgrade chance tracking
   let commonChance = 60;
@@ -763,6 +925,134 @@ function initAudio() {
   const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
   function vecTo(fromX, fromY, toX, toY){ const dx = toX-fromX, dy = toY-fromY; const m = Math.hypot(dx,dy)||1; return {x:dx/m,y:dy/m,mag:m}; }
   
+  // Screen flash effect
+  function createScreenFlash(color, duration) {
+    const flash = document.createElement('div');
+    flash.style.position = 'fixed';
+    flash.style.top = '0';
+    flash.style.left = '0';
+    flash.style.width = '100%';
+    flash.style.height = '100%';
+    flash.style.backgroundColor = color;
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = '9998';
+    flash.style.opacity = '0.7';
+    flash.style.transition = `opacity ${duration}s ease-out`;
+    document.body.appendChild(flash);
+    
+    setTimeout(() => {
+      flash.style.opacity = '0';
+      setTimeout(() => {
+        if (flash.parentNode) {
+          flash.parentNode.removeChild(flash);
+        }
+      }, duration * 1000);
+    }, 10);
+  }
+
+  // Damage indicator text
+  function createDamageIndicator(x, y, text) {
+    const indicator = document.createElement('div');
+    indicator.textContent = text;
+    indicator.style.position = 'absolute';
+    indicator.style.left = x + 'px';
+    indicator.style.top = y + 'px';
+    indicator.style.color = '#ff6b6b';
+    indicator.style.fontSize = '20px';
+    indicator.style.fontWeight = 'bold';
+    indicator.style.textShadow = '0 0 5px rgba(0,0,0,0.8)';
+    indicator.style.pointerEvents = 'none';
+    indicator.style.zIndex = '9999';
+    indicator.style.transform = 'translate(-50%, -50%)';
+    indicator.style.transition = 'all 0.8s ease-out';
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => {
+      indicator.style.top = (y - 50) + 'px';
+      indicator.style.opacity = '0';
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 800);
+    }, 10);
+  }
+
+  // Upgrade available pulse effect
+  function createUpgradePulse() {
+    const pulse = document.createElement('div');
+    pulse.style.position = 'absolute';
+    pulse.style.top = '50%';
+    pulse.style.left = '50%';
+    pulse.style.transform = 'translate(-50%, -50%)';
+    pulse.style.width = '300px';
+    pulse.style.height = '300px';
+    pulse.style.borderRadius = '50%';
+    pulse.style.background = 'radial-gradient(circle, rgba(126,231,135,0.3) 0%, rgba(126,231,135,0) 70%)';
+    pulse.style.pointerEvents = 'none';
+    pulse.style.zIndex = '9997';
+    pulse.style.animation = 'pulseExpand 1s ease-out forwards';
+    document.body.appendChild(pulse);
+    
+    setTimeout(() => {
+      if (pulse.parentNode) {
+        pulse.parentNode.removeChild(pulse);
+      }
+    }, 1000);
+  }
+
+    // Health display management - COMPACT VERSION
+    function updateHealthDisplay() {
+      const healthUnits = document.getElementById('healthUnits');
+      const shieldUnits = document.getElementById('shieldUnits');
+      
+      if (!healthUnits || !shieldUnits) return;
+      
+      // Clear existing units
+      healthUnits.innerHTML = '';
+      shieldUnits.innerHTML = '';
+      
+      // Create health units - ONLY show current health
+      for (let i = 0; i < player.lives; i++) {
+        const unit = document.createElement('div');
+        unit.className = 'health-unit full';
+        healthUnits.appendChild(unit);
+      }
+      
+      // Create shield units - ONLY show current shield
+      if (shield > 0) {
+        for (let i = 0; i < shield; i++) {
+          const unit = document.createElement('div');
+          unit.className = 'shield-unit full';
+          shieldUnits.appendChild(unit);
+        }
+      }
+    }
+  // Animate health damage
+  function animateHealthDamage() {
+    const healthUnits = document.querySelectorAll('.health-unit.full');
+    if (healthUnits.length > 0) {
+      const lastUnit = healthUnits[healthUnits.length - 1];
+      lastUnit.classList.add('damage-flash');
+      
+      setTimeout(() => {
+        lastUnit.classList.remove('damage-flash');
+      }, 300);
+    }
+  }
+
+  // Animate shield damage
+  function animateShieldDamage() {
+    const shieldUnits = document.querySelectorAll('.shield-unit.full');
+    if (shieldUnits.length > 0) {
+      const lastUnit = shieldUnits[shieldUnits.length - 1];
+      lastUnit.classList.add('damage-flash');
+      
+      setTimeout(() => {
+        lastUnit.classList.remove('damage-flash');
+      }, 300);
+    }
+  }
   
   // Set hardcore mode hardcore starting hardcore stats - COMPACT VERSION
 function setHardcoreStartingStats() {
@@ -960,6 +1250,8 @@ function setHardcoreStartingStats() {
       if (emergencyAbilityCooldown <= 0) {
         abilityCooldown.style.display = 'none';
         emergencyAbilityActive = false;
+        // Initialize health display
+        setTimeout(updateHealthDisplay, 100);
       }
     }
     
@@ -4678,10 +4970,10 @@ function setHardcoreStartingStats() {
         }
       }
 
-      // Sprint upgrade 2: Light healing of 1hp every 10 seconds (no cap)
+      // Sprint upgrade 3
       if (player.stats.sprint.level >= 3 && sprintTimer >= 10.0) {
         sprintTimer = 0;
-        if (player.lives < 10) {
+        if (player.lives < 100) { // 100hp cap for level 3
           player.lives++;
           livesEl.textContent = player.lives;
           playSound('heal');
@@ -5307,6 +5599,16 @@ function setHardcoreStartingStats() {
       // FIXED: Only show notification, don't auto-open upgrade menu
       if (running && !gamePaused) {
         levelUpNotification.style.display = 'block';
+        
+        // Add upgrade pulse effect
+        createUpgradePulse();
+        
+        // Add screen flash for upgrade
+        createScreenFlash('rgba(126,231,135,0.2)', 0.5);
+        
+        // Add upgrade notification particles
+        spawnParticles(player.x, player.y, 'rgba(126,231,135,0.9)', 30, Math.PI*2, 100);
+        
         setTimeout(() => {
           levelUpNotification.style.display = 'none';
         }, 1500);
@@ -5532,6 +5834,8 @@ function setHardcoreStartingStats() {
     upgradesGathered++;
     
     player.stats[type].level++;
+
+    upgradeInvulTimer = 1.3; // 1.3 seconds of invulnerability after upgrade
     
     const legendaryBonus = player.stats[type].rarity === 'legendary' ? 1.2 : 1.0;
     const mythicalBonus = player.stats[type].rarity === 'mythical' ? 1.3 : 1.0;
@@ -6103,50 +6407,72 @@ function setHardcoreStartingStats() {
       }
       else if (b.enemy) {
         const d = Math.hypot(b.x - player.x, b.y - player.y);
-        if (d < player.r + b.size && player.invul <= 0 && !isDashing) {
+        if (d < player.r + b.size && player.invul <= 0 && !isDashing && upgradeInvulTimer <= 0) {
           if (shield > 0 && shieldDamageCooldown <= 0) {
             shield--;
             shieldDamageCooldown = 1.0;
-            spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 15, Math.PI*2, 80);
+            
+            // Enhanced shield damage effect
+            spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 25, Math.PI*2, 120);
+            
+            // Shield crack effect
+            for (let j = 0; j < 8; j++) {
+              const angle = (j / 8) * Math.PI * 2;
+              particles.push({
+                x: player.x + Math.cos(angle) * (player.r + 8),
+                y: player.y + Math.sin(angle) * (player.r + 8),
+                vx: Math.cos(angle) * 60,
+                vy: Math.sin(angle) * 60,
+                life: 0.6,
+                col: '#4dabf7',
+                r: 3 + Math.random() * 2
+              });
+            }
+            
+            // Screen flash effect for shield damage
+            createScreenFlash('rgba(77,171,247,0.3)', 0.1);
+            
+            // Animate shield damage display
+            if (typeof animateShieldDamage === 'function') animateShieldDamage();
+            
             sfx(600, 0.1, 0.03, 'square');
             bullets.splice(i,1);
-          
-
+            
           } else if (shield <= 0) {
             player.lives--;
             livesEl.textContent = player.lives;
             player.invul = 1.5;
             shake = 15;
-            spawnParticles(player.x, player.y, 'rgba(255,100,100,0.9)', 20, Math.PI*2, 120);
+            
+            // Enhanced damage effect
+            spawnParticles(player.x, player.y, 'rgba(255,100,100,0.9)', 30, Math.PI*2, 150);
+            
+            // Blood splatter effect
+            for (let j = 0; j < 15; j++) {
+              const angle = Math.random() * Math.PI * 2;
+              particles.push({
+                x: player.x,
+                y: player.y,
+                vx: Math.cos(angle) * 80,
+                vy: Math.sin(angle) * 80,
+                life: 0.8 + Math.random() * 0.4,
+                col: '#ff6b6b',
+                r: 4 + Math.random() * 3
+              });
+            }
+            
+            // Screen flash effect for health damage
+            createScreenFlash('rgba(255,100,100,0.4)', 0.15);
+            
+            // Damage indicator text
+            createDamageIndicator(player.x, player.y, '-1');
+            
+            // Animate health damage display
+            if (typeof animateHealthDamage === 'function') animateHealthDamage();
+            
             sfx(200, 0.3, 0.04, 'sawtooth');
             
             shieldTimer = 0;
-          
-            
-            if (player.lives <= 0 && gameMode !== 'freemode') {
-              running = false;
-              if (score > high){ 
-                high = score; 
-                localStorage.setItem('echoswap-hi', high); 
-                hiEl.textContent = high; 
-              }
-              
-              setTimeout(() => {
-                deathScreen.style.display = 'flex';
-                finalScore.textContent = score;
-                finalTime.textContent = Math.floor(timeAlive) + 's';
-                echoesDefeated.textContent = echoesKilled;
-                upgradesCollected.textContent = upgradesGathered;
-                
-                // Show endless mode death message
-                if (endlessMode) {
-                  deathScreen.querySelector('.start-subtitle').textContent = 
-                    'You survived the endless onslaught! Ready to try again?';
-                }
-              }, 800);
-            }
-            
-            bullets.splice(i,1);
           }
         }
         
@@ -6225,7 +6551,7 @@ function setHardcoreStartingStats() {
       
       const dx = player.x - e.x, dy = player.y - e.y;
       const d = Math.hypot(dx, dy);
-      if (d < player.r + e.r - 3 && player.invul <= 0 && !isDashing) {
+      if (d < player.r + e.r - 3 && player.invul <= 0 && !isDashing && upgradeInvulTimer <= 0) {
         if (shield > 0 && shieldDamageCooldown <= 0) {
           shield--;
           shieldDamageCooldown = 1.0;
@@ -6275,6 +6601,11 @@ function setHardcoreStartingStats() {
     
     if (player.invul > 0) {
       player.invul -= dt;
+    }
+
+    // Update post-upgrade invulnerability timer
+    if (upgradeInvulTimer > 0) {
+        upgradeInvulTimer -= dt;
     }
 
     for (let i = upgrades.length - 1; i >= 0; i--){
@@ -6464,7 +6795,7 @@ function setHardcoreStartingStats() {
       );
       
       // Draw health indicator
-      const healthPercent = saferSpacesHealth / 8;
+      const healthPercent = saferSpacesHealth / 4;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(saferSpacesWall.x - 40, saferSpacesWall.y - saferSpacesWall.height/2 - 10, 80, 6);
       
@@ -6671,8 +7002,11 @@ const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' :
     
   } // End of for (const b of bullets) loop
 
-    const invulEffect = (player.invul > 0 || isDashing) ? Math.sin((player.invul > 0 ? player.invul : dashInvulTimer) * 10) * 0.5 + 0.5 : 1;
-    const playerAlpha = (player.invul > 0 || isDashing) ? 0.5 + invulEffect * 0.5 : 1;
+    // Combine regular invul, dash invul, and upgrade invul
+    const hasInvul = player.invul > 0 || isDashing || upgradeInvulTimer > 0;
+    const invulTimer = player.invul > 0 ? player.invul : (isDashing ? dashInvulTimer : upgradeInvulTimer);
+    const invulEffect = hasInvul ? Math.sin(invulTimer * 10) * 0.5 + 0.5 : 1;
+    const playerAlpha = hasInvul ? 0.5 + invulEffect * 0.5 : 1;
     
     ctx.globalAlpha = playerAlpha;
     ctx.beginPath();
@@ -6706,6 +7040,16 @@ const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' :
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
+
+    // Draw upgrade invulnerability effect (blue tint)
+    if (upgradeInvulTimer > 0) {
+        const pulse = Math.sin(upgradeInvulTimer * 10) * 0.3 + 0.7;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(100, 200, 255, ${pulse * 0.6})`;
+        ctx.lineWidth = 4;
+        ctx.arc(player.x, player.y, player.r + 8, 0, Math.PI * 2);
+        ctx.stroke();
+    }
 
     if (shield > 0) {
       ctx.beginPath();
@@ -6904,6 +7248,11 @@ const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' :
     hiEl.textContent = high; 
     levelEl.textContent = playerLevel;
     livesEl.textContent = player.lives;
+    
+    // Update health display
+    if (typeof updateHealthDisplay === 'function') {
+      updateHealthDisplay();
+    }
   }
 
   function loop(now){
