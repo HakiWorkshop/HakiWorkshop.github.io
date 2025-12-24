@@ -5025,7 +5025,7 @@ function setHardcoreStartingStats() {
     // Apply hardcore starting stats
     setHardcoreStartingStats();
   } else if (gameMode === 'freemode') {
-    player.lives = 10;
+    player.lives = 8;
     // Give 3 random upgrades in freemode
     for (let i = 0; i < 3; i++) {
       const availableTypes = [];
@@ -5604,7 +5604,7 @@ function setHardcoreStartingStats() {
         createUpgradePulse();
         
         // Add screen flash for upgrade
-        createScreenFlash('rgba(126,231,135,0.2)', 0.5);
+        createScreenFlash('rgb(0, 119, 68,0.1)', 0.5);
         
         // Add upgrade notification particles
         spawnParticles(player.x, player.y, 'rgba(126,231,135,0.9)', 30, Math.PI*2, 100);
