@@ -214,8 +214,13 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 .level-up-text{font-size:24px;font-weight:bold;color:#7ee787;margin-bottom:10px}
 .level-up-hint{font-size:14px;color:var(--muted)}
 .spawn-indicator{position:absolute;z-index:5;pointer-events:none;opacity:0.7}
-@media (max-width:720px){canvas{width:100%;height:calc(100vw*0.6) !important};.controls{grid-template-columns:1fr}}
-/* subtle floating UI bounce */
+@media (max-width: 720px) {
+  canvas {
+    width: 98% !important;
+    max-height: 70vh !important;
+    margin: 5px auto;
+  }
+}/* subtle floating UI bounce */
 .card{transform-origin:center}
 .card.pulse{animation:uiPulse 1.8s ease-in-out infinite}
 @keyframes uiPulse{0%{transform:translateY(0)}50%{transform:translateY(-3px)}100%{transform:translateY(0)}}
@@ -417,7 +422,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
     <div style="margin-left:auto" class="small">Aim with mouse — Click to fire — TAB for upgrades — M for auto-fire — L for emergency ability — P to pause</div>
   </div>
 
-  <canvas id="c" width="1200" height="700"></canvas>
+  <canvas id="c" width="1400" height="800"></canvas>
   <div class="boss-health" id="bossHealth">
     <div class="boss-health-bar" id="bossHealthBar"></div>
     <div class="boss-health-text" id="bossHealthText"></div>
@@ -1058,8 +1063,8 @@ function initAudio() {
 function setHardcoreStartingStats() {
   // Worse base stats
   player.speed = 210;           // -40 speed
-  player.fireRate = 1;        // Super slow firing
-  player.damageMultiplier = 1.5; //Higher damage multiplier
+  player.fireRate = 0.4;        // Super slow firing
+  player.damageMultiplier = 0.4; //Lower damage multiplier
 }
 
   // Update upgrade chances over time
@@ -1067,7 +1072,7 @@ function setHardcoreStartingStats() {
     if (timeAlive >= 100) return;
     
     lastChanceUpdate += dt;
-    if (lastChanceUpdate >= 1) {
+    if (lastChanceUpdate >= 0.5) {
       lastChanceUpdate = 0;
       
       commonChance = Math.max(10, commonChance - 0.1);
@@ -3162,19 +3167,36 @@ function setHardcoreStartingStats() {
         }
       }
       
-      if (nearestXP) {
+          if (nearestXP) {
         const toXP = vecTo(this.x, this.y, nearestXP.x, nearestXP.y);
         this.x += toXP.x * this.speed * dt;
         this.y += toXP.y * this.speed * dt;
         
         if (dist({x: this.x, y: this.y}, nearestXP) < this.r + nearestXP.r) {
-          const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0);
-          playerXP += 30 * xpMultiplier * this.xpMultiplier;
-          upgrades.splice(upgrades.indexOf(nearestXP), 1);
-          spawnParticles(nearestXP.x, nearestXP.y, nearestXP.colors[nearestXP.type] + 'DD', 20, Math.PI*2, 80);
-          sfx(1000, 0.08, 0.025, 'sine');
+            let baseXP = 30;
+            let xpMultiplier = 1;
+            
+            // Level 0: Increase XP from orbs to 50 (+20 xp)
+            if (player.stats.xpBoost.level === 0) {
+                baseXP = 50;
+            }
+            // Level 1: Increase XP from orbs by 50%
+            else if (player.stats.xpBoost.level === 1) {
+                baseXP = 45; // 30 * 1.5 = 45
+                xpMultiplier = 1.5;
+            }
+            // Level 4: Increase all XP received by 50%
+            else if (player.stats.xpBoost.level === 4) {
+                baseXP = 30;
+                xpMultiplier = 1.5;
+            }
+            
+            playerXP += baseXP * xpMultiplier * this.xpMultiplier;
+            upgrades.splice(upgrades.indexOf(nearestXP), 1);
+            spawnParticles(nearestXP.x, nearestXP.y, nearestXP.colors[nearestXP.type] + 'DD', 20, Math.PI*2, 80);
+            sfx(1000, 0.08, 0.025, 'sine');
         }
-      } else {
+    } else {
         if (this.wanderTimer > 2) {
           this.wanderTimer = 0;
           this.wanderDirection = {x: Math.random() - 0.5, y: Math.random() - 0.5};
@@ -3265,16 +3287,16 @@ function setHardcoreStartingStats() {
       this.y = clamp(this.y, 100, H-100);
       
       this.r = 35;
-      this.health = 50;
-      this.maxHealth = 50;
-      this.speed = 70;
+      this.health = 30;
+      this.maxHealth = 30;
+      this.speed = 50;
       this.color = '#ff4757';
       this.attackTimer = 0;
       this.attackRate = 2;
       this.pulse = 0;
       this.bulletAngle = 0;
       this.frozen = false;
-      this.originalSpeed = 70;
+      this.originalSpeed = 50;
       
       createBossSpawnEffect(this.x, this.y);
     }
@@ -3301,9 +3323,9 @@ function setHardcoreStartingStats() {
             dx: Math.cos(angle),
             dy: Math.sin(angle),
             t: 0,
-            life: 5.0,
-            speed: 100,
-            size: 9,
+            life: 4.0,
+            speed: 110,
+            size: 11,
             color: '#ff4757',
             enemy: true
           });
@@ -4410,9 +4432,10 @@ function setHardcoreStartingStats() {
         saferSpaces: '#00ffff',
         mineCount: '#ffaa00',  // Orange-yellow color for mines
       };
-      this.life = 15;
-      this.float = 0;
-    }
+      // Level 1: Orbs last 5 seconds longer
+      this.life = player.stats.xpBoost.level === 1 ? 20 : 15;
+            this.float = 0;
+          }
     
     draw(ctx){
       this.float += 0.05;
@@ -4465,6 +4488,27 @@ function setHardcoreStartingStats() {
       this.life -= dt;
       return this.life > 0;
     }
+
+    // Add this right after the update() method in the Upgrade class
+    checkXPOrbPulling() {
+        // Level 2: Pull all close XP orbs toward the player
+        if (player.stats.xpBoost.level === 2) {
+            const pullRadius = 200; // Radius within which orbs get pulled
+            const pullSpeed = 100; // Speed at which orbs move toward player
+            
+            for (const u of upgrades) {
+                if (u.type === 'xpBoost') {
+                    const d = dist({x: u.x, y: u.y}, player);
+                    if (d < pullRadius) {
+                        const toPlayer = vecTo(u.x, u.y, player.x, player.y);
+                        u.x += toPlayer.x * pullSpeed * 0.016; // Assuming 60 FPS
+                        u.y += toPlayer.y * pullSpeed * 0.016;
+                    }
+                }
+            }
+        }
+    }
+
   }
 
   // Echo class - FIXED: Speed cap in endless mode
@@ -5272,17 +5316,17 @@ function setHardcoreStartingStats() {
     let shotgunInterval = 0;
     
     if (shotgunLevel > 0) {
-      if (shotgunLevel === 1) shotgunInterval = 4;
-      else if (shotgunLevel === 2) shotgunInterval = 3;
-      else if (shotgunLevel === 3) shotgunInterval = 3;
-      else if (shotgunLevel === 4) shotgunInterval = 2;
+      if (shotgunLevel === 1) shotgunInterval = 3;
+      else if (shotgunLevel === 2) shotgunInterval = 2;
+      else if (shotgunLevel === 3) shotgunInterval = 2;
+      else if (shotgunLevel === 4) shotgunInterval = 1;
       else if (shotgunLevel === 5) shotgunInterval = 1;
       
       if (shotgunLevel === 1) shotgunBullets = 2;
       else if (shotgunLevel === 2) shotgunBullets = 2;
       else if (shotgunLevel === 3) shotgunBullets = 4;
-      else if (shotgunLevel === 4) shotgunBullets = 5;
-      else if (shotgunLevel === 5) shotgunBullets = 6;
+      else if (shotgunLevel === 4) shotgunBullets = 4;
+      else if (shotgunLevel === 5) shotgunBullets = 8;
     }
     
         const flankerLevel = player.stats.flanker.level;
@@ -5537,7 +5581,7 @@ function setHardcoreStartingStats() {
           t:0, 
           life: player.bulletLife,
           speed: player.bulletSpeed,
-          size: player.bulletSize * 0.5,
+          size: player.bulletSize * 1,
           willExplode: false,
           damage: 1 * player.damageMultiplier,
           shotgun: true
@@ -5607,7 +5651,7 @@ function setHardcoreStartingStats() {
         createScreenFlash('rgb(0, 119, 68,0.1)', 0.5);
         
         // Add upgrade notification particles
-        spawnParticles(player.x, player.y, 'rgba(126,231,135,0.8)', 30, Math.PI*2, 100);
+        spawnParticles(player.x, player.y, 'rgba(126,231,135,0.9)', 30, Math.PI*2, 100);
         
         setTimeout(() => {
           levelUpNotification.style.display = 'none';
@@ -5761,11 +5805,11 @@ function setHardcoreStartingStats() {
                  player.stats.bulletSize.level === 1 ? 'Increase bullet size by 50% (total 150%)' : 'Increase bullet size by 50% (total 200%)',
       bulletLife: player.stats.bulletLife.level === 0 ? 'Increase bullet lifetime by 50%' :
                  player.stats.bulletLife.level === 1 ? 'Increase bullet lifetime by 50% (total 200%)' : 'Increase bullet lifetime by 30% (total 100%)',
-      xpBoost: player.stats.xpBoost.level === 0 ? 'Spawns in double as many xp orbs' :
-              player.stats.xpBoost.level === 1 ? 'Orbs last 5 seconds longer and player receives 20% more xp' :
-              player.stats.xpBoost.level === 2 ? '50% chance for XP orb to spawn where enemy died' :
-              player.stats.xpBoost.level === 3 ? '30% more xp received from enemies on kill' :
-              'XP orbs fly toward player + 10% more overall xp',
+      xpBoost: player.stats.xpBoost.level === 0 ? 'Increase XP from orbs to 50 (+20 xp)' :
+        player.stats.xpBoost.level === 1 ? 'Increase XP from orbs by 50% and last 5 seconds longer' :
+        player.stats.xpBoost.level === 2 ? 'Pull all close XP orbs toward the player' :
+        player.stats.xpBoost.level === 3 ? '50% chance for XP orb to spawn when enemy dies' :
+        'Increase all XP received by 50%',
       extraLife: 'Gain +4 additional lives',
       workers: player.stats.workers.level === 0 ? 'Add a mini bot that attacks enemies' :
               player.stats.workers.level === 1 ? 'Add 2 mini bots' :
@@ -5778,12 +5822,12 @@ function setHardcoreStartingStats() {
       boomerang: player.stats.boomerang.level === 0 ? '20% chance for bullets to return' :
                 player.stats.boomerang.level === 1 ? '50% chance for bullets to return' : '100% chance for bullets to return',
       fire: player.stats.fire.level === 0 ? 'Every 20th bullet becomes a fire pulse (5 damage + DoT) with fire area' : 'Fire area +100% and duration +60%',
-      shotgun: player.stats.shotgun.level === 0 ? 'Every third bullet fires +2 extra bullets' :
-              player.stats.shotgun.level === 1 ? 'More bullets' :
-              player.stats.shotgun.level === 2 ? 'Every other bullet' :
-              player.stats.shotgun.level === 3 ? 'Even more bullets' : 'Now every bullet with a total of 6 extra bullets',
+      shotgun: player.stats.shotgun.level === 0 ? 'Every third bullet fires 2 extra bullets' :
+              player.stats.shotgun.level === 1 ? 'Every other bullet fires 2 extra bullets' :
+              player.stats.shotgun.level === 2 ? 'Every other bullet fires 4 extra bullets' :
+              player.stats.shotgun.level === 3 ? 'Every bullet fires 4 extra bullets' : 'Every bullet fires 8 extra bullets',
       shield: player.stats.shield.level === 0 ? 'Gain 3 shield points' :
-             player.stats.shield.level === 1 ? 'Gain 5 shield points' : 'Gain 6 shield points',
+             player.stats.shield.level === 1 ? 'Tot 5 shield points' : 'Tot 6 shield points',
       shieldRegen: player.stats.shieldRegen.level === 0 ? 'Shield regen after 4s (was 10s)' :
                   player.stats.shieldRegen.level === 1 ? 'Shield regen +1 every 0.5s' : 'Passive shield regen 0.1 every 0.25s',
       health: player.stats.health.level === 0 ? '+2 lives' : ' +1 life',
@@ -5816,7 +5860,7 @@ function setHardcoreStartingStats() {
       freeze: 'Replace emergency ability with Freeze: Freeze all enemies for 10 seconds',
       lastResort: player.stats.lastResort.level === 0 ? 'Replace emergency ability with Last Resort: Become invincible and move 50% faster for 3 seconds' :
                 'Last Resort now has shorter cooldown',
-      music: 'Play epic Adam music & +50% fire rate',
+      music: 'Play "Kryp" by Adam Imsland & 15% bonus to all player stats',
       damageZone: player.stats.damageZone.level === 0 ? 'Passive: Creates a damage zone around you that continuously damages enemies (NOTE! NO XP recived from damage-zone kills)' :
                  'Damage zone +30% increased damage and +50% larger area',
       minigun: player.stats.minigun.level === 0 ? 'Fire an additional tiny bullet every 0.4 seconds' :
@@ -5973,8 +6017,12 @@ function setHardcoreStartingStats() {
         break;
       case 'music':
         playAdamMusic();
-        player.health += bossesKilled;
-        player.fireRate = Math.max(0.2, player.fireRate * (bossesKilled / 2)); 
+        player.fireRate = Math.max(0.2, player.fireRate * 0.85); 
+        player.bulletDamage = (player.bulletDamage * 1.15);
+        player.bulletSize = (player.bulletSize * 1.15);
+        player.bulletSpeed = (player.bulletSpeed * 1.15);
+        player.bulletLife = (player.bulletLife * 1.15);
+        player.speed = (player.speed * 1.15);
         break;
       case 'damageZone':
         damageZoneActive = true;
@@ -6360,15 +6408,25 @@ function setHardcoreStartingStats() {
             
             if (e.takeDamage(b.damage)) {
               if (gameMode !== 'freemode' || player.lives > 0) {
-                score += 8;
+                  score += 8;
               }
               echoesKilled++;
-              playerXP += 15 * xpMultiplier;
               
-              const xpDropChance = player.stats.xpBoost.level >= 2 ? 0.5 : 0;
+              let xpAmount = 15;
+              let xpMultiplier = 1;
               
-              if (player.stats.xpBoost.level >= 2 && Math.random() < xpDropChance) {
-                upgrades.push(new Upgrade('xpBoost'));
+              // Level 4: Increase all XP received by 50%
+              if (player.stats.xpBoost.level === 4) {
+                  xpMultiplier = 1.5;
+              }
+              
+              playerXP += xpAmount * xpMultiplier;
+              
+              // Level 3: 50% chance for XP orb to spawn when enemy dies
+              const xpDropChance = player.stats.xpBoost.level === 3 ? 0.5 : 0;
+              
+              if (xpDropChance > 0 && Math.random() < xpDropChance) {
+                  upgrades.push(new Upgrade('xpBoost'));
               }
               
               checkLevelUp();
@@ -6617,8 +6675,20 @@ function setHardcoreStartingStats() {
       
       const d = Math.hypot(player.x - u.x, player.y - u.y);
       if(d < player.r + u.r){
-        const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0);
-        playerXP += 30 * xpMultiplier;
+          let baseXP = 30;
+          let xpMultiplier = 1;
+          
+          // Apply XP boost levels
+          if (player.stats.xpBoost.level === 1) {
+              baseXP = 50; // Level 1: Increase to 50 XP
+          } else if (player.stats.xpBoost.level === 2) {
+              baseXP = 45; // Level 2: 30 * 1.5 = 45
+              xpMultiplier = 1.5;
+          } else if (player.stats.xpBoost.level === 5) {
+              xpMultiplier = 1.5; // Level 5: Increase all XP by 50%
+          }
+          
+          playerXP += baseXP * xpMultiplier;
         upgradesGathered++;
         checkLevelUp();
         upgrades.splice(i,1);
@@ -7110,18 +7180,7 @@ const endColor = b.boomerang ? 'rgba(255,100,255,0.02)' :
       ctx.fillText('SHIELD', 12, H - 92);
     }
 
-    if (player.stats.sprint.level > 0) {
-      const isShooting = input.mouseDown || player.autoFireToggle;
-      if (!isShooting) {
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(10, H - 120, 100, 8);
-        ctx.fillStyle = '#7ee787';
-        ctx.fillRect(10, H - 120, 100 * (sprintTimer / 2.0), 8);
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('SPRINT', 12, H - 112);
-      }
-    }
+
 
     ctx.fillStyle = 'rgba(255,255,255,0.1)';
     ctx.font = '12px sans-serif';
