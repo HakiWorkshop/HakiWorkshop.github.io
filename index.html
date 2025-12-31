@@ -76,7 +76,119 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   }
 }
 
-/* Pac-Man style health display - COMPACT VERSION */
+/* Update Log Styles */
+.update-log-entry {
+  background: rgba(255, 0, 162, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s;
+}
+
+.update-log-entry:hover {
+  background: rgba(0, 0, 0, 0.619);
+  border-color: rgba(126, 231, 135, 0.2);
+  border-radius: 1px;
+  transition: all 0.2s;
+
+}
+
+.update-log-title {
+  font-weight: bold;
+  font-size: 16px;
+  color: #7ee787;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.update-log-date {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+.update-log-content ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.update-log-content li {
+  font-size: 15px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.update-log-content li strong {
+  color: #fff;
+}
+
+.update-log-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(5,15,25,0.95);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  z-index: 1000;
+  width: 1500px !important;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: none;
+}
+
+/* Custom scrollbar for update log */
+.update-log-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.update-log-panel::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+}
+
+.update-log-panel::-webkit-scrollbar-thumb {
+  background: rgba(126, 231, 135, 0.3);
+  border-radius: 4px;
+}
+
+.update-log-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 231, 135, 0.5);
+}
+
+#closeUpdateLog:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 60, 114, 0.6);
+}
+
+/* Update Log Button Styles */
+.update-log-btn {
+  background: linear-gradient(90deg, rgba(9, 6, 91, 0.2), rgba(61, 139, 202, 0.2)) !important;
+  color: #4580b4 !important;
+  font-size: 14px !important;
+  padding: 16px 16px !important;
+  transition: all 0.3s ease !important;
+}
+
+.update-log-btn:hover {
+  background: linear-gradient(90deg, rgba(19, 14, 172, 0.2), rgba(70, 172, 255, 0.277)) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 53, 109, 0.775) !important;
+}
+
+.update-log-btn:active {
+  background: linear-gradient(90deg, rgba(11, 8, 120, 0.2), rgba(77, 171, 247, 0.2)) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Pac-Man style health display */
 .health-container {
   position: fixed;
   bottom: 20px;
@@ -397,6 +509,15 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   border: 1px solid rgba(77, 171, 247, 0.1);
 }
 
+/* Force wider update log panel */
+#updateLogPanel.update-log-panel,
+#updateLogPanel {
+  width: 500px !important;
+  max-width: 95vw !important;
+}
+
+
+
 </style>
 </head>
 <body>
@@ -446,6 +567,12 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     <button id="hardcoreBtn" class="start-btn">HARDCORE MODE</button>
     <button id="freemodeBtn" class="start-btn">FREEMODE</button>
   </div>
+
+<div style="position: absolute; bottom: 30px; left: 30px;">
+  <button id="newFeatureBtn" class="start-btn update-log-btn">
+    📰News
+  </button>
+</div>
   
   <div class="controls">
     <div class="control-group">
@@ -525,6 +652,76 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   </div>
 </div>
 
+<!-- Update Log Panel -->
+<div id="updateLogPanel" class="upgrade-menu" style="display: none;">
+  <h2 style="text-align:center;margin-bottom:20px">UPDATE LOG</h2>
+  <div class="update-log-title">V20.2</div>
+  <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+    
+
+    <!-- Copy pase update log -->
+    <div class="update-log-entry">
+      <div class="update-log-title">New Balance changes</div>
+      <div class="update-log-date">30.12.2025</div>
+      <div class="update-log-content">
+        <ul>
+          <li><strong>Shockwave</strong></li>
+          <li>Cooldown 12s -> 7s</li>
+          <li>Damage radius decrased by 25%</li>
+          <li>Damage dealt scales per red killed</li>
+          <li><strong>Music upgrade</strong></li>
+          <li>Removed old scaling buff</li>
+          <li>Improve all player stats by 15%</li>
+          <li><strong>Ghost</strong></li>
+          <li>Increasd chances for all upgrades</li>
+          <li>Ghost overall buffed</li>
+          <li><strong>WorkerCollector</strong></li>
+          <li>Increased movement speed by 25%</li>
+          <li><strong>XP magnet</strong></li>
+          <li>Fixed xp pull mechansim - Everything works perfectly fine</li>
+        </ul>
+      </div>
+    </div>
+
+        <div class="update-log-entry">
+      <div class="update-log-title">New & added!</div>
+      <div class="update-log-date">30.12.2025</div>
+      <div class="update-log-content">
+        <ul>
+          <li><strong>Minelayer ability:</strong> New standard ability that shoots out mines! Comes with upgrades.</li>
+          <li><strong>Witch enemy</strong> New enemy spawning randomly around in the game, spawns different enemies</li>
+        </ul>
+      </div>
+    </div>
+
+        <div class="update-log-entry">
+      <div class="update-log-title">Bug fixes</div>
+      <div class="update-log-date">30.12.2025</div>
+      <div class="update-log-content">
+        <ul>
+          <li>All known fixes repaired</li>
+        </ul>
+      </div>
+    </div>
+
+  <div style="text-align:center;margin-top:20px;">
+    <button id="closeUpdateLog" class="btn" style="
+      background: linear-gradient(135deg, #0f4c75, #3282b8);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(15, 76, 117, 0.3);
+    ">
+      Close
+    </button>
+  </div>
+</div>
+
+
 <script>
 // EchoRun — Amplified Edition
 // Enhanced with new abilities and features
@@ -584,7 +781,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let lastMouseMove = 0;
   let upgradeSelectionCooldown = 0;
   let killBoostTimer = 0;
-  let pendingUpgrades = 0;
+  let pendingUpgrades = 1;
   let tabPressed = false;
   let gamePaused = false;
   let shield = 0;
@@ -608,11 +805,25 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let mythicalChance = 1; // maxed at 7
   let lastChanceUpdate = 0;
 
-  // Emergency ability tracking
-  let emergencyAbility = 'mineLayer';
-  let emergencyAbilityCooldown = 0;
-  let emergencyAbilityActive = false;
-  let emergencyAbilityTimer = 0;
+// Emergency ability tracking
+let emergencyAbility = 'minelayer'; // Default ability
+let emergencyAbilityCooldown = 0;
+let emergencyAbilityActive = false;
+let emergencyAbilityTimer = 0;
+
+// Emergency ability power levels (higher = stronger)
+const abilityPowerLevels = {
+  'mineLayer': 1,      // Basic
+  'lastResort': 2,     // Rare
+  'freeze': 3,         // Legendary
+  'saferSpaces': 3,    // Legendary
+  'shockwave': 4,      // Mythical
+  'guards': 4          // Mythical
+};
+
+// Track selected abilities to prevent weaker ones from appearing
+let selectedAbilities = new Set(['mineLayer']); // Start with mineLayer
+
   let minesActive = false;
   let mines = [];
   let mineTimer = 0;
@@ -684,7 +895,7 @@ function initAudio() {
   
   passive = new Audio('passive.mp3');
   passive.loop = true;
-  passive.volume = 0.01;
+  passive.volume = 0.1;
   
   adamMusic = new Audio('adam.mp3');
   adamMusic.loop = true;
@@ -1101,7 +1312,7 @@ function setHardcoreStartingStats() {
         for (let i = 0; i < totalMines; i++) {
           const angle = (i / totalMines) * Math.PI * 2;
           const speed = 150;
-          const distance = baseMines * 20 + extraMines * 10;
+          const distance = baseMines * 10 + 10;
           
           const mine = {
             x: player.x + Math.cos(angle) * distance,
@@ -1122,9 +1333,10 @@ function setHardcoreStartingStats() {
         sfx(600, 0.1, 0.03, 'square');
         break;        
       case 'shockwave':
-        shockwaveDamage = 1 + Math.floor(echoesKilled / 10);
+        shockwaveDamage = 0.2 + Math.floor(echoesKilled / 12);
+
         shockwaves.push(new Shockwave(player.x, player.y, shockwaveDamage));
-        emergencyAbilityCooldown = 15;
+        emergencyAbilityCooldown = 7;
         playSound('shockwave');
         break;
         
@@ -1205,38 +1417,6 @@ function setHardcoreStartingStats() {
         };
         emergencyAbilityCooldown = 20;
         playSound('saferSpaces');
-        break;
-        
-      case 'dash':
-        if (player.dashCD <= 0) {
-          const aim = vecTo(player.x, player.y, input.mx, input.my);
-          player.vx += aim.x * player.dashPower * 300;
-          player.vy += aim.y * player.dashPower * 300;
-          player.dashCD = player.dashCooldown;
-          isDashing = true;
-          dashInvulTimer = player.dashLength;
-          
-          // Deal damage to enemies during dash
-          for (let i = echoes.length - 1; i >= 0; i--) {
-            const e = echoes[i];
-            const d = dist({x: player.x, y: player.y}, e);
-            if (d < player.r + e.r + 20) {
-              if (e.takeDamage(player.stats.dash.level)) {
-                echoesKilled++;
-                spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-                echoes.splice(i, 1);
-              }
-            }
-          }
-          
-          // Create fire trail for higher dash levels
-          if (player.stats.dash.level >= 2) {
-            fires.push(new Fire(player.x, player.y, 40, 2, 1));
-          }
-          
-          playSound('sprint');
-          spawnParticles(player.x, player.y, 'rgba(177,151,252,0.9)', 20, Math.PI*2, 150);
-        }
         break;
     }
     
@@ -1431,9 +1611,9 @@ function setHardcoreStartingStats() {
     
     // Auto-activate shockwave when cooldown is over
     if (emergencyAbility === 'shockwave' && emergencyAbilityCooldown <= 0 && !emergencyAbilityActive) {
-      shockwaveDamage = 0 + Math.floor(echoesKilled / 20) + 1;
+      shockwaveDamage = 0.2 + Math.floor(echoesKilled / 12);
       shockwaves.push(new Shockwave(player.x, player.y, shockwaveDamage));
-      emergencyAbilityCooldown = 12;
+      emergencyAbilityCooldown = 7;
       playSound('shockwave');
     }
 
@@ -1506,7 +1686,7 @@ function setHardcoreStartingStats() {
   function getMaxCooldown() {
     switch(emergencyAbility) {
       case 'mineLayer': return 15;
-      case 'shockwave': return 12;
+      case 'shockwave': return 7;
       case 'guards': return 35;
       case 'freeze': return 30;
       case 'lastResort': return 20;
@@ -1607,9 +1787,9 @@ function setHardcoreStartingStats() {
     constructor(x, y, damage) {
       this.x = x;
       this.y = y;
-      this.radius = 100;
-      this.maxRadius = player.r * 40;
-      this.duration = 4;
+      this.radius = 0;
+      this.maxRadius = player.r * 30;
+      this.duration = 1;
       this.timer = 0;
       this.damage = damage;
       this.damageTimer = 0;
@@ -1622,7 +1802,7 @@ function setHardcoreStartingStats() {
       
       this.radius = (this.timer / this.duration) * this.maxRadius;
       
-      if (this.damageTimer >= 1) {
+      if (this.damageTimer >= 0.2) {
         this.damageTimer = 0;
         
         for (const e of echoes) {
@@ -2600,16 +2780,16 @@ function setHardcoreStartingStats() {
       this.x = spawnX;
       this.y = spawnY;
       this.r = 15;
-      this.health = 6;
-      this.maxHealth = 6;
-      this.speed = 50;
+      this.health = 2;
+      this.maxHealth = 2;
+      this.speed = 40;
       this.color = '#a78bfa';
       this.castTimer = 0;
       this.castCooldown = 8;
       this.age = 0;
       this.pulse = 0;
       this.frozen = false;
-      this.originalSpeed = 50;
+      this.originalSpeed = 40;
     }
 
     update(dt) {
@@ -2692,16 +2872,20 @@ function setHardcoreStartingStats() {
             break;
             
           case 3:
-            const spawnX = this.x;
-            const spawnY = this.y;
-            spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'tank'));
-            
-            setTimeout(() => {
-              if (running) {
-                echoes.push(new Tank(spawnX, spawnY));
-              }
-            }, 1000);
-            break;
+            for (let i = 0; i < 2; i++) {
+              const angle = (i / 2) * Math.PI * 2;
+              const distance = 70;
+              const spawnX = this.x;
+              const spawnY = this.y;
+              spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'bomber'));
+              
+              setTimeout(() => {
+                if (running) {
+                  echoes.push(new Tank(spawnX, spawnY));
+                }
+              }, 1000);
+              break;
+          }
         }
       }
     }
@@ -3132,7 +3316,7 @@ function setHardcoreStartingStats() {
       this.x = Math.random() * W;
       this.y = Math.random() * H;
       this.r = 8;
-      this.speed = 80;
+      this.speed = 100;
       this.color = '#63e6be';
       this.target = null;
       this.xpMultiplier = 1;
@@ -3167,36 +3351,40 @@ function setHardcoreStartingStats() {
         }
       }
       
-          if (nearestXP) {
-        const toXP = vecTo(this.x, this.y, nearestXP.x, nearestXP.y);
-        this.x += toXP.x * this.speed * dt;
-        this.y += toXP.y * this.speed * dt;
-        
-        if (dist({x: this.x, y: this.y}, nearestXP) < this.r + nearestXP.r) {
-            let baseXP = 30;
-            let xpMultiplier = 1;
+        if (nearestXP) {
+            const toXP = vecTo(this.x, this.y, nearestXP.x, nearestXP.y);
+            this.x += toXP.x * this.speed * dt;
+            this.y += toXP.y * this.speed * dt;
             
-            // Level 0: Increase XP from orbs to 50 (+20 xp)
-            if (player.stats.xpBoost.level === 0) {
-                baseXP = 50;
+            if (dist({x: this.x, y: this.y}, nearestXP) < this.r + nearestXP.r) {
+                let baseXP = 30;
+                let xpMultiplier = 1;
+                
+                // XP Boost levels:
+                // Level 1: Increase base XP to 50 (+20)
+                // Level 2: +50% bonus on the increased 50 XP = 75 total
+                // Level 3: 50% chance for XP orb drop on enemy death
+                // Level 4: Pull all close XP orbs
+                // Level 5: +50% to all XP received
+                
+                if (player.stats.xpBoost.level >= 1) {
+                    baseXP = 50; // Level 1: +20 XP (from 30 to 50)
+                }
+                
+                if (player.stats.xpBoost.level >= 2) {
+                    xpMultiplier = 1.5; // Level 2: +50% on 50 = 75 XP
+                }
+                
+                if (player.stats.xpBoost.level >= 5) {
+                    xpMultiplier *= 1.5; // Level 5: Additional 50% bonus
+                }
+                
+                playerXP += baseXP * xpMultiplier * this.xpMultiplier;
+                upgrades.splice(upgrades.indexOf(nearestXP), 1);
+                spawnParticles(nearestXP.x, nearestXP.y, nearestXP.colors[nearestXP.type] + 'DD', 20, Math.PI*2, 80);
+                sfx(1000, 0.08, 0.025, 'sine');
             }
-            // Level 1: Increase XP from orbs by 50%
-            else if (player.stats.xpBoost.level === 1) {
-                baseXP = 45; // 30 * 1.5 = 45
-                xpMultiplier = 1.5;
-            }
-            // Level 4: Increase all XP received by 50%
-            else if (player.stats.xpBoost.level === 4) {
-                baseXP = 30;
-                xpMultiplier = 1.5;
-            }
-            
-            playerXP += baseXP * xpMultiplier * this.xpMultiplier;
-            upgrades.splice(upgrades.indexOf(nearestXP), 1);
-            spawnParticles(nearestXP.x, nearestXP.y, nearestXP.colors[nearestXP.type] + 'DD', 20, Math.PI*2, 80);
-            sfx(1000, 0.08, 0.025, 'sine');
-        }
-    } else {
+      } else {
         if (this.wanderTimer > 2) {
           this.wanderTimer = 0;
           this.wanderDirection = {x: Math.random() - 0.5, y: Math.random() - 0.5};
@@ -5015,7 +5203,7 @@ function setHardcoreStartingStats() {
       }
 
       // Sprint upgrade 3
-      if (player.stats.sprint.level >= 3 && sprintTimer >= 10.0) {
+      if (player.stats.sprint.level >= 3 && sprintTimer >= 8.0) {
         sprintTimer = 0;
         if (player.lives < 100) { // 100hp cap for level 3
           player.lives++;
@@ -5062,6 +5250,10 @@ function setHardcoreStartingStats() {
     player.x = W/2; player.y = H/2; player.vx = player.vy = 0; player.dashCD = 0; player.invul = 0;
     player.trail = [];
     player.workers = [];
+
+    // Reset ability tracking
+emergencyAbility = 'mineLayer';
+selectedAbilities = new Set(['mineLayer']);
     
   // Set initial lives based on game mode
   if (gameMode === 'hardcore') {
@@ -5107,7 +5299,7 @@ function setHardcoreStartingStats() {
     bossSpawnEffect = null;
     upgradeSelectionCooldown = 0;
     killBoostTimer = 0;
-    pendingUpgrades = 0;
+    pendingUpgrades = 1;
     tabPressed = false;
     gamePaused = false;
     shield = 0;
@@ -5243,6 +5435,34 @@ function setHardcoreStartingStats() {
       refreshUpgrades.disabled = true;
       refreshUpgrades.textContent = 'REFRESH (0/1)';
       showUpgradeMenu();
+    }
+  });
+
+  // Update Log Panel functionality
+  const updateLogPanel = document.getElementById('updateLogPanel');
+  const newFeatureBtn = document.getElementById('newFeatureBtn');
+  const closeUpdateLog = document.getElementById('closeUpdateLog');
+
+  newFeatureBtn.addEventListener('click', () => {
+    updateLogPanel.style.display = 'block';
+    audioResume();
+  });
+
+  closeUpdateLog.addEventListener('click', () => {
+    updateLogPanel.style.display = 'none';
+  });
+
+  // Close update log when clicking outside
+  updateLogPanel.addEventListener('click', (e) => {
+    if (e.target === updateLogPanel) {
+      updateLogPanel.style.display = 'none';
+    }
+  });
+
+  // Close update log with Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && updateLogPanel.style.display === 'block') {
+      updateLogPanel.style.display = 'none';
     }
   });
 
@@ -5684,30 +5904,51 @@ function setHardcoreStartingStats() {
         rarity = 'mythical';
       }
       
-      const availableUpgrades = [];
-      for (const stat in player.stats) {
-        if (stat === 'shieldRegen' && player.stats.shield.level === 0) {
+    const availableUpgrades = [];
+    for (const stat in player.stats) {
+      if (stat === 'shieldRegen' && player.stats.shield.level === 0) {
+        continue;
+      }
+      
+      // In hardcore mode, skip extra life and shield upgrades
+      if (gameMode === 'hardcore' && 
+          (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
+        continue;
+      }
+      
+      // Remove multiple upgrades
+      const upgradesToRemove = ['autodash',];
+      if (upgradesToRemove.includes(stat)) {
+        continue;
+      }
+      
+      // Check if this is an emergency ability upgrade
+      const isEmergencyAbility = [
+        'shockwave', 'guards', 'freeze', 
+        'lastResort', 'saferSpaces', 'damageZone'
+      ].includes(stat);
+      
+      if (isEmergencyAbility) {
+        // Get current ability power level
+        const currentPower = abilityPowerLevels[emergencyAbility] || 0;
+        const newAbilityPower = abilityPowerLevels[stat] || 0;
+        
+        // Skip if new ability is weaker than or equal to current
+        if (newAbilityPower <= currentPower && stat !== emergencyAbility) {
           continue;
         }
         
-        // In hardcore mode, skip extra life and shield upgrades
-        if (gameMode === 'hardcore' && 
-            (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
+        // Skip if this ability type is already selected (except for re-picking the same)
+        if (selectedAbilities.has(stat) && stat !== emergencyAbility) {
           continue;
-        }
-
-        // Remove multiple upgrades
-        const upgradesToRemove = ['autodash',];
-        if (upgradesToRemove.includes(stat)) {
-          continue;
-        }
-        
-        if (player.stats[stat].rarity === rarity && 
-            player.stats[stat].level < player.stats[stat].max) {
-          availableUpgrades.push(stat);
         }
       }
       
+      if (player.stats[stat].rarity === rarity && 
+          player.stats[stat].level < player.stats[stat].max) {
+        availableUpgrades.push(stat);
+      }
+    }      
       if (availableUpgrades.length > 0) {
         const type = availableUpgrades[Math.floor(Math.random() * availableUpgrades.length)];
         if (!selectedUpgrades.includes(type)) {
@@ -5805,11 +6046,11 @@ function setHardcoreStartingStats() {
                  player.stats.bulletSize.level === 1 ? 'Increase bullet size by 50% (total 150%)' : 'Increase bullet size by 50% (total 200%)',
       bulletLife: player.stats.bulletLife.level === 0 ? 'Increase bullet lifetime by 50%' :
                  player.stats.bulletLife.level === 1 ? 'Increase bullet lifetime by 50% (total 200%)' : 'Increase bullet lifetime by 30% (total 100%)',
-      xpBoost: player.stats.xpBoost.level === 0 ? 'Increase XP from orbs to 50 (+20 xp)' :
-        player.stats.xpBoost.level === 1 ? 'Increase XP from orbs by 50% and last 5 seconds longer' :
-        player.stats.xpBoost.level === 2 ? 'Pull all close XP orbs toward the player' :
-        player.stats.xpBoost.level === 3 ? '50% chance for XP orb to spawn when enemy dies' :
-        'Increase all XP received by 50%',
+xpBoost: player.stats.xpBoost.level === 0 ? 'Increase XP from orbs from 30 to 50 (+20 XP)' :
+        player.stats.xpBoost.level === 1 ? '+50% XP bonus (50 → 75 XP per orb)' :
+        player.stats.xpBoost.level === 2 ? '50% chance for XP orb to spawn when enemy dies' :
+        player.stats.xpBoost.level === 3 ? 'Pull all close XP orbs toward the player (only works on xp orbs dropped from enemies)' :
+        '+50% bonus to all XP received',
       extraLife: 'Gain +4 additional lives',
       workers: player.stats.workers.level === 0 ? 'Add a mini bot that attacks enemies' :
               player.stats.workers.level === 1 ? 'Add 2 mini bots' :
@@ -5826,16 +6067,19 @@ function setHardcoreStartingStats() {
               player.stats.shotgun.level === 1 ? 'Every other bullet fires 2 extra bullets' :
               player.stats.shotgun.level === 2 ? 'Every other bullet fires 4 extra bullets' :
               player.stats.shotgun.level === 3 ? 'Every bullet fires 4 extra bullets' : 'Every bullet fires 8 extra bullets',
-      shield: player.stats.shield.level === 0 ? 'Gain 3 shield points' :
-             player.stats.shield.level === 1 ? 'Tot 5 shield points' : 'Tot 6 shield points',
-      shieldRegen: player.stats.shieldRegen.level === 0 ? 'Shield regen after 4s (was 10s)' :
-                  player.stats.shieldRegen.level === 1 ? 'Shield regen +1 every 0.5s' : 'Passive shield regen 0.1 every 0.25s',
+      shield: player.stats.shield.level === 0 ? 'Gain 3 shield points that block damage' :
+              player.stats.shield.level === 1 ? 'Increase maximum shield to 5 points' : 
+              'Increase maximum shield to 6 points',
+      shieldRegen: player.stats.shieldRegen.level === 0 ? 'Shield regenerates after 6 seconds without taking damage' :
+                  player.stats.shieldRegen.level === 1 ? 'Shield regenerates 1 point every 4 seconds when not taking damage' : 
+                  'Passive shield regeneration: 0.1 points per second (1 point every 10s)',      
       health: player.stats.health.level === 0 ? '+2 lives' : ' +1 life',
       damage: player.stats.damage.level < 2 ? 'Increase bullet damage by 25%' :
              player.stats.damage.level < 3 ? 'Increase bullet damage by 30%' :
              player.stats.damage.level < 4 ? 'Increase bullet damage by 40%' : 'Increase bullet damage by 50%',
-      sprint: player.stats.sprint.level === 0 ? 'Move 50% faster when not shooting' :
-             player.stats.sprint.level === 1 ? 'Move 75% faster when not shooting' : 'Move 100% faster + Heal 1 HP every 10 seconds when not shooting',
+      sprint: player.stats.sprint.level === 0 ? 'Move 50% faster when not shooting + Heal 1 HP every 15 seconds (10 HP cap)' :
+              player.stats.sprint.level === 1 ? 'Move 75% faster when not shooting + Heal 1 HP every 10 seconds (10 HP cap)' : 
+              'Move 100% faster + Heal 1 HP every 8 seconds (100 HP cap)',      
       rocket: player.stats.rocket.level === 0 ? '10% chance for every bullet to fire a rocket (5 damage + DoT)' : '20% chance & increased DoT',
       powerBullet: player.stats.powerBullet.level === 0 ? 'Every 4th bullet deals double damage (half speed/range)' :
                   player.stats.powerBullet.level === 1 ? 'Every 3rd bullet deals triple damage' : 'Every 2nd bullet deals quadruple damage',
@@ -6005,15 +6249,23 @@ function setHardcoreStartingStats() {
         break;
       case 'shockwave':
         emergencyAbility = 'shockwave';
+        selectedAbilities.add('shockwave');
         break;
       case 'guards':
         emergencyAbility = 'guards';
+        selectedAbilities.add('guards');
         break;
       case 'freeze':
         emergencyAbility = 'freeze';
+        selectedAbilities.add('freeze');
         break;
       case 'lastResort':
         emergencyAbility = 'lastResort';
+        selectedAbilities.add('lastResort');
+        break;
+      case 'saferSpaces':
+        emergencyAbility = 'saferSpaces';
+        selectedAbilities.add('saferSpaces');
         break;
       case 'music':
         playAdamMusic();
@@ -6421,9 +6673,9 @@ function setHardcoreStartingStats() {
               }
               
               playerXP += xpAmount * xpMultiplier;
-              
-              // Level 3: 50% chance for XP orb to spawn when enemy dies
-              const xpDropChance = player.stats.xpBoost.level === 3 ? 0.5 : 0;
+
+              // Level 4: 50% chance for XP orb to spawn when enemy dies
+              const xpDropChance = player.stats.xpBoost.level === 4 ? 0.5 : 0;
               
               if (xpDropChance > 0 && Math.random() < xpDropChance) {
                   upgrades.push(new Upgrade('xpBoost'));
@@ -6668,6 +6920,47 @@ function setHardcoreStartingStats() {
 
     for (let i = upgrades.length - 1; i >= 0; i--){
       const u = upgrades[i];
+
+      // XP Boost Level 3 (index 2): Pull XP orbs toward player
+      if (u.type === 'xpBoost' && player.stats.xpBoost.level >= 3) {
+          const pullRadius = 500; // Increased radius
+          const pullSpeed = 300; // Faster pull
+          const d = dist({x: u.x, y: u.y}, player);
+          
+          if (d < pullRadius) {
+              const toPlayer = vecTo(u.x, u.y, player.x, player.y);
+              u.x += toPlayer.x * pullSpeed * dt;
+              u.y += toPlayer.y * pullSpeed * dt;
+              
+              // Visual trail effect
+              if (Math.random() < 0.5) {
+                  particles.push({
+                      x: u.x,
+                      y: u.y,
+                      vx: -toPlayer.x * 50,
+                      vy: -toPlayer.y * 50,
+                      life: 0.4,
+                      col: '#FFD700' + 'AA', // Gold color for XP trail
+                      r: 2 + Math.random() * 2
+                  });
+              }
+              
+              // Connection line to player
+              if (Math.random() < 0.1) {
+                  particles.push({
+                      x: u.x,
+                      y: u.y,
+                      vx: 0,
+                      vy: 0,
+                      life: 0.3,
+                      col: '#FFD700' + '66',
+                      r: 1
+                  });
+              }
+          }
+      }
+      
+      // Existing update logic continues...
       if(!u.update(dt)){
         upgrades.splice(i,1);
         continue;
@@ -6675,20 +6968,26 @@ function setHardcoreStartingStats() {
       
       const d = Math.hypot(player.x - u.x, player.y - u.y);
       if(d < player.r + u.r){
-          let baseXP = 30;
-          let xpMultiplier = 1;
-          
-          // Apply XP boost levels
-          if (player.stats.xpBoost.level === 1) {
-              baseXP = 50; // Level 1: Increase to 50 XP
-          } else if (player.stats.xpBoost.level === 2) {
-              baseXP = 45; // Level 2: 30 * 1.5 = 45
-              xpMultiplier = 1.5;
-          } else if (player.stats.xpBoost.level === 5) {
-              xpMultiplier = 1.5; // Level 5: Increase all XP by 50%
-          }
-          
-          playerXP += baseXP * xpMultiplier;
+        let baseXP = 30;
+        let xpMultiplier = 1;
+        
+        // XP Boost levels:
+        // Level 1 (index 0): Increase base XP to 50
+        if (player.stats.xpBoost.level >= 1) {
+            baseXP = 50;
+        }
+        
+        // Level 2 (index 1): +50% XP bonus
+        if (player.stats.xpBoost.level >= 2) {
+            xpMultiplier = 1.5;
+        }
+        
+        // Level 5 (index 4): +50% to all XP received (stacks with level 2)
+        if (player.stats.xpBoost.level >= 5) {
+            xpMultiplier *= 1.5;
+        }
+        
+        playerXP += baseXP * xpMultiplier;
         upgradesGathered++;
         checkLevelUp();
         upgrades.splice(i,1);
