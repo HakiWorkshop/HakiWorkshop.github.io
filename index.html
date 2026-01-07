@@ -2664,7 +2664,7 @@ function setHardcoreStartingStats() {
         case 'tank': color = '#8b4513'; break;
         case 'bow': color = '#4dabf7'; break;
         case 'witch': color = '#a78bfa'; break;
-        case 'royalGiant': color = '#8a2be2'; break;
+        case 'sniper': color = '#8a2be2'; break;
         case 'bomber': color = '#006400'; break;
         case 'armoredSlim': color = '#ff4500'; break;
         default: color = '#ff6b6b';
@@ -3259,14 +3259,14 @@ function setHardcoreStartingStats() {
     }
   }
 
-  // Royal Giant enemy class - IMPROVED LOOKS
-  class RoyalGiant {
+  // sniper enemy class - IMPROVED LOOKS
+  class sniper {
     constructor(spawnX, spawnY) {
       this.x = spawnX;
       this.y = spawnY;
       this.r = 25;
-      this.health = 40;
-      this.maxHealth = 40;
+      this.health = 25;
+      this.maxHealth = 25;
       this.speed = 20;
       this.color = '#8a2be2';
       this.fireTimer = 0;
@@ -3311,7 +3311,7 @@ function setHardcoreStartingStats() {
         size: 20,
         color: '#8a2be2',
         enemy: true,
-        royalGiant: true
+        sniper: true
       });
       
       playSound('tankThrow');
@@ -3319,7 +3319,7 @@ function setHardcoreStartingStats() {
     }
     
     draw(ctx) {
-      // Improved Royal Giant appearance
+      // Improved sniper appearance
       ctx.beginPath();
       ctx.fillStyle = this.color;
       ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
@@ -5382,7 +5382,7 @@ function setHardcoreStartingStats() {
     const randVal = Math.random();
     
     if (timeAlive > 50 && randVal < 0.03) {
-      spawnRoyalGiantFromOutside();
+      spawnsniperFromOutside();
     } else if (timeAlive > 50 && randVal < 0.2) {
       spawnBomberFromOutside();
     } else if (timeAlive > 70 && randVal < 0.05) { 
@@ -5512,8 +5512,8 @@ function setHardcoreStartingStats() {
     echoCountEl.textContent = echoes.length;
   }
 
-  // Spawn Royal Giant
-  function spawnRoyalGiantFromOutside() {
+  // Spawn sniper
+  function spawnsniperFromOutside() {
     const side = Math.floor(Math.random() * 4);
     let spawnX, spawnY;
     
@@ -5524,11 +5524,11 @@ function setHardcoreStartingStats() {
       case 3: spawnX = -80; spawnY = Math.random() * H; break;
     }
     
-    spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'royalGiant'));
+    spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'sniper'));
     
     setTimeout(() => {
       if (running) {
-        echoes.push(new RoyalGiant(spawnX, spawnY));
+        echoes.push(new sniper(spawnX, spawnY));
         playSound('enemySpawn');
       }
     }, 2000);
@@ -6296,26 +6296,71 @@ function setHardcoreStartingStats() {
     }
   }
 
-  // Show upgrade selection - FIXED: Options don't refresh
-  function showUpgradeMenu(){
+// Show upgrade selection - FIXED: Always provides 3 options
+function showUpgradeMenu() {
   if (pendingUpgrades <= 0 || maxLevelReached) return;
-  
+
   upgradeMenu.style.display = 'block';
   upgradeOptions.innerHTML = '';
-  
+
   const totalChance = commonChance + rareChance + legendaryChance + mythicalChance;
-  
+
   const selectedUpgrades = [];
   let attempts = 0;
-  const maxAttempts = 50; // Increased for better rarity selection
+  const maxAttempts = 50;
+
+  // Get ALL available upgrades (not filtered by rarity first)
+  const allAvailableUpgrades = [];
+  const upgradesToRemove = ['autodash'];
   
-  while(selectedUpgrades.length < 3 && attempts < maxAttempts){
-    attempts++;
+  for (const stat in player.stats) {
+    // Skip shield regen if shield is level 0
+    if (stat === 'shieldRegen' && player.stats.shield.level === 0) continue;
     
+    // In hardcore mode, skip blocked upgrades
+    if (gameMode === 'hardcore' &&
+      (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
+      continue;
+    }
+    
+    // Skip removed upgrades
+    if (upgradesToRemove.includes(stat)) continue;
+    
+    // Emergency ability upgrade checks
+    const isEmergencyAbility = [
+      'shockwave', 'guards', 'freeze',
+      'lastResort', 'saferSpaces', 'damageZone'
+    ].includes(stat);
+
+    if (isEmergencyAbility) {
+      const currentPower = abilityPowerLevels[emergencyAbility] || 0;
+      const newAbilityPower = abilityPowerLevels[stat] || 0;
+
+      // Skip if new ability is weaker than or equal to current (unless it's the same one for leveling up)
+      if (newAbilityPower <= currentPower && stat !== emergencyAbility) {
+        continue;
+      }
+
+      // Skip if this ability type is already selected (except for re-picking the same)
+      if (selectedAbilities.has(stat) && stat !== emergencyAbility) {
+        continue;
+      }
+    }
+
+    // Check if upgrade is not maxed
+    if (player.stats[stat].level < player.stats[stat].max) {
+      allAvailableUpgrades.push(stat);
+    }
+  }
+
+  // First, try to get 3 upgrades using rarity system (like before)
+  while (selectedUpgrades.length < 3 && attempts < maxAttempts) {
+    attempts++;
+
     // Determine rarity based on chances
     const randVal = Math.random() * totalChance;
     let rarity;
-    
+
     if (randVal < commonChance) {
       rarity = 'common';
     } else if (randVal < commonChance + rareChance) {
@@ -6325,134 +6370,87 @@ function setHardcoreStartingStats() {
     } else {
       rarity = 'mythical';
     }
-    
+
     // Get available upgrades for this rarity
-    const availableUpgrades = [];
-    for (const stat in player.stats) {
-      // Skip shield regen if shield is level 0
-      if (stat === 'shieldRegen' && player.stats.shield.level === 0) continue;
-      
-      // In hardcore mode, skip blocked upgrades
-      if (gameMode === 'hardcore' && 
-          (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
-        continue;
-      }
-      
-      // Skip removed upgrades
-      const upgradesToRemove = ['autodash'];
-      if (upgradesToRemove.includes(stat)) continue;
-      
-      // Check if this is an emergency ability upgrade
-      const isEmergencyAbility = [
-        'shockwave', 'guards', 'freeze', 
-        'lastResort', 'saferSpaces', 'damageZone'
-      ].includes(stat);
-      
-      if (isEmergencyAbility) {
-        // Get current ability power level
-        const currentPower = abilityPowerLevels[emergencyAbility] || 0;
-        const newAbilityPower = abilityPowerLevels[stat] || 0;
-        
-        // Skip if new ability is weaker than or equal to current
-        if (newAbilityPower <= currentPower && stat !== emergencyAbility) {
-          continue;
-        }
-        
-        // Skip if this ability type is already selected (except for re-picking the same)
-        if (selectedAbilities.has(stat) && stat !== emergencyAbility) {
-          continue;
-        }
-      }
-      
-      // Check rarity and level
-      if (player.stats[stat].rarity === rarity && 
-          player.stats[stat].level < player.stats[stat].max) {
-        availableUpgrades.push(stat);
-      }
-    }
-    
-    // If no upgrades available for this rarity, try any available upgrade
+    const availableUpgrades = allAvailableUpgrades.filter(stat =>
+      player.stats[stat].rarity === rarity && !selectedUpgrades.includes(stat)
+    );
+
+    // If no upgrades available for this rarity, try next rarity
     if (availableUpgrades.length === 0) {
-      for (const stat in player.stats) {
-        if (stat === 'shieldRegen' && player.stats.shield.level === 0) continue;
-        
-        if (gameMode === 'hardcore' && 
-            (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
-          continue;
-        }
-        
-        if (upgradesToRemove.includes(stat)) continue;
-        
-        if (player.stats[stat].level < player.stats[stat].max && 
-            !selectedUpgrades.includes(stat)) {
-          availableUpgrades.push(stat);
-        }
-      }
+      continue;
     }
-    
-    // Select a random upgrade if any are available
-    if (availableUpgrades.length > 0) {
-      const type = availableUpgrades[Math.floor(Math.random() * availableUpgrades.length)];
-      if (!selectedUpgrades.includes(type)) {
-        selectedUpgrades.push(type);
-      }
-    }
+
+    // Select a random upgrade from available ones
+    const type = availableUpgrades[Math.floor(Math.random() * availableUpgrades.length)];
+    selectedUpgrades.push(type);
   }
-  
-  // If we still don't have enough upgrades, fill with what we can
+
+  // ===== FIX: If we still don't have enough upgrades, fill with ANY available upgrades =====
   if (selectedUpgrades.length < 3) {
-    const fallbackUpgrades = [];
-    for (const stat in player.stats) {
-      if (player.stats[stat].level < player.stats[stat].max && 
-          !selectedUpgrades.includes(stat) &&
-          stat !== 'shieldRegen' &&
-          !upgradesToRemove.includes(stat)) {
-        fallbackUpgrades.push(stat);
-      }
-    }
-    
-    // Add unique fallback upgrades until we have 3
-    for (const upgrade of fallbackUpgrades) {
+    const remainingUpgrades = allAvailableUpgrades.filter(stat =>
+      !selectedUpgrades.includes(stat)
+    );
+
+    // Add unique fallback upgrades until we have 3 or run out
+    for (const upgrade of remainingUpgrades) {
       if (selectedUpgrades.length >= 3) break;
-      if (!selectedUpgrades.includes(upgrade)) {
-        selectedUpgrades.push(upgrade);
-      }
+      selectedUpgrades.push(upgrade);
     }
   }
-  
+
+  // ===== FIX: If STILL not enough upgrades (all upgrades maxed), offer special bonuses =====
+  if (selectedUpgrades.length < 3) {
+    // Player has maxed most upgrades - offer special bonus upgrades
+    const bonusUpgrades = ['extraLife', 'health', 'shield', 'damage'];
+    
+    for (let i = selectedUpgrades.length; i < 3; i++) {
+      // Create a special "bonus" upgrade that gives stats even when maxed
+      const bonusType = bonusUpgrades[i % bonusUpgrades.length];
+      selectedUpgrades.push(bonusType);
+    }
+  }
+
   // Store the selected upgrades to prevent them from changing
   window.currentUpgradeOptions = selectedUpgrades;
-  
+
   // Create upgrade options
   selectedUpgrades.forEach(type => {
     const isMaxed = player.stats[type].level >= player.stats[type].max;
     const rarity = player.stats[type].rarity;
     const option = document.createElement('div');
     option.className = `upgrade-option ${isMaxed ? 'maxed' : ''} rarity-${rarity}`;
-    option.innerHTML = `
-      <div class="upgrade-title">${getUpgradeTitle(type)} 
-        <span>${player.stats[type].level}/${player.stats[type].max} <span class="upgrade-rarity rarity-${rarity}">${rarity.toUpperCase()}</span></span>
-      </div>
-      <div class="upgrade-desc">${getUpgradeDescription(type)}</div>
-    `;
     
-    if (!isMaxed) {
-      option.addEventListener('click', () => selectUpgrade(type));
+    // Special handling for bonus upgrades when everything is maxed
+    let levelText = '';
+    let description = '';
+    
+    if (isMaxed && player.stats[type].level >= player.stats[type].max) {
+      // This is a bonus upgrade beyond max level
+      levelText = 'MAX+';
+      description = getBonusUpgradeDescription(type);
+    } else {
+      levelText = `${player.stats[type].level}/${player.stats[type].max}`;
+      description = getUpgradeDescription(type);
     }
     
+    option.innerHTML = `
+      <div class="upgrade-title">${getUpgradeTitle(type)} 
+        <span>${levelText} <span class="upgrade-rarity rarity-${rarity}">${rarity.toUpperCase()}</span></span>
+      </div>
+      <div class="upgrade-desc">${description}</div>
+    `;
+
+    if (!isMaxed) {
+      option.addEventListener('click', () => selectUpgrade(type));
+    } else if (player.stats[type].level >= player.stats[type].max) {
+      // Allow clicking on maxed bonus upgrades for special rewards
+      option.addEventListener('click', () => selectBonusUpgrade(type));
+    }
+
     upgradeOptions.appendChild(option);
   });
-  
-  // If still no upgrades, show a message
-  if (selectedUpgrades.length === 0) {
-    upgradeOptions.innerHTML = `
-      <div style="text-align:center;padding:20px;color:var(--muted);">
-        All upgrades maxed out!<br>
-        <small>You've reached maximum level for all available upgrades.</small>
-      </div>
-    `;
-  }
-  
+
   // Update refresh button state
   if (refreshUsed) {
     refreshUpgrades.disabled = true;
@@ -6460,6 +6458,54 @@ function setHardcoreStartingStats() {
   } else {
     refreshUpgrades.disabled = false;
     refreshUpgrades.textContent = 'REFRESH (1/1)';
+  }
+}
+
+// Add this helper function for bonus upgrade descriptions
+function getBonusUpgradeDescription(type) {
+  const bonusDescs = {
+    extraLife: 'Bonus: Gain +2 additional lives (beyond max)',
+    health: 'Bonus: +1 life (beyond max)',
+    shield: 'Bonus: +1 shield point (beyond max)',
+    damage: 'Bonus: +10% bullet damage (beyond max)'
+  };
+  return bonusDescs[type] || 'Special bonus upgrade';
+}
+
+// Add this function to handle bonus upgrades
+function selectBonusUpgrade(type) {
+  upgradesGathered++;
+  
+  // Apply bonus effects beyond max level
+  switch (type) {
+    case 'extraLife':
+      player.lives += 2;
+      livesEl.textContent = player.lives;
+      break;
+    case 'health':
+      player.lives += 1;
+      livesEl.textContent = player.lives;
+      break;
+    case 'shield':
+      shield = Math.min(10, (shield || 0) + 1);
+      break;
+    case 'damage':
+      player.damageMultiplier *= 1.1;
+      break;
+  }
+  
+  // Visual effects
+  upgradeInvulTimer = 1.3;
+  spawnParticles(player.x, player.y, 'rgba(255,215,0,0.9)', 25, Math.PI * 2, 100);
+  sfx(1000, 0.1, 0.03, 'sine');
+  
+  // Close upgrade menu
+  pendingUpgrades--;
+  if (pendingUpgrades > 0 && !maxLevelReached) {
+    showUpgradeMenu();
+  } else {
+    upgradeMenu.style.display = 'none';
+    gamePaused = false;
   }
 }
 
@@ -7172,96 +7218,69 @@ b.t += dt;
           
     const d = Math.hypot(b.x - e.x, b.y - e.y);
     if (d < e.r + b.size){
-      // Handle boomerang bullets differently to prevent rapid damage
-      if (b.boomerang && b.returning) {
-        // Only damage every 0.3 seconds to prevent too much DPS
-        if (!b.boomerangLastHit || b.t - b.boomerangLastHit > 0.3) {
-          b.boomerangLastHit = b.t;
-          
-          const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0) + 
-                             (player.stats.xpBoost.level > 1 ? 0.2 : 0) +
-                             (player.stats.xpBoost.level > 2 ? 0.3 : 0) +
-                             (player.stats.xpBoost.level > 3 ? 0.2 : 0) +
-                             (player.stats.xpBoost.level > 4 ? 0.1 : 0);
-          
-          if (e.takeDamage(b.damage)) {
-            if (gameMode !== 'freemode' || player.lives > 0) {
-                score += 8;
-            }
-            echoesKilled++;
-            
-            let xpAmount = 15;
-            let xpMultiplier = 1;
-            
-            // Level 4: Increase all XP received by 50%
-            if (player.stats.xpBoost.level === 4) {
-                xpMultiplier = 1.5;
-            }
-            
-            playerXP += xpAmount * xpMultiplier;
-
-            // Level 4: 50% chance for XP orb to spawn when enemy dies
-            const xpDropChance = player.stats.xpBoost.level === 4 ? 0.5 : 0;
-            
-            if (xpDropChance > 0 && Math.random() < xpDropChance) {
-                upgrades.push(new Upgrade('xpBoost'));
-            }
-            
-            checkLevelUp();
-            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-            
-            if (e instanceof EasyBoss || e instanceof MediumBoss || e instanceof HardBoss || e instanceof FinalBoss || e instanceof MegaCreeperBoss) {
-              bossesKilled++;
-              
-              // Mark boss as killed in schedule
-              const bossType = getBossType(e);
-              const scheduleIndex = bossSpawnSchedule.findIndex(b => b.type === bossType && !b.killed);
-              if (scheduleIndex !== -1) {
-                bossSpawnSchedule[scheduleIndex].killed = true;
-              }
-              
-              // Remove from active bosses
-              const bossIndex = activeBosses.indexOf(e);
-              if (bossIndex !== -1) {
-                activeBosses.splice(bossIndex, 1);
-                
-                // Remove corresponding health bar and adjust offsets
-                bossHealthBars.splice(bossIndex, 1);
-                
-                // Recalculate y offsets for remaining health bars
-                bossHealthBars.forEach((bar, index) => {
-                  bar.yOffset = (index * 30) + 20;
-                });
-              }
-              
-              levelUpNotification.style.display = 'block';
-              levelUpNotification.querySelector('.level-up-text').textContent = 'Nigaahh!';
-              levelUpNotification.querySelector('.level-up-hint').textContent = 'Continue surviving!';
-              setTimeout(() => {
-                levelUpNotification.style.display = 'none';
-              }, 3000);
-            }
-
-            function getBossType(boss) {
-              if (boss instanceof EasyBoss) return 'easy';
-              if (boss instanceof MediumBoss) return 'medium';
-              if (boss instanceof HardBoss) return 'hard';
-              if (boss instanceof FinalBoss) return 'final';
-              if (boss instanceof MegaCreeperBoss) return 'creeper';
-              return 'unknown';
-            }              
-            echoes.splice(j,1);
-            echoCountEl.textContent = echoes.length;
-          }
-        } else {
-          // Still show particles for "glancing" hits
-          spawnParticles(e.x, e.y, 'rgba(255,150,150,0.6)', 5, Math.PI*2, 40);
-        }
-        
-        // Don't remove boomerang bullets on hit
-        continue;
+if (b.boomerang && b.returning) {
+  // Initialize hit tracking if not already done
+  if (!b.hitEnemies) {
+    b.hitEnemies = [];
+  }
+  
+  // Check if we've already hit this enemy
+  if (b.hitEnemies.includes(e)) {
+    continue; // Skip - already damaged this enemy
+  }
+  
+  // Check hit cooldown for this specific bullet
+  if (!b.boomerangLastHit || b.t - b.boomerangLastHit > 0.3) {
+    b.boomerangLastHit = b.t;
+    
+    // Mark this enemy as hit by this bullet
+    b.hitEnemies.push(e);
+    
+    const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0) + 
+                       (player.stats.xpBoost.level > 1 ? 0.2 : 0) +
+                       (player.stats.xpBoost.level > 2 ? 0.3 : 0) +
+                       (player.stats.xpBoost.level > 3 ? 0.2 : 0) +
+                       (player.stats.xpBoost.level > 4 ? 0.1 : 0);
+    
+    if (e.takeDamage(b.damage)) {
+      if (gameMode !== 'freemode' || player.lives > 0) {
+        score += 8;
+      }
+      echoesKilled++;
+      
+      let xpAmount = 15;
+      let xpMultiplier = 1;
+      
+      // Level 4: Increase all XP received by 50%
+      if (player.stats.xpBoost.level === 4) {
+        xpMultiplier = 1.5;
       }
       
+      playerXP += xpAmount * xpMultiplier;
+
+      // Level 4: 50% chance for XP orb to spawn when enemy dies
+      const xpDropChance = player.stats.xpBoost.level === 4 ? 0.5 : 0;
+      
+      if (xpDropChance > 0 && Math.random() < xpDropChance) {
+        upgrades.push(new Upgrade('xpBoost'));
+      }
+      
+      checkLevelUp();
+      spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
+      
+      // ... boss killing logic (keep your existing code here) ...
+      
+      echoes.splice(j,1);
+      echoCountEl.textContent = echoes.length;
+    } else {
+      // Enemy survived but was still hit - show particles
+      spawnParticles(e.x, e.y, 'rgba(255,150,150,0.6)', 5, Math.PI*2, 40);
+    }
+  }
+  
+  // Don't remove boomerang bullets on hit
+  continue;
+}      
       // Original damage logic for non-boomerang bullets
       const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0) + 
                            (player.stats.xpBoost.level > 1 ? 0.2 : 0) +
@@ -7546,8 +7565,8 @@ if (reflectiveMirrorActive && player.stats.reflectiveMirror.level > 0) {
       }          
     }
     
-    // Royal giant bullets can kill enemies - FIXED
-    if (b.royalGiant) {
+    // sniper bullets can kill enemies - FIXED
+    if (b.sniper) {
       for (let j = echoes.length - 1; j >= 0; j--) {
         const e = echoes[j];
         if (e !== this) {
