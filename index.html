@@ -1126,7 +1126,7 @@ const abilityPowerLevels = {
   'freeze': 3,         // Legendary
   'saferSpaces': 3,    // Legendary
   'shockwave': 4,      // Mythical
-  'guards': 4          // Mythical
+  'guards': 4,         // Mythical
 };
 
 // Track selected abilities to prevent weaker ones from appearing
@@ -1148,15 +1148,16 @@ let selectedAbilities = new Set(['mineLayer']); // Start with mineLayer
   let saferSpacesActive = false;
   let saferSpacesTimer = 0;
   let saferSpacesHealth = 5;
-
- 
-  // New abilities
   let damageZoneActive = false;
   let damageZoneTimer = 0;
   let damageZoneAngle = 0;
   let minigunActive = false;
   let minigunTimer = 0;
   let minigunBullets = [];
+  let lightningStrikes = [];
+  let lightningStrikeTimer = 0;
+  let lightningStrikeCooldown = 0;
+  let lightningStrikeActive = false;
 
   // Guards array
   const guards = [];
@@ -1207,7 +1208,7 @@ function initAudio() {
   
   adamMusic = new Audio('adam.mp3');
   adamMusic.loop = true;
-  adamMusic.volume = 0.2;
+  adamMusic.volume = 0.1;
   
   // Start passive music immediately
   passive.play().catch(e => console.log('Passive music play failed:', e));
@@ -1289,7 +1290,8 @@ function initAudio() {
       saferSpaces: {level: 0, max: 1, rarity: 'legendary'},
       mineCount: {level: 0, max: 3, rarity: 'common'},
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
-      reflectiveMirror: {level: 0, max: 3, rarity: 'rare'}
+      reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
+      lightningStrike: {level: 0, max: 1, rarity: 'mythical'}
     }
   };
 
@@ -1429,6 +1431,9 @@ function initAudio() {
         break;
       case 'saferSpaces':
         sfx(300, 0.5, 0.06, 'square');
+        break;
+      case 'lightning':
+        sfx(1500, 0.1, 0.04, 'square');
         break;
     }
   }
@@ -2009,6 +2014,251 @@ function setHardcoreStartingStats() {
     }
   }
 
+      // LightningStrike class
+    class LightningStrike {
+      constructor(x, y, damage) {
+        this.x = x;
+        this.y = y;
+        this.damage = damage;
+        this.chainCount = 0;
+        this.maxChain = 5;
+        this.targets = [];
+        this.completed = false;
+        this.timer = 0;
+        this.maxTime = 0.5; // Lightning lasts 0.5 seconds
+        this.segments = [];
+        this.particles = [];
+        this.findFirstTarget();
+      }
+      
+      findFirstTarget() {
+        // Find closest enemy
+        let nearest = null;
+        let nearestDist = Infinity;
+        
+        for (const e of echoes) {
+          const d = dist({x: this.x, y: this.y}, e);
+          if (d < nearestDist && !this.targets.includes(e)) {
+            nearest = e;
+            nearestDist = d;
+          }
+        }
+        
+        if (nearest) {
+          this.targets.push(nearest);
+          this.segments.push({
+            startX: this.x,
+            startY: this.y,
+            endX: nearest.x,
+            endY: nearest.y
+          });
+          this.applyDamage(nearest);
+          this.chainCount = 1;
+          
+          // Create initial lightning particles
+          this.createLightningParticles(this.x, this.y, nearest.x, nearest.y);
+        } else {
+          this.completed = true;
+        }
+      }
+      
+      applyDamage(enemy) {
+        const chainMultiplier = Math.max(0.1, 1 - (this.chainCount - 1) * 0.5); // 50% less per chain
+        const finalDamage = this.damage * chainMultiplier;
+        
+        if (enemy.takeDamage(finalDamage)) {
+          echoesKilled++;
+          if (gameMode !== 'freemode' || player.lives > 0) {
+            score += 8;
+          }
+          spawnParticles(enemy.x, enemy.y, 'rgba(255,255,200,0.9)', 16, Math.PI*2, 120);
+          
+          const index = echoes.indexOf(enemy);
+          if (index > -1) {
+            echoes.splice(index, 1);
+            echoCountEl.textContent = echoes.length;
+          }
+        } else {
+          spawnParticles(enemy.x, enemy.y, 'rgba(255,255,200,0.7)', 5, Math.PI/4, 40);
+        }
+        
+        // Lightning sound effect
+        sfx(1200 - (this.chainCount * 100), 0.1, 0.03, 'sawtooth');
+        
+        // Screen flash for hit
+        if (this.chainCount === 1) {
+          createScreenFlash('rgba(255,255,200,0.2)', 0.1);
+        }
+      }
+      
+      findNextTarget() {
+        if (this.chainCount >= this.maxChain || echoes.length === 0) {
+          this.completed = true;
+          return;
+        }
+        
+        const lastTarget = this.targets[this.targets.length - 1];
+        let nearest = null;
+        let nearestDist = Infinity;
+        
+        for (const e of echoes) {
+          if (!this.targets.includes(e)) {
+            const d = dist({x: lastTarget.x, y: lastTarget.y}, e);
+            if (d < nearestDist && d < 300) { // Max bounce range
+              nearest = e;
+              nearestDist = d;
+            }
+          }
+        }
+        
+        if (nearest) {
+          this.targets.push(nearest);
+          this.chainCount++;
+          
+          this.segments.push({
+            startX: lastTarget.x,
+            startY: lastTarget.y,
+            endX: nearest.x,
+            endY: nearest.y
+          });
+          
+          this.applyDamage(nearest);
+          this.createLightningParticles(lastTarget.x, lastTarget.y, nearest.x, nearest.y);
+        } else {
+          this.completed = true;
+        }
+      }
+      
+      createLightningParticles(startX, startY, endX, endY) {
+        const segmentLength = Math.hypot(endX - startX, endY - startY);
+        const numParticles = Math.max(5, Math.floor(segmentLength / 10));
+        
+        for (let i = 0; i < numParticles; i++) {
+          const t = i / (numParticles - 1);
+          const particleX = startX + (endX - startX) * t;
+          const particleY = startY + (endY - startY) * t;
+          
+          // Add slight offset for lightning effect
+          const offsetX = (Math.random() - 0.5) * 10;
+          const offsetY = (Math.random() - 0.5) * 10;
+          
+          this.particles.push({
+            x: particleX + offsetX,
+            y: particleY + offsetY,
+            life: 0.3 + Math.random() * 0.2,
+            size: 2 + Math.random() * 3,
+            color: `rgba(255, ${255 - this.chainCount * 20}, ${150 - this.chainCount * 30}, 1)`
+          });
+        }
+      }
+      
+      update(dt) {
+        this.timer += dt;
+        
+        // Find next target if needed
+        if (!this.completed && this.timer > 0.1 * this.chainCount) {
+          this.findNextTarget();
+        }
+        
+        // Update particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          this.particles[i].life -= dt;
+          if (this.particles[i].life <= 0) {
+            this.particles.splice(i, 1);
+          }
+        }
+        
+        return this.timer < this.maxTime && !this.completed;
+      }
+      
+      draw(ctx) {
+        // Draw lightning segments
+        for (const segment of this.segments) {
+          this.drawLightningSegment(ctx, segment.startX, segment.startY, segment.endX, segment.endY);
+        }
+        
+        // Draw particles
+        for (const particle of this.particles) {
+          const alpha = particle.life / 0.5;
+          ctx.beginPath();
+          ctx.fillStyle = particle.color.replace('1)', `${alpha})`);
+          ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Glow effect
+          const glowGradient = ctx.createRadialGradient(
+            particle.x, particle.y, 1,
+            particle.x, particle.y, particle.size * 3
+          );
+          glowGradient.addColorStop(0, particle.color.replace('1)', `${alpha * 0.5})`));
+          glowGradient.addColorStop(1, particle.color.replace('1)', '0)'));
+          
+          ctx.beginPath();
+          ctx.fillStyle = glowGradient;
+          ctx.arc(particle.x, particle.y, particle.size * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Draw impact effects on targets
+        for (const target of this.targets) {
+          const pulse = Math.sin(this.timer * 20) * 0.3 + 0.7;
+          const glowGradient = ctx.createRadialGradient(
+            target.x, target.y, 1,
+            target.x, target.y, target.r * 2
+          );
+          glowGradient.addColorStop(0, `rgba(255, 255, 200, ${pulse * 0.3})`);
+          glowGradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+          
+          ctx.beginPath();
+          ctx.fillStyle = glowGradient;
+          ctx.arc(target.x, target.y, target.r * 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      drawLightningSegment(ctx, startX, startY, endX, endY) {
+        const segmentLength = Math.hypot(endX - startX, endY - startY);
+        const numJags = Math.max(3, Math.floor(segmentLength / 20));
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        
+        // Create jagged lightning path
+        for (let i = 1; i <= numJags; i++) {
+          const t = i / numJags;
+          const midX = startX + (endX - startX) * t;
+          const midY = startY + (endY - startY) * t;
+          
+          // Add jagged offset
+          const offsetX = (Math.random() - 0.5) * 15;
+          const offsetY = (Math.random() - 0.5) * 15;
+          
+          ctx.lineTo(midX + offsetX, midY + offsetY);
+        }
+        
+        ctx.lineTo(endX, endY);
+        
+        // Main lightning bolt
+        ctx.strokeStyle = `rgba(255, 255, ${200 - this.chainCount * 20}, 0.9)`;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Glow effect
+        ctx.strokeStyle = `rgba(255, 255, 100, 0.4)`;
+        ctx.lineWidth = 8;
+        ctx.stroke();
+        
+        // Core glow
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.8)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+      }
+    }
+
   // Fire minigun bullet
   function fireMinigunBullet() {
     let aim;
@@ -2031,20 +2281,20 @@ function setHardcoreStartingStats() {
       aim = vecTo(player.x, player.y, input.mx, input.my);
     }
     
-    // Improved minigun aim by 50% (reduced inaccuracy)
-    const inaccuracy = (Math.random() - 0.5) * 0.25; // Reduced from 0.5 to 0.25
+    const inaccuracy = (Math.random() - 0.5) * 0.25;
     const angle = Math.atan2(aim.y, aim.x) + inaccuracy;
     const dx = Math.cos(angle);
     const dy = Math.sin(angle);
     
+    //minigun bullets
     minigunBullets.push({
       x: player.x,
       y: player.y,
       dx: dx,
       dy: dy,
-      life: 1.0,
+      life: player.bulletLife * 1 + 0.3,
       speed: player.bulletSpeed * 1,
-      size: 7,
+      size: 7 + player.stats.bulletSize.level * 2,
       damage: 0.35 * player.damageMultiplier,
       minigun: true
     });
@@ -5022,7 +5272,8 @@ function setHardcoreStartingStats() {
         saferSpaces: '#00ffff',
         mineCount: '#ffaa00',
         cooldownRefresh: '#00ffaa',
-        reflectiveMirror: '#aaffff'
+        reflectiveMirror: '#aaffff',
+        lightningStrike: '#636bff'
       };
       // Level 1: Orbs last 5 seconds longer
       this.life = player.stats.xpBoost.level === 1 ? 20 : 15;
@@ -5910,7 +6161,7 @@ function setHardcoreStartingStats() {
       }
     }
     
-    // Add emergency ability
+    // Add emergency ability options
     const abilityItem = document.createElement('div');
     abilityItem.className = 'upgrade-item';
     const abilityNames = {
@@ -5921,6 +6172,7 @@ function setHardcoreStartingStats() {
       lastResort: 'LAST RESORT',
       damageZone: 'DAMAGE ZONE',
       saferSpaces: 'SAFER SPACES',
+      lightningStrike: 'LIGHTNING STRIKE',
       dash: 'DASH'
     };
     abilityItem.innerHTML = `
@@ -5956,6 +6208,26 @@ function setHardcoreStartingStats() {
         bulletCounter = 0;
       }
     }
+
+    const lightningStrikeLevel = player.stats.lightningStrike.level;
+    let isLightningStrike = false;
+
+    if (lightningStrikeLevel > 0) {
+      bulletCounter++;
+      if (bulletCounter >= 4) { // Every 4th bullet triggers lightning strike
+        isLightningStrike = true;
+        bulletCounter = 0;
+      }
+    }
+
+    // Fire lightning strike as extra, not replacement
+    if (isLightningStrike && lightningStrikeLevel > 0) {
+      const lightningDamage = 3 * player.damageMultiplier;
+      lightningStrikes.push(new LightningStrike(player.x, player.y, lightningDamage));
+      playSound('shockwave'); // Using existing sound
+      spawnParticles(player.x, player.y, 'rgba(255,255,200,0.9)', 20, Math.PI*2, 150);
+      // Don't return - continue to fire regular bullet
+    }
     
     const shotgunLevel = player.stats.shotgun.level;
     let shotgunBullets = 0;
@@ -5975,7 +6247,7 @@ function setHardcoreStartingStats() {
       else if (shotgunLevel === 5) shotgunBullets = 8;
     }
     
-        const flankerLevel = player.stats.flanker.level;
+    const flankerLevel = player.stats.flanker.level;
     let isFlanker = false;
     let flankerBullets = 0;
     let flankerAngle = Math.PI / 12;
@@ -6220,12 +6492,13 @@ function setHardcoreStartingStats() {
         const dx = aim.x * cos - aim.y * sin;
         const dy = aim.x * sin + aim.y * cos;
         
+        // shotgun bullets
         const shotgunBullet = { 
           x: player.x + dx*player.r*1.6, 
           y: player.y + dy*player.r*1.6, 
           dx, dy, 
           t:0, 
-          life: player.bulletLife,
+          life: player.bulletLife + 0.3,
           speed: player.bulletSpeed,
           size: player.bulletSize * 1,
           willExplode: false,
@@ -6421,6 +6694,8 @@ function showUpgradeMenu() {
     }
   }
 
+  
+
   // Store the selected upgrades to prevent them from changing
   window.currentUpgradeOptions = selectedUpgrades;
 
@@ -6558,7 +6833,8 @@ function selectBonusUpgrade(type) {
       mineLayer: 'Mine Layer',
       mineCount: 'Mine Capacity',
       cooldownRefresh: ' Dangerous situations',
-      reflectiveMirror: 'Mirror Shield'
+      reflectiveMirror: 'Mirror Shield',
+      lightningStrike: 'Lightning Strike'
     };
     return titles[type];
   }
@@ -6646,7 +6922,8 @@ function selectBonusUpgrade(type) {
             player.stats.mineCount.level === 1 ? 'Increase mine count to 7, mines deal 50% more damage and last 1 second longer' : 'Increase mine count to 9, mines deal 30% more damage and last 1 second longer (8seconds)',
         cooldownRefresh: 'Refresh emergency ability cooldown when taking damage',
         reflectiveMirror: player.stats.reflectiveMirror.level === 0 ? '20% chance to reflect enemy bullets' :
-                 player.stats.reflectiveMirror.level === 1 ? '+15% chance to reflect enemy bullets(35%)' : '+15% chance to reflect enemy bullets(50%)'
+                 player.stats.reflectiveMirror.level === 1 ? '+15% chance to reflect enemy bullets(35%)' : '+15% chance to reflect enemy bullets(50%)',
+        lightningStrike: 'Fire a lightning that chains through up to 5 enemies, dealing damage that decreases by 5% per bounce'
 
     };
     return descs[type];
@@ -6830,9 +7107,6 @@ function selectBonusUpgrade(type) {
         break;
       case 'reflectiveMirror':
         reflectiveMirrorActive = true;
-        // Level 1: 20% chance, 80 radius
-        // Level 2: 35% chance, 80 radius
-        // Level 3: 50% chance, 80 radius + piercing
         reflectiveMirrorRadius = 55;
         
         // Update chance based on level
@@ -6847,6 +7121,8 @@ function selectBonusUpgrade(type) {
             reflectiveMirrorChance = 0.50; // 50%
             break;
         }
+        break;
+      case 'lightningStrike':
         break;
       }
     
@@ -7051,6 +7327,14 @@ function spawnScheduledBoss(type) {
     if (reflectiveMirrorActive) {
     reflectiveMirrorPulse += dt;
     }
+
+    // Update lightning strikes
+    for (let i = lightningStrikes.length - 1; i >= 0; i--) {
+      if (!lightningStrikes[i].update(dt)) {
+        lightningStrikes.splice(i, 1);
+      }
+    }
+
     
     if (isDashing) {
       dashInvulTimer -= dt;
@@ -7983,6 +8267,11 @@ if (b.enemy) {
       ctx.moveTo(0, y);
       ctx.lineTo(W, y);
       ctx.stroke();
+    }
+
+    // Draw lightning strikes
+    for (const lightning of lightningStrikes) {
+      lightning.draw(ctx);
     }
     
     for (let i=0;i<80;i++){
