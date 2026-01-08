@@ -1291,7 +1291,7 @@ function initAudio() {
       mineCount: {level: 0, max: 3, rarity: 'common'},
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
-      lightningStrike: {level: 0, max: 1, rarity: 'mythical'}
+      lightningStrike: {level: 0, max: 1, rarity: 'common'}
     }
   };
 
@@ -2021,7 +2021,7 @@ function setHardcoreStartingStats() {
         this.y = y;
         this.damage = damage;
         this.chainCount = 0;
-        this.maxChain = 5;
+        this.maxChain = 3;
         this.targets = [];
         this.completed = false;
         this.timer = 0;
@@ -5323,7 +5323,8 @@ function setHardcoreStartingStats() {
         saferSpaces: '🛡',
         mineCount: '💣',
         cooldownRefresh: '⏱',
-        reflectiveMirror: '🛡️'
+        reflectiveMirror: '🛡️',
+        LightningStrike: '⚡'
       };
       
       ctx.fillText(icons[this.type], this.x, this.y + floatY);
