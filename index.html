@@ -1291,7 +1291,7 @@ function initAudio() {
       mineCount: {level: 0, max: 3, rarity: 'common'},
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
-      lightningStrike: {level: 0, max: 1, rarity: 'common'}
+      lightningStrike: {level: 0, max: 1, rarity: 'mythical'}
     }
   };
 
@@ -2021,11 +2021,11 @@ function setHardcoreStartingStats() {
         this.y = y;
         this.damage = damage;
         this.chainCount = 0;
-        this.maxChain = 3;
+        this.maxChain = 2 + (player.stats.bulletLife.level * 2);
         this.targets = [];
         this.completed = false;
         this.timer = 0;
-        this.maxTime = 0.5; // Lightning lasts 0.5 seconds
+        this.maxTime = 0.5 + (player.stats.bulletLife.level * 0.2);
         this.segments = [];
         this.particles = [];
         this.findFirstTarget();
@@ -2063,11 +2063,32 @@ function setHardcoreStartingStats() {
       }
       
       applyDamage(enemy) {
-        const chainMultiplier = Math.max(0.1, 1 - (this.chainCount - 1) * 0.5); // 50% less per chain
+        const chainMultiplier = Math.max(0.1, 1 - (this.chainCount - 1) * 0.10); // 10% less per chain
         const finalDamage = this.damage * chainMultiplier;
         
         if (enemy.takeDamage(finalDamage)) {
           echoesKilled++;
+
+              // === ADD THIS SECTION FOR XP ===
+              // Give 15 XP for lightning kill (same as regular kills)
+              let baseXP = 15;
+              let xpMultiplier = 1;
+              
+              if (player.stats.xpBoost.level >= 1) {
+                baseXP = 25; // Level 1: +10 XP
+              }
+              if (player.stats.xpBoost.level >= 2) {
+                xpMultiplier = 1.5; // Level 2: +50%
+              }
+              if (player.stats.xpBoost.level >= 5) {
+                xpMultiplier *= 1.5; // Level 5: Additional 50%
+              }
+              
+              playerXP += baseXP * xpMultiplier;
+              checkLevelUp();
+              // === END XP SECTION ===
+
+
           if (gameMode !== 'freemode' || player.lives > 0) {
             score += 8;
           }
@@ -2104,7 +2125,7 @@ function setHardcoreStartingStats() {
         for (const e of echoes) {
           if (!this.targets.includes(e)) {
             const d = dist({x: lastTarget.x, y: lastTarget.y}, e);
-            if (d < nearestDist && d < 300) { // Max bounce range
+            if (d < nearestDist && d < 200 + (player.stats.bulletLife.level * 50)) { // Max bounce range
               nearest = e;
               nearestDist = d;
             }
@@ -6215,7 +6236,7 @@ function setHardcoreStartingStats() {
 
     if (lightningStrikeLevel > 0) {
       bulletCounter++;
-      if (bulletCounter >= 4) { // Every 4th bullet triggers lightning strike
+      if (bulletCounter >= 9) { // Every 5th bullet triggers lightning strike
         isLightningStrike = true;
         bulletCounter = 0;
       }
