@@ -925,11 +925,13 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li>Max 3 - Rare</li>
 
           <p><strong>Balance Changes</strong></p>
-          <li><strong>Explosive enemy</strong></li>
+          <li><strong>Explosive enemy - Buff</strong></li>
           <li>Moves twice as fast</li>
           <li>Slims now spawns a little closer to each other</li>
-          <li><strong>Sniper Enemy</strong></li>
-          <li>40% Less health</li>
+          <li><strong>Sniper Enemy - Nerf</strong></li>
+          <li>40% Less health</li>          
+          <li><strong>Final boss - Buff</strong></li>
+          <li>Phase system buffed - now turned upside down, starts slow but fires faster.</li>
 
           <p><strong>Ability Reworks</strong></p>
           <li><strong>Ghost</strong></li>
@@ -1084,6 +1086,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let reflectiveMirrorRadius = 80;
   let reflectiveMirrorChance = 0.2;
   let reflectiveMirrorPulse = 0;
+  let damageZonePulse = 0;
+  let damageZoneInnerPulse = 0;
+  let damageZoneRotation = 0;
+  let damageZoneDamageParticles = [];
 
   // New boss tracking system
   let bossSpawnTimer = 0;
@@ -1141,7 +1147,7 @@ let selectedAbilities = new Set(['mineLayer']); // Start with mineLayer
   let shockwaveDamage = 1;
   let saferSpacesActive = false;
   let saferSpacesTimer = 0;
-  let saferSpacesHealth = 4;
+  let saferSpacesHealth = 5;
 
  
   // New abilities
@@ -1577,8 +1583,8 @@ function initAudio() {
 function setHardcoreStartingStats() {
   // Worse base stats
   player.speed = 210;           // -40 speed
-  player.fireRate = 0.4;        // Super slow firing
-  player.damageMultiplier = 0.4; //Lower damage multiplier
+  player.fireRate = 0.3;        // Super slow firing
+  player.damageMultiplier = 0.45; //Lower damage multiplier
 }
 
   // Update upgrade chances over time
@@ -1715,7 +1721,7 @@ function setHardcoreStartingStats() {
       case 'saferSpaces':
         saferSpacesActive = true;
         saferSpacesTimer = 10;
-        saferSpacesHealth = 4;
+        saferSpacesHealth = 5;
         saferSpacesWall = {
           x: player.x,
           y: player.y,
@@ -3857,8 +3863,8 @@ function setHardcoreStartingStats() {
       this.y = clamp(this.y, 100, H-100);
       
       this.r = 35;
-      this.health = 30;
-      this.maxHealth = 30;
+      this.health = 40;
+      this.maxHealth = 40;
       this.speed = 50;
       this.color = '#ff4757';
       this.attackTimer = 0;
@@ -4252,8 +4258,8 @@ function setHardcoreStartingStats() {
       this.y = clamp(this.y, 200, H-200);
       
       this.r = 80;
-      this.health = 600 + bossesKilled * 100;
-      this.maxHealth = 600 + bossesKilled * 100;
+      this.health = 1000;
+      this.maxHealth = 1000;
       this.speed = 50;
       this.color = '#4b0082';
       this.attackTimer = 0;
@@ -4281,8 +4287,8 @@ function setHardcoreStartingStats() {
         this.coverBlocks.push({
           x: blockX,
           y: blockY,
-          width: 80, // Increased from 40 to 80 (100% larger)
-          height: 80  // Increased from 40 to 80 (100% larger)
+          width: 60, 
+          height: 60
         });
       }
       
@@ -4304,20 +4310,20 @@ function setHardcoreStartingStats() {
       this.x += toPlayer.x * this.speed * dt;
       this.y += toPlayer.y * this.speed * dt;
       
-      if (this.health < this.maxHealth * 0.75 && this.phase === 1) {
+      if (this.health < this.maxHealth * 0.6 && this.phase === 1) {
         this.phase = 2;
         this.speed = 40;
-        this.attackRate = 1.5;
+        this.attackRate = 2;
       }
-      if (this.health < this.maxHealth * 0.5 && this.phase === 2) {
+      if (this.health < this.maxHealth * 0.3 && this.phase === 2) {
         this.phase = 3;
         this.speed = 30;
         this.attackRate = 2;
       }
-      if (this.health < this.maxHealth * 0.25 && this.phase === 3) {
+      if (this.health < this.maxHealth * 0.1 && this.phase === 3) {
         this.phase = 4;
         this.speed = 20;
-        this.attackRate = 3;
+        this.attackRate = 1.2;
       }
       
       this.attackTimer += dt;
@@ -4325,8 +4331,8 @@ function setHardcoreStartingStats() {
         this.attackTimer = 0;
         
         const bulletCount = this.phase === 1 ? 12 : 
-                          this.phase === 2 ? 16 : 
-                          this.phase === 3 ? 24 : 34;
+                          this.phase === 2 ? 20 : 
+                          this.phase === 3 ? 30 : 40;
         
         for (let i = 0; i < bulletCount; i++) {
           const angle = this.bulletAngle + (i / bulletCount) * Math.PI * 2;
@@ -4336,9 +4342,9 @@ function setHardcoreStartingStats() {
             dx: Math.cos(angle),
             dy: Math.sin(angle),
             t: 0,
-            life: 2.0 + this.phase - 1,
-            speed: 250 - this.phase * 35,
-            size: 9 + this.phase * 4,
+            life: 5.0 - this.phase,
+            speed: 150 + this.phase * 50,
+            size: 21 - this.phase * 4,
             color: '#4b0082',
             enemy: true
           });
@@ -5721,7 +5727,7 @@ function setHardcoreStartingStats() {
     minigunTimer = 0;
     saferSpacesActive = false;
     saferSpacesTimer = 0;
-    saferSpacesHealth = 4;
+    saferSpacesHealth = 5;
     saferSpacesWall = null;
 
     reflectiveMirrorActive = false;
@@ -7056,8 +7062,6 @@ function spawnScheduledBoss(type) {
     updateShield(dt);
     updateSprint(dt);
     updateUI();
-
-    
     
     // In hardcore mode, bosses have 100% more health and fire 25% more bullets
     const bossMultiplier = gameMode === 'hardcore' ? 2 : 1.0;
@@ -7144,8 +7148,6 @@ function spawnScheduledBoss(type) {
         fires.splice(i, 1);
       }
     }
-
-    
 
     for (let i = bullets.length - 1; i >= 0; i--){
       const b = bullets[i];
@@ -7276,9 +7278,7 @@ if (b.boomerang && b.returning) {
       
       checkLevelUp();
       spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-      
-      // ... boss killing logic (keep your existing code here) ...
-      
+            
       echoes.splice(j,1);
       echoCountEl.textContent = echoes.length;
     } else {
@@ -8087,62 +8087,188 @@ if (b.enemy) {
       ctx.fillRect(saferSpacesWall.x - 40, saferSpacesWall.y - saferSpacesWall.height/2 - 10, 80 * healthPercent, 6);
     }
 
-    // Draw damage zone (passive)
+    // Draw damage zone (passive) - ENHANCED VERSION
     if (damageZoneActive && player.stats.damageZone.level > 0) {
+      damageZonePulse += 0.08;
+      damageZoneInnerPulse += 0.15;
+      damageZoneRotation += 0.03;
+      
       const swordCount = player.stats.damageZone.level === 1 ? 1 : 2;
       const damageMultiplier = player.stats.damageZone.level === 2 ? 2 : 1.5;
       const areaMultiplier = player.stats.damageZone.level === 2 ? 1.5 : 1.0;
+      const zoneRadius = player.r * 6 * areaMultiplier;
       
+      // Pulsing outer aura effect
+      const outerPulse = 0.7 + Math.sin(damageZonePulse) * 0.3;
+      const innerPulse = 0.5 + Math.sin(damageZoneInnerPulse) * 0.5;
+      
+      // Outer glow with pulsing effect
+      const outerGlow = ctx.createRadialGradient(
+        player.x, player.y, player.r * 2,
+        player.x, player.y, zoneRadius * 1.2
+      );
+      outerGlow.addColorStop(0, `rgba(255, 50, 50, ${0.15 * outerPulse})`);
+      outerGlow.addColorStop(0.5, `rgba(255, 107, 107, ${0.08 * outerPulse})`);
+      outerGlow.addColorStop(1, `rgba(255, 150, 150, ${0.02 * outerPulse})`);
+      
+      ctx.beginPath();
+      ctx.fillStyle = outerGlow;
+      ctx.arc(player.x, player.y, zoneRadius * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Main damage zone ring with pulsing effect
+      const ringGradient = ctx.createRadialGradient(
+        player.x, player.y, zoneRadius * 0.3,
+        player.x, player.y, zoneRadius
+      );
+      ringGradient.addColorStop(0, `rgba(255, 107, 107, ${0.3 * innerPulse})`);
+      ringGradient.addColorStop(0.7, `rgba(255, 50, 50, ${0.15 * innerPulse})`);
+      ringGradient.addColorStop(1, `rgba(255, 0, 0, ${0.05 * innerPulse})`);
+      
+      ctx.beginPath();
+      ctx.fillStyle = ringGradient;
+      ctx.arc(player.x, player.y, zoneRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Pulsing border
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * innerPulse})`;
+      ctx.lineWidth = 2;
+      ctx.arc(player.x, player.y, zoneRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Inner danger ring
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(255, 100, 100, ${0.5 * outerPulse})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.arc(player.x, player.y, zoneRadius * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Rotating energy blades/swords
       for (let i = 0; i < swordCount; i++) {
-        const angle = damageZoneAngle + (i * Math.PI);
-        const swordX = player.x + Math.cos(angle) * player.r * 2;
-        const swordY = player.y + Math.sin(angle) * player.r * 2;
+        const angle = damageZoneRotation + (i * Math.PI);
+        const swordX = player.x + Math.cos(angle) * zoneRadius * 0.7;
+        const swordY = player.y + Math.sin(angle) * zoneRadius * 0.7;
         
-        // Draw rotating swords
+        // Sword energy trail
+        for (let j = 0; j < 3; j++) {
+          const trailAngle = angle - 0.1 * j;
+          const trailX = player.x + Math.cos(trailAngle) * zoneRadius * (0.7 - j * 0.1);
+          const trailY = player.y + Math.sin(trailAngle) * zoneRadius * (0.7 - j * 0.1);
+          
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 200, 100, ${0.3 - j * 0.1})`;
+          ctx.arc(trailX, trailY, player.r * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Draw enhanced rotating swords
         ctx.save();
         ctx.translate(swordX, swordY);
         ctx.rotate(angle);
         
+        // Sword glow effect
+        const swordGlow = ctx.createRadialGradient(0, 0, 1, 0, 0, player.r);
+        swordGlow.addColorStop(0, `rgba(255, 255, 200, ${0.8 * outerPulse})`);
+        swordGlow.addColorStop(1, `rgba(255, 100, 50, ${0.3 * outerPulse})`);
+        
         ctx.beginPath();
-        ctx.fillStyle = '#ff6b6b';
-        ctx.moveTo(0, -player.r * 0.5);
-        ctx.lineTo(player.r * 0.3, player.r * 0.5);
-        ctx.lineTo(0, player.r * 0.3);
-        ctx.lineTo(-player.r * 0.3, player.r * 0.5);
+        ctx.fillStyle = swordGlow;
+        ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Sword blade with glowing effect
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * innerPulse})`;
+        ctx.moveTo(0, -player.r * 0.8);
+        ctx.lineTo(player.r * 0.4, player.r * 0.6);
+        ctx.lineTo(0, player.r * 0.4);
+        ctx.lineTo(-player.r * 0.4, player.r * 0.6);
         ctx.closePath();
         ctx.fill();
         
-        ctx.restore();
-        
-        // Sword trail/effect area
-        const g = ctx.createRadialGradient(swordX, swordY, 1, swordX, swordY, player.r * 6 * areaMultiplier);
-        g.addColorStop(0, 'rgba(255,107,107,0.3)');
-        g.addColorStop(0.5, 'rgba(255,107,107,0.1)');
-        g.addColorStop(1, 'rgba(255,107,107,0.0)');
-        ctx.fillStyle = g;
+        // Sword edge highlight
         ctx.beginPath();
-        ctx.arc(swordX, swordY, player.r * 6 * areaMultiplier, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(255, 255, 100, ${0.8 * outerPulse})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, -player.r * 0.7);
+        ctx.lineTo(0, player.r * 0.3);
+        ctx.stroke();
+        
+        ctx.restore();
+      }
+      
+      // Rotating energy particles around the zone
+      const particleCount = 12;
+      for (let i = 0; i < particleCount; i++) {
+        const particleAngle = damageZoneRotation * 2 + (i / particleCount) * Math.PI * 2;
+        const particleDistance = zoneRadius * (0.8 + Math.sin(damageZonePulse + i) * 0.2);
+        const particleX = player.x + Math.cos(particleAngle) * particleDistance;
+        const particleY = player.y + Math.sin(particleAngle) * particleDistance;
+        
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, ${150 + Math.sin(damageZonePulse + i) * 100}, 50, 0.6)`;
+        ctx.arc(particleX, particleY, 2 + Math.sin(damageZonePulse + i * 0.5), 0, Math.PI * 2);
         ctx.fill();
-
-        // Damage enemies in the zone
-        for (const e of echoes) {
-          const d = dist({x: swordX, y: swordY}, e);
-          if (d < player.r * 9 * areaMultiplier) {
-            if (e.takeDamage(2 * damageMultiplier * 0.016)) { // 60 FPS
-              echoesKilled++;
-              spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-              const index = echoes.indexOf(e);
-              if (index > -1) {
-                echoes.splice(index, 1);
-              }
-            }
+      }
+      
+      // Connection lines between swords and center
+      if (swordCount > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 100, 100, ${0.3 * innerPulse})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(
+          player.x + Math.cos(damageZoneRotation) * zoneRadius * 0.7,
+          player.y + Math.sin(damageZoneRotation) * zoneRadius * 0.7
+        );
+        ctx.lineTo(
+          player.x + Math.cos(damageZoneRotation + Math.PI) * zoneRadius * 0.7,
+          player.y + Math.sin(damageZoneRotation + Math.PI) * zoneRadius * 0.7
+        );
+        ctx.stroke();
+      }
+      
+      // Damage effect particles on enemies
+      for (const e of echoes) {
+        const d = dist({x: player.x, y: player.y}, e);
+        if (d < zoneRadius + e.r) {
+          // Visual feedback for enemies being damaged
+          if (Math.random() < 0.1) {
+            const angle = Math.atan2(e.y - player.y, e.x - player.x);
+            damageZoneDamageParticles.push({
+              x: e.x,
+              y: e.y,
+              vx: Math.cos(angle + Math.PI) * 50,
+              vy: Math.sin(angle + Math.PI) * 50,
+              life: 0.5,
+              color: `rgba(255, ${100 + Math.random() * 100}, 50, 0.8)`,
+              size: 3 + Math.random() * 3
+            });
           }
         }
       }
       
-      damageZoneAngle += 0.05;
+      // Update and draw damage particles
+      for (let i = damageZoneDamageParticles.length - 1; i >= 0; i--) {
+        const p = damageZoneDamageParticles[i];
+        p.life -= 0.016;
+        p.x += p.vx * 0.016;
+        p.y += p.vy * 0.016;
+        
+        if (p.life > 0) {
+          ctx.beginPath();
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life;
+          ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else {
+          damageZoneDamageParticles.splice(i, 1);
+        }
+      }
     }
-
     // Draw minigun bullets
     for (const b of minigunBullets) {
       ctx.beginPath();
@@ -8613,8 +8739,6 @@ if (b.enemy) {
     render();
     requestAnimationFrame(loop);
   }
-
-  
 
   // Initialize the game
   initAudio();
