@@ -915,6 +915,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li>Boss system broke down in a previous update. In this new version its working perfectly fine with minimal bugs. Bosses now spawn how they are suposed to when they are suposed to.</li>
 
           <p><strong>NEW & ADDED!</strong></p>
+          <li><strong>NEW ⊙ Lightning strike</strong></li>
+          <li>A new ability that Fires a powerfull lightning to nearest enemy chaining trough hitting mulitple if close by</li>
+          <li>Max 2 - Mythical</li>
           <li><strong>NEW ⊙ Dangerous situations</strong></li>
           <li>A new ability that allows you to refresh your ability timer on taking damage</li>
           <li>Max 1 - Rare</li>
@@ -1066,7 +1069,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let lastMouseMove = 0;
   let upgradeSelectionCooldown = 0;
   let killBoostTimer = 0;
-  let pendingUpgrades = 1;
+  let pendingUpgrades = 4;
   let tabPressed = false;
   let gamePaused = false;
   let shield = 0;
@@ -1268,7 +1271,7 @@ function initAudio() {
       holyLife: {level: 0, max: 1, rarity: 'legendary'},
       killBoost: {level: 0, max: 3, rarity: 'rare'},
       boomerang: {level: 0, max: 3, rarity: 'legendary'},
-      fire: {level: 0, max: 2, rarity: 'legendary'},
+      fire: {level: 0, max: 2, rarity: 'mythical'},
       shotgun: {level: 0, max: 5, rarity: 'rare'},
       shield: {level: 0, max: 3, rarity: 'rare'},
       shieldRegen: {level: 0, max: 2, rarity: 'legendary'},
@@ -1291,7 +1294,7 @@ function initAudio() {
       mineCount: {level: 0, max: 3, rarity: 'common'},
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
-      lightningStrike: {level: 0, max: 1, rarity: 'mythical'}
+      lightningStrike: {level: 0, max: 2, rarity: 'mythical'}
     }
   };
 
@@ -1336,7 +1339,6 @@ function initAudio() {
     }
 
     // Pause game - FIXED: Can't pause while upgrade menu is open
-    //YAYYY
     if (e.key === 'p' || e.key === 'P') {
         if (gameStarted && running && upgradeMenu.style.display !== 'block') {
             gamePaused = !gamePaused;
@@ -2019,7 +2021,7 @@ function setHardcoreStartingStats() {
       constructor(x, y, damage) {
         this.x = x;
         this.y = y;
-        this.damage = damage;
+        this.damage = 2 * player.damageMultiplier; // Base damage multiplied
         this.chainCount = 0;
         this.maxChain = 2 + (player.stats.bulletLife.level * 2);
         this.targets = [];
@@ -2160,8 +2162,8 @@ function setHardcoreStartingStats() {
           const particleY = startY + (endY - startY) * t;
           
           // Add slight offset for lightning effect
-          const offsetX = (Math.random() - 0.5) * 10;
-          const offsetY = (Math.random() - 0.5) * 10;
+          const offsetX = (Math.random() - 0.5) * 20;
+          const offsetY = (Math.random() - 0.5) * 20;
           
           this.particles.push({
             x: particleX + offsetX,
@@ -2234,6 +2236,30 @@ function setHardcoreStartingStats() {
           ctx.fillStyle = glowGradient;
           ctx.arc(target.x, target.y, target.r * 2, 0, Math.PI * 2);
           ctx.fill();
+
+          // ===== ADD THE LEVEL 2 EFFECT RIGHT HERE =====
+          if (player.stats.lightningStrike.level >= 2) {
+            // Level 2: Add crackling electricity around hit enemies
+            const crackleRadius = target.r * (1.5 + Math.sin(this.timer * 30) * 0.5);
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, 255, 100, ${pulse * 0.5})`;
+            ctx.lineWidth = 2;
+
+            // Create jagged circle effect
+            const cracklePoints = 8;
+            for (let i = 0; i < cracklePoints; i++) {
+              const angle = (i / cracklePoints) * Math.PI * 2 + this.timer * 5;
+              const offset = Math.random() * 10;
+              const crackleX = target.x + Math.cos(angle) * (crackleRadius + offset);
+              const crackleY = target.y + Math.sin(angle) * (crackleRadius + offset);
+              
+              if (i === 0) ctx.moveTo(crackleX, crackleY);
+              else ctx.lineTo(crackleX, crackleY);
+            }
+            ctx.closePath();
+            ctx.stroke();
+          }
+          // ===== END LEVEL 2 EFFECT =====
         }
       }
       
@@ -2759,7 +2785,7 @@ function setHardcoreStartingStats() {
       this.x = x;
       this.y = y;
       this.angle = angle;
-      this.speed = 600;
+      this.speed = 500;
       this.life = 1;
       this.damage = 0.25;
       this.width = player.stats.fire.level === 1 ? 30 : 40;
@@ -5356,7 +5382,6 @@ function setHardcoreStartingStats() {
       return this.life > 0;
     }
 
-    // Add this right after the update() method in the Upgrade class
     checkXPOrbPulling() {
         // Level 2: Pull all close XP orbs toward the player
         if (player.stats.xpBoost.level === 2) {
@@ -5978,13 +6003,14 @@ function setHardcoreStartingStats() {
     bossSpawnEffect = null;
     upgradeSelectionCooldown = 0;
     killBoostTimer = 0;
-    pendingUpgrades = 1;
+    pendingUpgrades = 4;
     tabPressed = false;
     gamePaused = false;
     shield = 0;
     shieldTimer = 0;
     shieldDamageCooldown = 0;
     bulletCounter = 0;
+    if (window.lightningCounter) window.lightningCounter = 0;
     sprintTimer = 0;
     endlessMode = false;
     bossUpgradePending = false;
@@ -6220,35 +6246,36 @@ function setHardcoreStartingStats() {
       }
     }
     
-    const fireLevel = player.stats.fire.level;
-    let isFire = false;
-    
-    if (fireLevel > 0) {
-      bulletCounter++;
-      if (bulletCounter >= 3) {
-        isFire = true;
-        bulletCounter = 0;
-      }
-    }
-
     const lightningStrikeLevel = player.stats.lightningStrike.level;
     let isLightningStrike = false;
 
     if (lightningStrikeLevel > 0) {
-      bulletCounter++;
-      if (bulletCounter >= 9) { // Every 5th bullet triggers lightning strike
+      // Use separate counter for lightning strike
+      if (!window.lightningCounter) window.lightningCounter = 0;
+      window.lightningCounter++;
+      if (window.lightningCounter >= 4) {
         isLightningStrike = true;
-        bulletCounter = 0;
+        window.lightningCounter = 0;
       }
     }
 
     // Fire lightning strike as extra, not replacement
     if (isLightningStrike && lightningStrikeLevel > 0) {
-      const lightningDamage = 3 * player.damageMultiplier;
+      const lightningDamage = 2 * player.damageMultiplier;
       lightningStrikes.push(new LightningStrike(player.x, player.y, lightningDamage));
-      playSound('shockwave'); // Using existing sound
+      playSound('shockwave');
       spawnParticles(player.x, player.y, 'rgba(255,255,200,0.9)', 20, Math.PI*2, 150);
-      // Don't return - continue to fire regular bullet
+    }
+
+    const fireLevel = player.stats.fire.level;
+    let isFire = false;
+
+    if (fireLevel > 0) {
+      bulletCounter++;
+      if (bulletCounter >= 5) {
+        isFire = true;
+        bulletCounter = 0;
+      }
     }
     
     const shotgunLevel = player.stats.shotgun.level;
@@ -6373,11 +6400,9 @@ function setHardcoreStartingStats() {
       fires.push(firePulse);
       playSound('fire');
       spawnParticles(player.x, player.y, 'rgba(255,100,0,0.9)', 20, Math.PI*2, 150);
-      // Don't return - continue to fire regular bullet
     }
 
       if (isFlanker && flankerLevel > 0) {
-    // FIXED: Flanker bullets fire BACKWARDS with spread
     const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
     
     if (flankerLevel === 7) {
@@ -6434,7 +6459,6 @@ function setHardcoreStartingStats() {
     } else {
       // Levels 1-6: Fire backward bullets in a spread pattern
       for (let i = 0; i < flankerBullets; i++) {
-        // Calculate angle offset for backward spread
         const spreadOffset = (i - Math.floor(flankerBullets / 2)) * flankerAngle;
         const bulletAngle = baseBackwardAngle + spreadOffset;
         const dx = Math.cos(bulletAngle);
@@ -6945,7 +6969,7 @@ function selectBonusUpgrade(type) {
         cooldownRefresh: 'Refresh emergency ability cooldown when taking damage',
         reflectiveMirror: player.stats.reflectiveMirror.level === 0 ? '20% chance to reflect enemy bullets' :
                  player.stats.reflectiveMirror.level === 1 ? '+15% chance to reflect enemy bullets(35%)' : '+15% chance to reflect enemy bullets(50%)',
-        lightningStrike: 'Fire a lightning that chains through up to 5 enemies, dealing damage that decreases by 5% per bounce'
+        lightningStrike: 'Fire a lightning that chains through several enemies'
 
     };
     return descs[type];
