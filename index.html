@@ -951,11 +951,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <p><strong>Bug fixes</strong></p>
           <li><strong>Guards</strong></li>
           <li>Now spawns in a propper circle, scaling with difficulty</li>
-          <li><strong>Various minor fixes</strong></li>
           <li><strong>Death bug</strong></li>
           <li>Player can now die from enemy bullets</li>
           <li><strong>Safer spaces</strong></li>
           <li>Ability can now take damage from enemy bullets and break proppely</li>
+          <li><strong>Various minor fixes</strong></li>
         </ul>
       </div>
     </div>
@@ -1071,7 +1071,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let lastMouseMove = 0;
   let upgradeSelectionCooldown = 0;
   let killBoostTimer = 0;
-  let pendingUpgrades = 4;
+  let pendingUpgrades = 1;
   let tabPressed = false;
   let gamePaused = false;
   let shield = 0;
@@ -6021,7 +6021,7 @@ function setHardcoreStartingStats() {
     bossSpawnEffect = null;
     upgradeSelectionCooldown = 0;
     killBoostTimer = 0;
-    pendingUpgrades = 4;
+    pendingUpgrades = 1;
     tabPressed = false;
     gamePaused = false;
     shield = 0;
