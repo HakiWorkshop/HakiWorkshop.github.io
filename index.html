@@ -908,7 +908,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     <!-- Copy pase update log -->
     <div class="update-log-entry">
       <div class="update-log-title">New</div>
-      <div class="update-log-date">5.1.2026</div>
+      <div class="update-log-date">11.01.2026</div>
       <div class="update-log-content">
         <ul>
           <p><strong>Boss System Fix</strong></p>
@@ -916,7 +916,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
           <p><strong>NEW & ADDED!</strong></p>
           <li><strong>NEW ⊙ Lightning strike</strong></li>
-          <li>A new ability that Fires a powerfull lightning to nearest enemy chaining trough hitting mulitple if close by</li>
+          <li>The most powerfull ability added to the game so far - fires out a power lightning strike hitting muliple neaby enemies in a row dealing great damage. Ability can chain torugh more enemies if you upgrade extend range as well.</li>
           <li>Max 2 - Mythical</li>
           <li><strong>NEW ⊙ Dangerous situations</strong></li>
           <li>A new ability that allows you to refresh your ability timer on taking damage</li>
@@ -954,6 +954,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li><strong>Various minor fixes</strong></li>
           <li><strong>Death bug</strong></li>
           <li>Player can now die from enemy bullets</li>
+          <li><strong>Safer spaces</strong></li>
+          <li>Ability can now take damage from enemy bullets and break proppely</li>
         </ul>
       </div>
     </div>
@@ -1339,6 +1341,7 @@ function initAudio() {
     }
 
     // Pause game - FIXED: Can't pause while upgrade menu is open
+    //YAYYY
     if (e.key === 'p' || e.key === 'P') {
         if (gameStarted && running && upgradeMenu.style.display !== 'block') {
             gamePaused = !gamePaused;
@@ -1968,7 +1971,7 @@ function setHardcoreStartingStats() {
         }
       }
       
-            // Block ENEMY bullets with safer spaces (player bullets can pass through)
+      // Block ENEMY bullets with safer spaces (player bullets can pass through)
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         const wallLeft = saferSpacesWall.x - saferSpacesWall.width/2;
@@ -1982,11 +1985,26 @@ function setHardcoreStartingStats() {
           if (b.enemy) {
             bullets.splice(i, 1);
             spawnParticles(b.x, b.y, 'rgba(0,255,255,0.7)', 5, Math.PI*2, 40);
+            
+            // FIX: Reduce health when blocking bullets
+            saferSpacesHealth--;
+            
+            if (saferSpacesHealth <= 0) {
+              saferSpacesActive = false;
+              saferSpacesWall = null;
+              break;
+            }
           }
         }
       }
+      
+      // FIX: Check if timer expired
+      if (saferSpacesTimer <= 0) {
+        saferSpacesActive = false;
+        saferSpacesWall = null;
+      }
     }
-    
+
     // Update minigun
     if (minigunActive) {
       minigunTimer += dt;
@@ -8394,7 +8412,7 @@ if (b.enemy) {
     }
 
     // Draw safer spaces wall
-    if (saferSpacesActive && saferSpacesWall) {
+    if (saferSpacesActive && saferSpacesWall && saferSpacesTimer > 0) {
       const alpha = saferSpacesTimer / 10;
       ctx.strokeStyle = `rgba(0,255,255,${alpha * 0.8})`;
       ctx.lineWidth = 4;
@@ -8414,7 +8432,7 @@ if (b.enemy) {
       );
       
       // Draw health indicator
-      const healthPercent = saferSpacesHealth / 4;
+      const healthPercent = saferSpacesHealth / 5;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(saferSpacesWall.x - 40, saferSpacesWall.y - saferSpacesWall.height/2 - 10, 80, 6);
       
