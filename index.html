@@ -1287,7 +1287,7 @@ function initAudio() {
       holyLife: {level: 0, max: 1, rarity: 'legendary'},
       killBoost: {level: 0, max: 3, rarity: 'rare'},
       boomerang: {level: 0, max: 3, rarity: 'legendary'},
-      fire: {level: 0, max: 2, rarity: 'mythical'},
+      fire: {level: 0, max: 2, rarity: 'common'},
       shotgun: {level: 0, max: 5, rarity: 'rare'},
       shield: {level: 0, max: 3, rarity: 'rare'},
       shieldRegen: {level: 0, max: 2, rarity: 'legendary'},
@@ -1304,7 +1304,7 @@ function initAudio() {
       freeze: {level: 0, max: 1, rarity: 'legendary'},
       lastResort: {level: 0, max: 2, rarity: 'rare'},
       music: {level: 0, max: 1, rarity: 'mythical'},
-      damageZone: {level: 0, max: 2, rarity: 'common'},
+      damageZone: {level: 0, max: 2, rarity: 'legendary'},
       minigun: {level: 0, max: 5, rarity: 'rare'},
       saferSpaces: {level: 0, max: 1, rarity: 'legendary'},
       mineCount: {level: 0, max: 3, rarity: 'common'},
@@ -2592,47 +2592,185 @@ function setHardcoreStartingStats() {
     }
     
     draw(ctx) {
-      const alpha = 1 - (this.timer / this.duration);
-      const pulse = Math.sin(this.timer * 10) * 0.2 + 0.8;
-      
-      const g = ctx.createRadialGradient(this.x, this.y, this.radius * 0.5, this.x, this.y, this.radius);
-      g.addColorStop(0, `rgba(100, 200, 255, ${alpha * 0.3})`);
-      g.addColorStop(1, `rgba(50, 100, 255, ${alpha * 0.1})`);
-      
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-      ctx.fill();
-      
-      ctx.strokeStyle = `rgba(100, 200, 255, ${alpha * 0.7})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-      ctx.stroke();
-      
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius * 0.7, 0, Math.PI*2);
-      ctx.stroke();
-      
-      for (let i = 0; i < 8; i++) {
-        const startAngle = (i / 8) * Math.PI * 2;
-        const endAngle = startAngle + Math.PI / 8;
-        const startX = this.x + Math.cos(startAngle) * this.radius * 0.9;
-        const startY = this.y + Math.sin(startAngle) * this.radius * 0.9;
-        const endX = this.x + Math.cos(endAngle) * this.radius * 1.1;
-        const endY = this.y + Math.sin(endAngle) * this.radius * 1.1;
+        // Performance optimization - skip if invisible
+        const alpha = Math.max(0, 1 - (this.timer / this.duration));
+        if (alpha <= 0.01) return;
         
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
-        ctx.lineWidth = 1;
+        // Enhanced timing calculations
+        const pulse = Math.sin(this.timer * 12) * 0.25 + 0.8;
+        const pulse2 = Math.cos(this.timer * 8) * 0.15 + 0.85;
+        const rotation = this.timer * 0.5;
+        
+        // Save context state for cleanup
+        ctx.save();
+        
+        // 1. CORE ENERGY ORB (Multi-layered gradient)
+        const coreGradient = ctx.createRadialGradient(
+            this.x, this.y, this.radius * 0.1,
+            this.x, this.y, this.radius * 0.7
+        );
+        coreGradient.addColorStop(0, `rgba(150, 220, 255, ${alpha * 0.9})`);
+        coreGradient.addColorStop(0.3, `rgba(100, 180, 255, ${alpha * 0.6})`);
+        coreGradient.addColorStop(0.7, `rgba(50, 120, 255, ${alpha * 0.3})`);
+        coreGradient.addColorStop(1, `rgba(30, 80, 255, ${alpha * 0.1})`);
+        
+        ctx.fillStyle = coreGradient;
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-      }
-    }
-    
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 2. PULSING ENERGY RINGS (Animated)
+        for (let i = 0; i < 3; i++) {
+            const ringAlpha = alpha * (0.7 - i * 0.2) * pulse;
+            const ringSize = this.radius * (0.8 + i * 0.15 + Math.sin(this.timer * 10 + i) * 0.1);
+            
+            ctx.strokeStyle = `rgba(100, 200, 255, ${ringAlpha})`;
+            ctx.lineWidth = 4;
+            ctx.setLineDash([5, 3]);
+            ctx.lineDashOffset = this.timer * 20;
+            
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, ringSize, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        
+        // 3. ENERGY PARTICLES (Rotating around core)
+        const particleCount = 24;
+        const particleRadius = this.radius * 1.2;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2 + rotation;
+            const particleX = this.x + Math.cos(angle) * particleRadius;
+            const particleY = this.y + Math.sin(angle) * particleRadius;
+            
+            // Particle size variation
+            const sizeVar = Math.sin(this.timer * 15 + i) * 0.5 + 0.5;
+            const particleSize = 3 * sizeVar;
+            
+            // Particle trail effect
+            ctx.beginPath();
+            const trailLength = 15;
+            const trailAngle = angle - 0.1;
+            const trailX = particleX - Math.cos(trailAngle) * trailLength * sizeVar;
+            const trailY = particleY - Math.sin(trailAngle) * trailLength * sizeVar;
+            
+            const particleGradient = ctx.createLinearGradient(trailX, trailY, particleX, particleY);
+            particleGradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+            particleGradient.addColorStop(0.7, `rgba(200, 230, 255, ${alpha * 0.8})`);
+            particleGradient.addColorStop(1, `rgba(100, 200, 255, ${alpha * 0.9})`);
+            
+            ctx.strokeStyle = particleGradient;
+            ctx.lineWidth = particleSize;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trailX, trailY);
+            ctx.lineTo(particleX, particleY);
+            ctx.stroke();
+            
+            // Particle glow
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 4. ENERGY SPIKES (Dynamic, pulsing)
+        const spikeCount = 16;
+        for (let i = 0; i < spikeCount; i++) {
+            const baseAngle = (i / spikeCount) * Math.PI * 2;
+            const angle = baseAngle + Math.sin(this.timer * 5 + i) * 0.2;
+            
+            // Dynamic spike length
+            const spikeLength = this.radius * (0.8 + Math.sin(this.timer * 8 + i * 0.5) * 0.3);
+            const spikeWidth = 2 + Math.sin(this.timer * 6 + i) * 1;
+            
+            const startX = this.x + Math.cos(angle) * this.radius * 0.7;
+            const startY = this.y + Math.sin(angle) * this.radius * 0.7;
+            const endX = this.x + Math.cos(angle) * spikeLength;
+            const endY = this.y + Math.sin(angle) * spikeLength;
+            
+            // Spike gradient
+            const spikeGradient = ctx.createLinearGradient(startX, startY, endX, endY);
+            spikeGradient.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.9})`);
+            spikeGradient.addColorStop(0.5, `rgba(150, 200, 255, ${alpha * 0.7})`);
+            spikeGradient.addColorStop(1, `rgba(100, 150, 255, 0)`);
+            
+            ctx.strokeStyle = spikeGradient;
+            ctx.lineWidth = spikeWidth;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        }
+        
+        // 5. INNER ENERGY CORE (Pulsing white-hot center)
+        const coreSize = this.radius * 0.3 * pulse;
+        const coreGradient2 = ctx.createRadialGradient(
+            this.x, this.y, 0,
+            this.x, this.y, coreSize
+        );
+        coreGradient2.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.95})`);
+        coreGradient2.addColorStop(0.5, `rgba(200, 230, 255, ${alpha * 0.6})`);
+        coreGradient2.addColorStop(1, `rgba(150, 200, 255, 0)`);
+        
+        ctx.fillStyle = coreGradient2;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, coreSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 6. GLOW EFFECT (Outer aura)
+        const glowRadius = this.radius * 1.5;
+        const glowGradient = ctx.createRadialGradient(
+            this.x, this.y, this.radius * 0.8,
+            this.x, this.y, glowRadius
+        );
+        glowGradient.addColorStop(0, `rgba(100, 150, 255, ${alpha * 0.2})`);
+        glowGradient.addColorStop(0.5, `rgba(50, 100, 255, ${alpha * 0.1})`);
+        glowGradient.addColorStop(1, `rgba(0, 50, 255, 0)`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 7. ENERGY SWIRLS (Fast rotating inner patterns)
+        const swirlCount = 3;
+        for (let s = 0; s < swirlCount; s++) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+            ctx.lineWidth = 1.5;
+            
+            const swirlRadius = this.radius * (0.4 + s * 0.2);
+            const swirlRotation = this.timer * (3 + s) * (s % 2 === 0 ? 1 : -1);
+            
+            ctx.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += 0.1) {
+                const x = this.x + Math.cos(a + swirlRotation) * swirlRadius;
+                const y = this.y + Math.sin(a + swirlRotation) * (swirlRadius * (1 + Math.sin(a * 3) * 0.1));
+                ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+        
+        // Restore context
+        ctx.restore();
+        
+        // 8. OPTIONAL: Bloom effect using composite operation (uncomment if needed)
+        /*
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.filter = 'blur(5px)';
+        ctx.fillStyle = `rgba(100, 150, 255, ${alpha * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.filter = 'none';
+        ctx.globalCompositeOperation = 'source-over';
+        */
+    }    
     cleanup() {
       for (const e of this.frozenEnemies) {
         if (e.originalSpeed !== undefined) {
@@ -3008,63 +3146,32 @@ function setHardcoreStartingStats() {
         }
       }
       
-      // In the Ghost class update method, find the damage dealing section:
+
       if (this.target) {
-        // Always move toward target
         const aim = vecTo(this.x, this.y, this.target.x, this.target.y);
         this.x += aim.x * this.speed * dt;
         this.y += aim.y * this.speed * dt;
         
-        // Deal damage when close to any enemy (not just target)
-        if (this.damageTimer >= 1.0) {
-          this.damageTimer = 0;
-          for (let j = echoes.length - 1; j >= 0; j--) {
-            const e = echoes[j];
-            if (dist({x: this.x, y: this.y}, e) < this.r + e.r) {
-              // FIX: Check if enemy was killed by ghost
-              if (e.takeDamage(this.damage)) {
-                // Enemy was killed by ghost
-                echoesKilled++;
-                if (gameMode !== 'freemode' || player.lives > 0) {
-                  score += 8;
-                }
-                
-                // Give XP for ghost kill
-                let baseXP = 15;
-                let xpMultiplier = 1;
-                
-                if (player.stats.xpBoost.level >= 1) {
-                  baseXP = 25;
-                }
-                if (player.stats.xpBoost.level >= 2) {
-                  xpMultiplier = 1.5;
-                }
-                if (player.stats.xpBoost.level >= 5) {
-                  xpMultiplier *= 1.5;
-                }
-                
-                playerXP += baseXP * xpMultiplier;
-                checkLevelUp();
-                
-                // Remove enemy from array
-                echoes.splice(j, 1);
-                echoCountEl.textContent = echoes.length;
-                spawnParticles(e.x, e.y, 'rgba(167,139,250,0.7)', 3, Math.PI, 20);
-              } else {
-                // Enemy survived but was damaged
-                spawnParticles(e.x, e.y, 'rgba(167,139,250,0.7)', 3, Math.PI, 20);
-              }
-            }
+        const d = dist({x: this.x, y: this.y}, this.target);
+        if (d < this.r + this.target.r) {
+          this.target.takeDamage(this.damage);
+          if (player.stats.rocket.level >= 2) {
+            this.target.rocketDamage = (this.target.rocketDamage || 0) + 0.25; // INCREASED: From 2 to 3
           }
+          spawnParticles(this.x, this.y, 'rgba(255,100,100,0.9)', 15, Math.PI*2, 100);
+          return false;
         }
-      }      
-
-
+      } else {
+        this.x += Math.cos(0) * this.speed * dt;
+        this.y += Math.sin(0) * this.speed * dt;
+      }
+      
       // Increase damage faster with new speed
-      if (this.damageTimer >= 0.2) {
+      if (this.damageTimer >= 0.5) { // Reduced from 0.5 to 0.3
         this.damageTimer = 0;
-        this.damage += 0.1;
-        this.r = 8 + (this.damage - 5) * 0.5;
+        this.damage += 0.4; // Increased from 1 to 1.5
+        // Scale rocket size with damage
+        this.r = 5 + (this.damage - 3) * 0.3;
       }
       
       if (this.x < -100 || this.x > W+100 || this.y < -100 || this.y > H+100 || this.life <= 0) {
@@ -3074,7 +3181,7 @@ function setHardcoreStartingStats() {
       
       return true;
     }
-
+    
     draw(ctx) {
       for (let i = 0; i < this.trail.length; i++) {
         const point = this.trail[i];
