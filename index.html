@@ -914,15 +914,22 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li><strong>Music upgrade  - Battle Nerve</strong></li>
           <li><b>Buff</b> - Increased stat increase with 5% going from 15% to 20%. Now allso increases player lives with 20%</li>
           <li>Changed name to "Battle Nerve</li>
+          <li><strong>Final boss</strong></li>
+          <li>Improved visual effects for the final boss as well as an update in attacks.</li>
+          <li><strong>Mega creeper</strong></li>
+          <li>Improved visual effects for the mega creeper boss as well as an update in attacks.</li>
+          <li><strong>Tanker</strong></li>
+          <li>Updated visuals and slim spawning</li>
 
-          <p><strong>NEW & ADDED!</strong></p>
 
           <p><strong>Bug fixes</strong></p>
           <li>Rocket damage</li>
           
 
           <p><strong>Improvements</strong></p>
+          <li>Sniper visuals</li>
           <li>Shockwave visuals</li>
+  
         </ul>
       </div>
     </div>
@@ -1116,15 +1123,16 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let damageZoneRotation = 0;
   let damageZoneDamageParticles = [];
 
-  // New boss tracking system
+  // New boss tracking system 
+  // Boss spawn time
   let bossSpawnTimer = 0;
   let bossSpawnEffect = null;
   let bossSpawnSchedule = [
     { time: 30, type: 'easy', spawned: false, killed: false },
     { time: 70, type: 'medium', spawned: false, killed: false },
     { time: 120, type: 'hard', spawned: false, killed: false },
-    { time: 200, type: 'final', spawned: false, killed: false },
-    { time: 350, type: 'creeper', spawned: false, killed: false }
+    { time: 240, type: 'final', spawned: false, killed: false },
+    { time: 60, type: 'creeper', spawned: false, killed: false }
   ];
   let activeBosses = [];
   let bossHealthBars = [];
@@ -3442,113 +3450,501 @@ function setHardcoreStartingStats() {
   }
 
   // Tank enemy class
+  // Tank enemy class - IMPROVED VISUALS WITH BETTER SHOOTING
   class Tank {
-    constructor(spawnX, spawnY) {
-      this.x = spawnX;
-      this.y = spawnY;
-      this.r = 20;
-      this.health = 6 + bossesKilled;
-      this.maxHealth = 6 + bossesKilled;
-      this.speed = 15;
-      this.maxSpeed = 30;
-      this.color = '#8b4513';
-      this.throwTimer = 0;
-      this.throwCooldown = 4;
-      this.age = 0;
-      this.spikes = 8;
-      this.spikeLength = 8;
-      this.frozen = false;
-      this.originalSpeed = 15;
-    }
-    
-    update(dt) {
-      if (this.frozen) return true;
-      
-      this.age += dt;
-      this.throwTimer += dt;
-      
-      this.speed = Math.min(this.maxSpeed, 15 + this.age * 0.5);
-      
-      const toPlayer = vecTo(this.x, this.y, player.x, player.y);
-      this.x += toPlayer.x * this.speed * dt;
-      this.y += toPlayer.y * this.speed * dt;
-      
-      this.x = clamp(this.x, this.r, W - this.r);
-      this.y = clamp(this.y, this.r, H - this.r);
-      
-      if (this.throwTimer >= this.throwCooldown) {
-        this.throwTimer = 0;
-        this.throwSlim();
+      constructor(spawnX, spawnY) {
+          this.x = spawnX;
+          this.y = spawnY;
+          this.r = 20;
+          this.health = 6 + bossesKilled;
+          this.maxHealth = 6 + bossesKilled;
+          this.speed = 15;
+          this.maxSpeed = 30;
+          this.color = '#8b4513';
+          this.throwTimer = 0;
+          this.throwCooldown = 6;
+          this.age = 0;
+          this.spikes = 8;
+          this.spikeLength = 8;
+          this.frozen = false;
+          this.originalSpeed = 15;
+          this.turretAngle = 0;
+          this.turretPulse = 0;
+          this.isCharging = false;
+          this.chargeTimer = 0;
+          this.projectileTrail = [];
       }
       
-      return this.health > 0;
-    }
-    
-    throwSlim() {
-      const angle = Math.atan2(player.y - this.y, player.x - this.x);
-      const inaccuracy = (Math.random() - 0.5) * 0.5;
-      const throwAngle = angle + inaccuracy;
+      update(dt) {
+          if (this.frozen) return true;
+          
+          this.age += dt;
+          this.throwTimer += dt;
+          this.turretPulse += dt * 3;
+          
+          // Update projectile trails
+          for (let i = this.projectileTrail.length - 1; i >= 0; i--) {
+              this.projectileTrail[i].life -= dt;
+              if (this.projectileTrail[i].life <= 0) {
+                  this.projectileTrail.splice(i, 1);
+              }
+          }
+          
+          this.speed = Math.min(this.maxSpeed, 15 + this.age * 0.5);
+          
+          const toPlayer = vecTo(this.x, this.y, player.x, player.y);
+          this.x += toPlayer.x * this.speed * dt;
+          this.y += toPlayer.y * this.speed * dt;
+          
+          // Update turret angle to follow player
+          this.turretAngle = Math.atan2(player.y - this.y, player.x - this.x);
+          
+          this.x = clamp(this.x, this.r, W - this.r);
+          this.y = clamp(this.y, this.r, H - this.r);
+          
+          // Charging effect before shooting
+          if (this.throwTimer >= this.throwCooldown * 0.9 && !this.isCharging) {
+              this.isCharging = true;
+              this.chargeTimer = this.throwCooldown * 0.1;
+          }
+          
+          if (this.isCharging) {
+              this.chargeTimer -= dt;
+              if (this.chargeTimer <= 0) {
+                  this.isCharging = false;
+              }
+          }
+          
+          if (this.throwTimer >= this.throwCooldown) {
+              this.throwTimer = 0;
+              this.isCharging = false;
+              this.throwSlim();
+          }
+          
+          return this.health > 0;
+      }
       
-      const throwDistance = Math.min(W/6, H/6);
-      const targetX = this.x + Math.cos(throwAngle) * throwDistance;
-      const targetY = this.y + Math.sin(throwAngle) * throwDistance;
-      
-      spawnIndicators.push(new SpawnIndicator(targetX, targetY, 'slim'));
-      
-      setTimeout(() => {
-        if (running) {
-          echoes.push(new Slim(targetX, targetY));
+      throwSlim() {
+          const angle = Math.atan2(player.y - this.y, player.x - this.x);
+          const inaccuracy = (Math.random() - 0.5) * 0.5;
+          const throwAngle = angle + inaccuracy;
+          
+          const throwDistance = Math.min(W/3, H/3);
+          const targetX = this.x + Math.cos(throwAngle) * throwDistance;
+          const targetY = this.y + Math.sin(throwAngle) * throwDistance;
+          
+          // Show spawn indicator
+          spawnIndicators.push(new SpawnIndicator(targetX, targetY, 'slim'));
+          
+          // Create muzzle flash and shooting effects
+          this.createShootingEffects(throwAngle);
+          
+          // Create projectile trail that travels to target
+          this.createProjectileTrail(targetX, targetY);
+          
+          // Play enhanced shooting sound
           playSound('tankThrow');
-          spawnParticles(targetX, targetY, 'rgba(255,149,0,0.9)', 10, Math.PI*2, 60);
-        }
-      }, 1000);
-    }
-    
-    draw(ctx) {
-      ctx.beginPath();
-      ctx.fillStyle = this.color;
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-      ctx.fill();
-      
-      ctx.strokeStyle = '#5a2d0c';
-      ctx.lineWidth = 3;
-      for (let i = 0; i < this.spikes; i++) {
-        const angle = (i / this.spikes) * Math.PI * 2;
-        const spikeX = this.x + Math.cos(angle) * (this.r + 2);
-        const spikeY = this.y + Math.sin(angle) * (this.r + 2);
-        const endX = this.x + Math.cos(angle) * (this.r + this.spikeLength);
-        const endY = this.y + Math.sin(angle) * (this.r + this.spikeLength);
-        
-        ctx.beginPath();
-        ctx.moveTo(spikeX, spikeY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
+          
+          setTimeout(() => {
+              if (running) {
+                  // Create the slim at the target location
+                  const slim = new Slim(targetX, targetY);
+                  echoes.push(slim);
+                  
+                  // Impact effect at target location
+                  spawnParticles(targetX, targetY, 'rgba(255,149,0,0.9)', 15, Math.PI*2, 80);
+                  spawnParticles(targetX, targetY, 'rgba(255,100,0,0.7)', 10, Math.PI*2, 60);
+                  
+                  // Screen shake for impact
+                  shake = 5;
+                  
+                  // Sound effect for impact
+                  sfx(500, 0.1, 0.02, 'sawtooth');
+              }
+          }, 1000);
       }
       
-      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-      ctx.stroke();
+      createShootingEffects(angle) {
+          // Muzzle flash at cannon tip
+          const muzzleX = this.x + Math.cos(angle) * (this.r * 2 + 5);
+          const muzzleY = this.y + Math.sin(angle) * (this.r * 2 + 5);
+          
+          // Large muzzle flash
+          spawnParticles(muzzleX, muzzleY, 'rgba(255, 200, 0, 0.9)', 25, Math.PI/3, 150);
+          spawnParticles(muzzleX, muzzleY, 'rgba(255, 100, 0, 0.7)', 20, Math.PI/3, 120);
+          spawnParticles(muzzleX, muzzleY, 'rgba(255, 50, 0, 0.5)', 15, Math.PI/3, 100);
+          
+          // Smoke puff
+          for (let i = 0; i < 15; i++) {
+              particles.push({
+                  x: muzzleX,
+                  y: muzzleY,
+                  vx: Math.cos(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
+                  vy: Math.sin(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
+                  life: 1 + Math.random() * 0.5,
+                  col: `rgba(150, 150, 150, ${0.6 + Math.random() * 0.3})`,
+                  r: 3 + Math.random() * 4
+              });
+          }
+          
+          // Tank recoil effect
+          const recoilForce = 150;
+          this.x -= Math.cos(angle) * recoilForce * 0.3;
+          this.y -= Math.sin(angle) * recoilForce * 0.3;
+          
+          spawnParticles(this.x, this.y, 'rgba(139,69,19,0.9)', 12, Math.PI*2, 60);
+          
+          // Shell casing ejection
+          for (let i = 0; i < 3; i++) {
+              const casingAngle = angle + Math.PI + (Math.random() - 0.5) * 0.5;
+              particles.push({
+                  x: muzzleX,
+                  y: muzzleY,
+                  vx: Math.cos(casingAngle) * 100 + (Math.random() - 0.5) * 30,
+                  vy: Math.sin(casingAngle) * 100 + (Math.random() - 0.5) * 30,
+                  life: 1.5 + Math.random() * 0.5,
+                  col: '#FFD700',
+                  r: 2 + Math.random() * 2
+              });
+          }
+      }
       
-      const barWidth = this.r * 1.5;
-      const barHeight = 4;
-      const barX = this.x - barWidth/2;
-      const barY = this.y - this.r - 8;
+      createProjectileTrail(targetX, targetY) {
+          const startX = this.x + Math.cos(this.turretAngle) * (this.r * 2 + 5);
+          const startY = this.y + Math.sin(this.turretAngle) * (this.r * 2 + 5);
+          
+          // Create a visible projectile trail
+          this.projectileTrail.push({
+              startX: startX,
+              startY: startY,
+              targetX: targetX,
+              targetY: targetY,
+              life: 1.0,
+              progress: 0,
+              speed: 0.4, // Travels over 1 second
+              particles: []
+          });
+          
+          // Create initial projectile
+          const projectile = {
+              x: startX,
+              y: startY,
+              targetX: targetX,
+              targetY: targetY,
+              life: 1.0,
+              color: '#FF9500',
+              size: 6
+          };
+          
+          // Animate projectile travel
+          const animateProjectile = (startTime) => {
+              const currentTrail = this.projectileTrail[this.projectileTrail.length - 1];
+              if (!currentTrail || !running) return;
+              
+              const elapsed = (performance.now() - startTime) / 1000;
+              currentTrail.progress = Math.min(elapsed / currentTrail.speed, 1);
+              
+              // Update projectile position
+              const currentX = startX + (targetX - startX) * currentTrail.progress;
+              const currentY = startY + (targetY - startY) * currentTrail.progress;
+              
+              // Add trail particles
+              if (Math.random() < 0.8) {
+                  currentTrail.particles.push({
+                      x: currentX,
+                      y: currentY,
+                      life: 0.3 + Math.random() * 0.2,
+                      size: 3 + Math.random() * 2,
+                      color: `rgba(255, ${150 + Math.random() * 100}, 0, 0.8)`
+                  });
+              }
+              
+              // Draw smoke trail
+              if (Math.random() < 0.3) {
+                  particles.push({
+                      x: currentX + (Math.random() - 0.5) * 10,
+                      y: currentY + (Math.random() - 0.5) * 10,
+                      vx: (Math.random() - 0.5) * 20,
+                      vy: (Math.random() - 0.5) * 20,
+                      life: 0.5 + Math.random() * 0.3,
+                      col: `rgba(100, 100, 100, ${0.4 + Math.random() * 0.2})`,
+                      r: 2 + Math.random() * 3
+                  });
+              }
+              
+              if (currentTrail.progress < 1) {
+                  requestAnimationFrame(() => animateProjectile(startTime));
+              }
+          };
+          
+          animateProjectile(performance.now());
+      }
       
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
+      draw(ctx) {
+          // Save context for rotation
+          ctx.save();
+          
+          // Add glow effect
+          const glowGradient = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, this.r * 3);
+          glowGradient.addColorStop(0, 'rgba(139, 69, 19, 0.6)');
+          glowGradient.addColorStop(1, 'rgba(139, 69, 19, 0.1)');
+          ctx.fillStyle = glowGradient;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Main tank body - more detailed
+          const bodyGradient = ctx.createRadialGradient(
+              this.x, this.y, this.r * 0.3,
+              this.x, this.y, this.r * 1.2
+          );
+          bodyGradient.addColorStop(0, '#A0522D'); // Light brown center
+          bodyGradient.addColorStop(0.7, '#8B4513'); // Medium brown
+          bodyGradient.addColorStop(1, '#5D4037'); // Dark brown edges
+          
+          ctx.fillStyle = bodyGradient;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Tank body details - armor plates
+          ctx.strokeStyle = '#5D4037';
+          ctx.lineWidth = 2;
+          
+          // Front armor plate (thicker)
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r * 0.9, -Math.PI/4, Math.PI/4);
+          ctx.stroke();
+          
+          // Side armor plates
+          for (let i = 0; i < 2; i++) {
+              const sideAngle = Math.PI/2 + (i * Math.PI);
+              ctx.beginPath();
+              ctx.arc(
+                  this.x + Math.cos(sideAngle) * this.r * 0.7,
+                  this.y + Math.sin(sideAngle) * this.r * 0.7,
+                  this.r * 0.4,
+                  sideAngle - Math.PI/3,
+                  sideAngle + Math.PI/3
+              );
+              ctx.stroke();
+          }
+          
+          // Tracks/wheels
+          ctx.strokeStyle = '#3E2723';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r * 1.1, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Wheel details
+          ctx.fillStyle = '#3E2723';
+          const wheelCount = 6;
+          for (let i = 0; i < wheelCount; i++) {
+              const angle = (i / wheelCount) * Math.PI * 2;
+              const wheelX = this.x + Math.cos(angle) * this.r * 1.05;
+              const wheelY = this.y + Math.sin(angle) * this.r * 1.05;
+              
+              ctx.beginPath();
+              ctx.arc(wheelX, wheelY, this.r * 0.15, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          // Turret base
+          ctx.fillStyle = '#654321';
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r * 0.6, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Rotating turret
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.turretAngle);
+          
+          // Turret body
+          const turretGradient = ctx.createLinearGradient(-this.r * 0.4, 0, this.r * 0.4, 0);
+          turretGradient.addColorStop(0, '#795548');
+          turretGradient.addColorStop(0.5, '#8B4513');
+          turretGradient.addColorStop(1, '#795548');
+          
+          ctx.fillStyle = turretGradient;
+          ctx.fillRect(-this.r * 0.4, -this.r * 0.3, this.r * 0.8, this.r * 0.6);
+          
+          // Turret details
+          ctx.fillStyle = '#3E2723';
+          ctx.fillRect(-this.r * 0.3, -this.r * 0.15, this.r * 0.6, this.r * 0.3);
+          
+          // Cannon barrel
+          const barrelLength = this.r * 1.5;
+          ctx.fillStyle = '#5D4037';
+          ctx.fillRect(this.r * 0.4, -this.r * 0.1, barrelLength, this.r * 0.2);
+          
+          // Cannon charging effect
+          if (this.isCharging) {
+              const pulse = Math.sin(this.turretPulse * 10) * 0.5 + 0.5;
+              const chargeGradient = ctx.createRadialGradient(
+                  this.r * 0.4 + barrelLength, 0, 1,
+                  this.r * 0.4 + barrelLength, 0, this.r * 0.5
+              );
+              chargeGradient.addColorStop(0, `rgba(255, 200, 0, ${pulse})`);
+              chargeGradient.addColorStop(0.5, `rgba(255, 100, 0, ${pulse * 0.7})`);
+              chargeGradient.addColorStop(1, `rgba(255, 50, 0, 0)`);
+              
+              ctx.fillStyle = chargeGradient;
+              ctx.beginPath();
+              ctx.arc(this.r * 0.4 + barrelLength, 0, this.r * 0.5, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          // Cannon muzzle
+          ctx.fillStyle = '#3E2723';
+          ctx.fillRect(this.r * 0.4 + barrelLength, -this.r * 0.15, this.r * 0.2, this.r * 0.3);
+          
+          ctx.restore(); // End turret rotation
+          
+          // Draw projectile trails
+          for (const trail of this.projectileTrail) {
+              this.drawProjectileTrail(ctx, trail);
+          }
+          
+          // Tank spikes/armor
+          ctx.strokeStyle = '#A1887F';
+          ctx.lineWidth = 3;
+          for (let i = 0; i < this.spikes; i++) {
+              const angle = (i / this.spikes) * Math.PI * 2;
+              const spikeX = this.x + Math.cos(angle) * (this.r + 2);
+              const spikeY = this.y + Math.sin(angle) * (this.r + 2);
+              const endX = this.x + Math.cos(angle) * (this.r + this.spikeLength);
+              const endY = this.y + Math.sin(angle) * (this.r + this.spikeLength);
+              
+              ctx.beginPath();
+              ctx.moveTo(spikeX, spikeY);
+              ctx.lineTo(endX, endY);
+              ctx.stroke();
+              
+              // Spike tip
+              ctx.fillStyle = '#D7CCC8';
+              ctx.beginPath();
+              ctx.arc(endX, endY, 2, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          // Tank identification mark
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('T', this.x, this.y);
+          
+          ctx.restore(); // End main save
+          
+          // Health bar with improved styling
+          const barWidth = this.r * 2;
+          const barHeight = 6;
+          const barX = this.x - barWidth/2;
+          const barY = this.y - this.r - 15;
+          
+          // Bar background with border
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+          
+          // Health bar fill with gradient
+          const healthPercent = this.health / this.maxHealth;
+          const barFill = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
+          
+          if (healthPercent > 0.5) {
+              barFill.addColorStop(0, '#7ee787');
+              barFill.addColorStop(1, '#4CAF50');
+          } else if (healthPercent > 0.25) {
+              barFill.addColorStop(0, '#FF9800');
+              barFill.addColorStop(1, '#FF5722');
+          } else {
+              barFill.addColorStop(0, '#F44336');
+              barFill.addColorStop(1, '#D32F2F');
+          }
+          
+          ctx.fillStyle = barFill;
+          ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+          
+          // Bar border
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
+          
+          // Health text
+          ctx.fillStyle = '#fff';
+          ctx.font = '9px sans-serif';
+          ctx.fillText(
+              Math.ceil(this.health) + '/' + this.maxHealth,
+              this.x,
+              barY - 5
+          );
+      }
       
-      ctx.fillStyle = this.health > this.maxHealth/2 ? '#7ee787' : '#ff9e44';
-      ctx.fillRect(barX, barY, barWidth * (this.health / this.maxHealth), barHeight);
-    }
-    
-    takeDamage(amount) {
-      this.health -= amount;
-      spawnParticles(this.x, this.y, 'rgba(139,69,19,0.9)', 8, Math.PI*2, 60);
-      return this.health <= 0;
-    }
+      drawProjectileTrail(ctx, trail) {
+          const progress = trail.progress;
+          const startX = trail.startX;
+          const startY = trail.startY;
+          const targetX = trail.targetX;
+          const targetY = trail.targetY;
+          
+          // Current projectile position
+          const currentX = startX + (targetX - startX) * progress;
+          const currentY = startY + (targetY - startY) * progress;
+          
+          // Draw projectile trail line
+          ctx.strokeStyle = `rgba(255, 150, 0, ${trail.life * 0.5})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(currentX, currentY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Draw projectile
+          const projectileSize = 6 * trail.life;
+          const projectileGradient = ctx.createRadialGradient(
+              currentX, currentY, 1,
+              currentX, currentY, projectileSize * 2
+          );
+          projectileGradient.addColorStop(0, `rgba(255, 200, 0, ${trail.life})`);
+          projectileGradient.addColorStop(1, `rgba(255, 100, 0, 0)`);
+          
+          ctx.fillStyle = projectileGradient;
+          ctx.beginPath();
+          ctx.arc(currentX, currentY, projectileSize * 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = `rgba(255, 150, 0, ${trail.life})`;
+          ctx.beginPath();
+          ctx.arc(currentX, currentY, projectileSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw trail particles
+          for (const particle of trail.particles) {
+              const alpha = particle.life / 0.5;
+              ctx.fillStyle = particle.color.replace('0.8)', `${alpha})`);
+              ctx.beginPath();
+              ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+              ctx.fill();
+          }
+      }
+      
+      takeDamage(amount) {
+          this.health -= amount;
+          
+          // Damage effect - sparks
+          spawnParticles(this.x, this.y, 'rgba(255, 215, 0, 0.9)', 10, Math.PI * 2, 60);
+          spawnParticles(this.x, this.y, 'rgba(139, 69, 19, 0.9)', 8, Math.PI * 2, 60);
+          
+          // Metal impact sound effect
+          sfx(300, 0.1, 0.03, 'square');
+          
+          return this.health <= 0;
+      }
   }
+
 
   // Bow enemy class
   class Bow {
@@ -3836,134 +4232,367 @@ function setHardcoreStartingStats() {
   }
 
   // sniper enemy class - IMPROVED LOOKS
-  class sniper {
-    constructor(spawnX, spawnY) {
-      this.x = spawnX;
-      this.y = spawnY;
-      this.r = 25;
-      this.health = 25;
-      this.maxHealth = 25;
-      this.speed = 20;
-      this.color = '#8a2be2';
-      this.fireTimer = 0;
-      this.fireCooldown = 3;
-      this.age = 0;
-      this.frozen = false;
-      this.originalSpeed = 20;
-    }
-    
-    update(dt) {
-      if (this.frozen) return true;
-      
-      this.age += dt;
-      this.fireTimer += dt;
-      
-      const toPlayer = vecTo(this.x, this.y, player.x, player.y);
-      this.x += toPlayer.x * this.speed * dt * 0.5;
-      this.y += toPlayer.y * this.speed * dt * 0.5;
-      
-      this.x = clamp(this.x, this.r, W - this.r);
-      this.y = clamp(this.y, this.r, H - this.r);
-      
-      if (this.fireTimer >= this.fireCooldown) {
-        this.fireTimer = 0;
-        this.fire();
+  // Sniper enemy class - DANGEROUS WAR MACHINE VERSION
+  class Sniper {
+      constructor(spawnX, spawnY) {
+          this.x = spawnX;
+          this.y = spawnY;
+          this.r = 22; // Smaller, more compact
+          this.health = 20; // Reduced health for balance
+          this.maxHealth = 20;
+          this.speed = 20;
+          this.color = '#3a0c0c'; // Dark blood red
+          this.fireTimer = 0;
+          this.fireCooldown = 3;
+          this.age = 0;
+          this.frozen = false;
+          this.originalSpeed = 20;
+          this.glowPulse = 0;
+          this.isCharging = false;
+          this.chargeLevel = 0;
+          this.warningGlow = 0;
+          this.spikePulse = 0;
+          this.rustColor = '#5d4037'; // Rusty metal color
+          this.damageScars = [];
+          
+          // Add random battle damage
+          for (let i = 0; i < 5; i++) {
+              this.damageScars.push({
+                  x: (Math.random() - 0.5) * this.r * 1.5,
+                  y: (Math.random() - 0.5) * this.r * 1.5,
+                  size: 2 + Math.random() * 3
+              });
+          }
       }
       
-      return this.health > 0;
-    }
-    
-    fire() {
-      const angle = Math.atan2(player.y - this.y, player.x - this.x);
-      
-      bullets.push({
-        x: this.x,
-        y: this.y,
-        dx: Math.cos(angle),
-        dy: Math.sin(angle),
-        t: 0,
-        life: 3.0,
-        speed: 600,
-        size: 20,
-        color: '#8a2be2',
-        enemy: true,
-        sniper: true
-      });
-      
-      playSound('tankThrow');
-      spawnParticles(this.x, this.y, 'rgba(138,43,226,0.9)', 20, Math.PI*2, 100);
-    }
-    
-    draw(ctx) {
-      // Improved sniper appearance
-      ctx.beginPath();
-      ctx.fillStyle = this.color;
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-      ctx.fill();
-      
-      // Crown details
-      ctx.fillStyle = '#ffd700';
-      for (let i = 0; i < 5; i++) {
-        const angle = (i / 5) * Math.PI * 2;
-        const spikeX = this.x + Math.cos(angle) * (this.r - 5);
-        const spikeY = this.y + Math.sin(angle) * (this.r - 5);
-        ctx.beginPath();
-        ctx.moveTo(spikeX, spikeY);
-        ctx.lineTo(
-          this.x + Math.cos(angle) * (this.r + 8),
-          this.y + Math.sin(angle) * (this.r + 8)
-        );
-        ctx.lineTo(
-          this.x + Math.cos(angle + 0.3) * (this.r - 2),
-          this.y + Math.sin(angle + 0.3) * (this.r - 2)
-        );
-        ctx.closePath();
-        ctx.fill();
+      update(dt) {
+          if (this.frozen) return true;
+          
+          this.age += dt;
+          this.fireTimer += dt;
+          this.glowPulse += dt * 5;
+          this.warningGlow += dt * 8;
+          this.spikePulse += dt * 2;
+          
+          const toPlayer = vecTo(this.x, this.y, player.x, player.y);
+          this.x += toPlayer.x * this.speed * dt * 0.5;
+          this.y += toPlayer.y * this.speed * dt * 0.5;
+          
+          this.x = clamp(this.x, this.r, W - this.r);
+          this.y = clamp(this.y, this.r, H - this.r);
+          
+          // Charging effect before firing
+          if (this.fireTimer >= this.fireCooldown * 0.7 && !this.isCharging) {
+              this.isCharging = true;
+              this.chargeLevel = 0;
+          }
+          
+          if (this.isCharging) {
+              this.chargeLevel += dt * 2;
+              if (this.chargeLevel > 1) this.chargeLevel = 1;
+              
+              // Danger particles
+              if (Math.random() < 0.4) {
+                  const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                  const particleX = this.x + Math.cos(angle) * (this.r * 1.3);
+                  const particleY = this.y + Math.sin(angle) * (this.r * 1.3);
+                  
+                  particles.push({
+                      x: particleX,
+                      y: particleY,
+                      vx: (Math.random() - 0.5) * 30,
+                      vy: (Math.random() - 0.5) * 30,
+                      life: 0.3 + Math.random() * 0.2,
+                      col: `rgba(255, 50, 0, 0.9)`,
+                      r: 2 + Math.random() * 2
+                  });
+              }
+          }
+          
+          if (this.fireTimer >= this.fireCooldown) {
+              this.fireTimer = 0;
+              this.isCharging = false;
+              this.chargeLevel = 0;
+              this.fire();
+          }
+          
+          return this.health > 0;
       }
       
-      ctx.strokeStyle = '#4b0082';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-      ctx.stroke();
+      fire() {
+          const angle = Math.atan2(player.y - this.y, player.x - this.x);
+          
+          // DANGEROUS PROJECTILE
+          const sniperBullet = {
+              x: this.x,
+              y: this.y,
+              dx: Math.cos(angle),
+              dy: Math.sin(angle),
+              t: 0,
+              life: 3.0,
+              speed: 900,
+              size: 16, // Smaller, more focused
+              color: '#8b0000',
+              enemy: true,
+              sniper: true,
+              charge: 1.0,
+              trail: [],
+              warningPulse: 0,
+              impactRadius: 25 // Smaller area damage
+          };
+          
+          bullets.push(sniperBullet);
+          
+          // Firing sound effect
+          sfx(300, 0.2, 0.05, 'sawtooth');
+          
+          // Muzzle flash - realistic looking
+          const muzzleX = this.x + Math.cos(angle) * (this.r * 1.2);
+          const muzzleY = this.y + Math.sin(angle) * (this.r * 1.2);
+          
+          spawnParticles(muzzleX, muzzleY, 'rgba(255, 150, 0, 0.9)', 15, Math.PI/8, 120);
+          spawnParticles(muzzleX, muzzleY, 'rgba(139, 0, 0, 0.7)', 12, Math.PI/8, 100);
+          
+          // Smoke and debris
+          for (let i = 0; i < 8; i++) {
+              particles.push({
+                  x: muzzleX,
+                  y: muzzleY,
+                  vx: Math.cos(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
+                  vy: Math.sin(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
+                  life: 0.6 + Math.random() * 0.3,
+                  col: `rgba(50, 50, 50, ${0.6 + Math.random() * 0.2})`,
+                  r: 2 + Math.random() * 3
+              });
+          }
+          
+          // Recoil effect
+          const recoilForce = 20;
+          this.x -= Math.cos(angle) * recoilForce * 0.3;
+          this.y -= Math.sin(angle) * recoilForce * 0.3;
+          
+          // Screen shake
+          shake = 15;
+      }
       
-      // Cannon - improved appearance
-      const cannonAngle = Math.atan2(player.y - this.y, player.x - this.x);
-      const cannonLength = this.r * 1.5;
-      const cannonEndX = this.x + Math.cos(cannonAngle) * cannonLength;
-      const cannonEndY = this.y + Math.sin(cannonAngle) * cannonLength;
+      draw(ctx) {
+          const dangerPulse = 0.5 + Math.sin(this.glowPulse) * 0.5;
+          const mainAngle = Math.atan2(player.y - this.y, player.x - this.x);
+          
+          // Save context
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(mainAngle);
+          
+          // === MAIN BODY - War Machine Style ===
+          
+          // Body base - Rusty metal tank
+          ctx.fillStyle = this.rustColor;
+          ctx.fillRect(-this.r * 0.8, -this.r * 0.5, this.r * 1.6, this.r);
+          
+          // Main armor plates
+          ctx.fillStyle = '#5d4037';
+          // Front armor (angled)
+          ctx.beginPath();
+          ctx.moveTo(-this.r * 0.6, -this.r * 0.5);
+          ctx.lineTo(this.r * 0.6, -this.r * 0.5);
+          ctx.lineTo(this.r * 0.4, -this.r * 0.3);
+          ctx.lineTo(-this.r * 0.6, -this.r * 0.3);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Rear armor
+          ctx.fillRect(-this.r * 0.8, this.r * 0.2, this.r * 1.6, this.r * 0.3);
+          
+          // === SNIPER CANNON - Compact and Dangerous ===
+          const barrelLength = this.r * 1.8;
+          const barrelWidth = this.r * 0.3;
+          
+          // Barrel base
+          ctx.fillStyle = '#3e2723';
+          ctx.fillRect(this.r * 0.6, -barrelWidth/2, barrelLength, barrelWidth);
+          
+          // Barrel details - reinforced rings
+          ctx.strokeStyle = '#5d4037';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+              const ringX = this.r * 0.6 + (barrelLength * 0.2 * (i + 1));
+              ctx.beginPath();
+              ctx.moveTo(ringX, -barrelWidth/2);
+              ctx.lineTo(ringX, barrelWidth/2);
+              ctx.stroke();
+          }
+          
+          // Muzzle brake
+          ctx.fillStyle = '#263238';
+          ctx.fillRect(this.r * 0.6 + barrelLength - barrelWidth/2, -barrelWidth, barrelWidth/2, barrelWidth * 2);
+          
+          // Charging effect
+          if (this.isCharging) {
+              const chargePulse = Math.sin(this.glowPulse * 15) * 0.5 + 0.5;
+              const chargeSize = this.chargeLevel * barrelLength * 0.8;
+              
+              // Energy buildup
+              ctx.fillStyle = `rgba(255, 50, 0, ${chargePulse * 0.7})`;
+              ctx.fillRect(this.r * 0.6, -barrelWidth/4, chargeSize, barrelWidth/2);
+              
+              // Muzzle glow
+              if (this.chargeLevel >= 0.9) {
+                  const warningPulse = Math.sin(this.warningGlow * 10) * 0.5 + 0.5;
+                  ctx.fillStyle = `rgba(255, 0, 0, ${warningPulse * 0.6})`;
+                  ctx.beginPath();
+                  ctx.arc(this.r * 0.6 + barrelLength, 0, barrelWidth * 1.5, 0, Math.PI * 2);
+                  ctx.fill();
+              }
+          }
+          
+          // === SPIKES - War Machine Spikes ===
+          ctx.fillStyle = '#263238';
+          
+          // Front spikes
+          for (let i = 0; i < 3; i++) {
+              const spikeX = -this.r * 0.6 + (i * this.r * 0.6);
+              const spikeLength = 8 + Math.sin(this.spikePulse + i) * 2;
+              
+              ctx.beginPath();
+              ctx.moveTo(spikeX, -this.r * 0.5);
+              ctx.lineTo(spikeX, -this.r * 0.5 - spikeLength);
+              ctx.lineTo(spikeX + 3, -this.r * 0.5);
+              ctx.closePath();
+              ctx.fill();
+          }
+          
+          // Side spikes
+          for (let i = 0; i < 2; i++) {
+              const sideY = -this.r * 0.1 + (i * this.r * 0.6);
+              const spikeLength = 6 + Math.sin(this.spikePulse + i + 2) * 2;
+              
+              ctx.beginPath();
+              ctx.moveTo(-this.r * 0.8, sideY);
+              ctx.lineTo(-this.r * 0.8 - spikeLength, sideY);
+              ctx.lineTo(-this.r * 0.8, sideY + 3);
+              ctx.closePath();
+              ctx.fill();
+          }
+          
+          // Rear spikes
+          for (let i = 0; i < 4; i++) {
+              const spikeX = -this.r * 0.8 + (i * this.r * 0.5);
+              const spikeLength = 5 + Math.sin(this.spikePulse + i + 4) * 1.5;
+              
+              ctx.beginPath();
+              ctx.moveTo(spikeX, this.r * 0.5);
+              ctx.lineTo(spikeX, this.r * 0.5 + spikeLength);
+              ctx.lineTo(spikeX + 2, this.r * 0.5);
+              ctx.closePath();
+              ctx.fill();
+          }
+          
+          // === DAMAGE SCARS ===
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          for (const scar of this.damageScars) {
+              ctx.beginPath();
+              ctx.arc(scar.x, scar.y, scar.size, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          // === EYE SENSOR - Single Targeting Eye ===
+          const eyeRadius = this.r * 0.15;
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(0, 0, eyeRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Glowing eye
+          const eyePulse = Math.sin(this.glowPulse * 8) * 0.3 + 0.7;
+          ctx.fillStyle = `rgba(255, 0, 0, ${eyePulse})`;
+          ctx.beginPath();
+          ctx.arc(0, 0, eyeRadius * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Eye pupil - tracks player even more precisely
+          const pupilAngle = Math.atan2(player.y - this.y, player.x - this.x) - mainAngle;
+          const pupilX = Math.cos(pupilAngle) * eyeRadius * 0.3;
+          const pupilY = Math.sin(pupilAngle) * eyeRadius * 0.3;
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(pupilX, pupilY, eyeRadius * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+          
+          // === HEALTH BAR ===
+          const barWidth = this.r * 2;
+          const barHeight = 4;
+          const barX = this.x - barWidth/2;
+          const barY = this.y - this.r - 15;
+          
+          // Bar background
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+          
+          // Health fill
+          const healthPercent = this.health / this.maxHealth;
+          ctx.fillStyle = healthPercent > 0.5 ? '#8b0000' : '#ff0000';
+          ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+          
+          // Bar border
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
+          
+          // Name label
+          ctx.fillStyle = '#ff0000';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('SNIPER', this.x, barY - 6);
+          ctx.textAlign = 'left';
+          
+          // === DANGER AURA ===
+          if (this.isCharging && this.chargeLevel >= 0.9) {
+              const auraSize = this.r * (1.5 + Math.sin(this.warningGlow * 15) * 0.3);
+              const auraGradient = ctx.createRadialGradient(
+                  this.x, this.y, this.r * 0.5,
+                  this.x, this.y, auraSize
+              );
+              auraGradient.addColorStop(0, `rgba(255, 0, 0, ${dangerPulse * 0.3})`);
+              auraGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+              
+              ctx.fillStyle = auraGradient;
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, auraSize, 0, Math.PI * 2);
+              ctx.fill();
+          }
+      }
       
-      ctx.strokeStyle = '#4b0082';
-      ctx.lineWidth = 12;
-      ctx.beginPath();
-      ctx.moveTo(this.x, this.y);
-      ctx.lineTo(cannonEndX, cannonEndY);
-      ctx.stroke();
-      
-      // Cannon tip
-      ctx.fillStyle = '#4b0082';
-      ctx.beginPath();
-      ctx.arc(cannonEndX, cannonEndY, 8, 0, Math.PI*2);
-      ctx.fill();
-      
-      const barWidth = this.r * 1.5;
-      const barHeight = 4;
-      const barX = this.x - barWidth/2;
-      const barY = this.y - this.r - 8;
-      
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
-      
-      ctx.fillStyle = this.health > this.maxHealth/2 ? '#7ee787' : '#ff9e44';
-      ctx.fillRect(barX, barY, barWidth * (this.health / this.maxHealth), barHeight);
-    }
-    
-    takeDamage(amount) {
-      this.health -= amount;
-      spawnParticles(this.x, this.y, 'rgba(138,43,226,0.9)', 10, Math.PI*2, 80);
-      return this.health <= 0;
-    }
+      takeDamage(amount) {
+          this.health -= amount;
+          
+          // Damage effects
+          spawnParticles(this.x, this.y, 'rgba(255, 100, 0, 0.9)', 8, Math.PI*2, 60);
+          spawnParticles(this.x, this.y, 'rgba(139, 0, 0, 0.7)', 6, Math.PI*2, 50);
+          
+          // Add new damage scar
+          this.damageScars.push({
+              x: (Math.random() - 0.5) * this.r * 1.5,
+              y: (Math.random() - 0.5) * this.r * 1.5,
+              size: 2 + Math.random() * 2
+          });
+          
+          // Keep only recent scars
+          if (this.damageScars.length > 8) {
+              this.damageScars.shift();
+          }
+          
+          // Metal impact sound
+          sfx(250, 0.1, 0.04, 'square');
+          
+          return this.health <= 0;
+      }
   }
+
+
 
   // Bomber enemy class - IMPROVED EXPLOSION PARTICLES
   class Bomber {
@@ -4813,341 +5442,812 @@ function setHardcoreStartingStats() {
   }
 
   // Final Boss class - IMPROVED
+  // TRUE FINAL BOSS - TITAN OF DARKNESS
   class FinalBoss {
     constructor() {
       let angle = Math.random() * Math.PI * 2;
-      let distance = 500;
+      let distance = 600;
       this.x = player.x + Math.cos(angle) * distance;
       this.y = player.y + Math.sin(angle) * distance;
       
-      this.x = clamp(this.x, 200, W-200);
-      this.y = clamp(this.y, 200, H-200);
+      this.x = clamp(this.x, 250, W-250);
+      this.y = clamp(this.y, 250, H-250);
       
-      this.r = 80;
-      this.health = 1000;
-      this.maxHealth = 1000;
-      this.speed = 50;
-      this.color = '#4b0082';
+      // MASSIVE SIZE
+      this.r = 100;
+      this.health = 2000; // Double the original health
+      this.maxHealth = 2000;
+      this.speed = 20; // Slow but deliberate
+      
+      // DARK PURPLE COLOR SCHEME
+      this.coreColor = '#2c003e'; // Darkest purple
+      this.edgeColor = '#4b0082'; // Royal purple
+      this.spikeColor = '#8b00ff'; // Electric purple
+      this.dangerGlow = '#ff00ff'; // Magenta energy
+      
+      // BOSS STATE
       this.attackTimer = 0;
-      this.attackRate = 1;
+      this.attackRate = 1.5;
       this.pulse = 0;
       this.phase = 1;
       this.bulletAngle = 0;
       this.specialAttackTimer = 0;
-      this.specialAttackCooldown = 10;
-      this.cannonTimer = 0;
-      this.cannonCooldown = 5;
-      this.heatSeekingTimer = 0;
-      this.heatSeekingCooldown = 8;
+      this.specialAttackCooldown = 7;
       this.frozen = false;
-      this.originalSpeed = 60;
-      this.reflectionWalls = [];
-      this.coverBlocks = [];
       
-      // Create cover blocks for the player to hide behind - 100% larger
-      for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * Math.PI * 2;
-        const distance = 200;
-        const blockX = W/2 + Math.cos(angle) * distance;
-        const blockY = H/2 + Math.sin(angle) * distance;
-        this.coverBlocks.push({
-          x: blockX,
-          y: blockY,
-          width: 60, 
-          height: 60
+      // DARK ENERGY FIELD
+      this.energyField = {
+        active: true,
+        radius: this.r * 1.5,
+        damage: 1,
+        pulse: 0
+      };
+      
+      // SPIKES - arranged in layers
+      this.spikeLayers = [
+        { count: 16, length: 40, rotation: 0 },  // Outer spikes
+        { count: 12, length: 30, rotation: 0.3 }, // Middle spikes
+        { count: 8, length: 25, rotation: 0.6 }   // Inner spikes
+      ];
+      
+      // BLACK HOLE CORE
+      this.blackHole = {
+        active: true,
+        pullStrength: 80,
+        damageRadius: this.r * 1,
+        damage: 1
+      };
+      
+      // VOID SHARDS (floating around boss)
+      this.voidShards = [];
+      for (let i = 0; i < 8; i++) {
+        this.voidShards.push({
+          angle: (i / 8) * Math.PI * 2,
+          distance: this.r * 1.8,
+          rotation: Math.random() * Math.PI * 2,
+          pulse: Math.random() * Math.PI * 2,
+          health: 30
         });
       }
       
+      // DARK MATTER PARTICLES
+      this.darkMatter = [];
+      for (let i = 0; i < 50; i++) {
+        this.darkMatter.push({
+          x: this.x + (Math.random() - 0.5) * this.r * 3,
+          y: this.y + (Math.random() - 0.5) * this.r * 3,
+          vx: (Math.random() - 0.5) * 20,
+          vy: (Math.random() - 0.5) * 20,
+          life: 10 + Math.random() * 10,
+          size: 2 + Math.random() * 4
+        });
+      }
+      
+      // NO COVER BLOCKS - NO EYES - NO CANNON
+      // Just pure, unadulterated power
+      
+      // EPIC SPAWN
+      this.spawn();
+    }
+    
+    spawn() {
+      // Black hole spawn effect
       createBossSpawnEffect(this.x, this.y);
+      
+      // Dark matter explosion
+      setTimeout(() => {
+        if (running) {
+          // Create a black hole effect
+          for (let i = 0; i < 100; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 300;
+            particles.push({
+              x: this.x + Math.cos(angle) * distance,
+              y: this.y + Math.sin(angle) * distance,
+              vx: -Math.cos(angle) * 200,
+              vy: -Math.sin(angle) * 200,
+              life: 2 + Math.random(),
+              col: `rgba(75, 0, 130, ${0.7 + Math.random() * 0.3})`,
+              r: 3 + Math.random() * 5
+            });
+          }
+          
+          // Screen distortion effect
+          shake = 60;
+          
+          // Deep, ominous sound
+          sfx(40, 2, 0.3, 'sawtooth');
+          sfx(80, 1, 0.2, 'square');
+          
+          // Energy surge
+          for (let i = 0; i < 360; i += 10) {
+            const angle = i * Math.PI / 180;
+            particles.push({
+              x: this.x + Math.cos(angle) * this.r,
+              y: this.y + Math.sin(angle) * this.r,
+              vx: Math.cos(angle) * 400,
+              vy: Math.sin(angle) * 400,
+              life: 1.5,
+              col: '#ff00ff',
+              r: 4
+            });
+          }
+          
+          createScreenFlash('rgba(75, 0, 130, 0.5)', 1.5);
+        }
+      }, 500);
     }
     
     update(dt) {
       if (this.frozen) return true;
       
-      this.pulse += dt * 5;
+      this.pulse += dt * 8;
       this.specialAttackTimer += dt;
-      this.cannonTimer += dt;
-      this.heatSeekingTimer += dt;
+      this.energyField.pulse += dt * 3;
       
-      // FIX: Add shrink cap to prevent bosses from becoming invisible
-      this.r = Math.max(40, 80 * (this.health / this.maxHealth));
+      // Phase transitions based purely on time survived
+      const timeInCombat = timeAlive - bossSpawnSchedule[3].time;
       
+      if (timeInCombat > 30 && this.phase === 1) {
+        this.phase = 2;
+        this.attackRate = 1.2;
+        this.enterPhase2();
+      }
+      if (timeInCombat > 60 && this.phase === 2) {
+        this.phase = 3;
+        this.attackRate = 1.0;
+        this.enterPhase3();
+      }
+      if (timeInCombat > 90 && this.phase === 3) {
+        this.phase = 4;
+        this.attackRate = 0.8;
+        this.enterFinalPhase();
+      }
+      
+      // Dark energy field damage
+      if (this.energyField.active) {
+        const d = dist({x: this.x, y: this.y}, player);
+        if (d < this.energyField.radius + player.r) {
+          // Add a timer for 1 damage per second
+          if (!this.energyField.damageTimer) {
+            this.energyField.damageTimer = 0;
+          }
+          this.energyField.damageTimer += dt;
+          
+          if (this.energyField.damageTimer >= 1.0) {
+            this.energyField.damageTimer = 0;
+            
+            if (shield > 0 && shieldDamageCooldown <= 0) {
+              shield -= 1; // Deal exactly 1 shield damage
+              shieldDamageCooldown = 0.5;
+              
+              // Energy drain effect
+              particles.push({
+                x: player.x,
+                y: player.y,
+                vx: (this.x - player.x) * 0.5,
+                vy: (this.y - player.y) * 0.5,
+                life: 0.3,
+                col: '#8b00ff',
+                r: 2
+              });
+            } else if (shield <= 0) {
+              player.lives -= 1; // Deal exactly 1 HP damage
+              livesEl.textContent = Math.ceil(player.lives);
+              
+              if (player.lives <= 0 && gameMode !== 'freemode') {
+                running = false;
+                showDeathScreen();
+              }
+            }
+          }
+        } else {
+          // Reset timer when player leaves the field
+          this.energyField.damageTimer = 0;
+        }
+      }     
+       
+      // Black hole pull effect
+      if (this.blackHole.active) {
+        const toBoss = vecTo(player.x, player.y, this.x, this.y);
+        const distance = Math.hypot(player.x - this.x, player.y - this.y);
+        
+        if (distance < this.r * 4) {
+          const pullStrength = this.blackHole.pullStrength * (1 - distance / (this.r * 4));
+          player.x += toBoss.x * pullStrength * dt;
+          player.y += toBoss.y * pullStrength * dt;
+          
+          // Visual pull effect
+          if (Math.random() < 0.3) {
+            particles.push({
+              x: player.x,
+              y: player.y,
+              vx: toBoss.x * 100,
+              vy: toBoss.y * 100,
+              life: 0.5,
+              col: '#4b0082',
+              r: 1 + Math.random() * 2
+            });
+          }
+        }
+        
+        // Black hole damage zone
+        if (distance < this.blackHole.damageRadius + player.r) {
+          if (!this.blackHole.damageTimer) {
+            this.blackHole.damageTimer = 0;
+          }
+          this.blackHole.damageTimer += dt;
+          
+          if (this.blackHole.damageTimer >= 1.0) {
+            this.blackHole.damageTimer = 0;
+            player.lives -= 1; // Deal exactly 1 damage per second
+            livesEl.textContent = Math.ceil(player.lives);
+            
+            // Damage effect
+            spawnParticles(player.x, player.y, 'rgba(255, 0, 255, 0.7)', 2, Math.PI, 20);
+          }
+        } else {
+          this.blackHole.damageTimer = 0;
+        }
+      }
+      
+      // Update void shards
+      for (const shard of this.voidShards) {
+        shard.angle += dt * 0.5;
+        shard.rotation += dt * 2;
+        shard.pulse += dt * 3;
+      }
+      
+      // Update dark matter
+      for (let i = this.darkMatter.length - 1; i >= 0; i--) {
+        const particle = this.darkMatter[i];
+        particle.life -= dt;
+        
+        // Gravitational pull toward boss
+        const toBoss = vecTo(particle.x, particle.y, this.x, this.y);
+        const distance = Math.hypot(particle.x - this.x, particle.y - this.y);
+        
+        if (distance > this.r) {
+          const pullForce = 50 / (distance * distance);
+          particle.vx += toBoss.x * pullForce;
+          particle.vy += toBoss.y * pullForce;
+        }
+        
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vx *= 0.99;
+        particle.vy *= 0.99;
+        
+        if (particle.life <= 0) {
+          this.darkMatter.splice(i, 1);
+          // Spawn new particle
+          const angle = Math.random() * Math.PI * 2;
+          const distance = this.r * (2 + Math.random() * 2);
+          this.darkMatter.push({
+            x: this.x + Math.cos(angle) * distance,
+            y: this.y + Math.sin(angle) * distance,
+            vx: (Math.random() - 0.5) * 20,
+            vy: (Math.random() - 0.5) * 20,
+            life: 10 + Math.random() * 10,
+            size: 2 + Math.random() * 4
+          });
+        }
+      }
+      
+      // Chase player slowly but relentlessly
       const toPlayer = vecTo(this.x, this.y, player.x, player.y);
       this.x += toPlayer.x * this.speed * dt;
       this.y += toPlayer.y * this.speed * dt;
       
-      if (this.health < this.maxHealth * 0.6 && this.phase === 1) {
-        this.phase = 2;
-        this.speed = 40;
-        this.attackRate = 2;
-      }
-      if (this.health < this.maxHealth * 0.3 && this.phase === 2) {
-        this.phase = 3;
-        this.speed = 30;
-        this.attackRate = 2;
-      }
-      if (this.health < this.maxHealth * 0.1 && this.phase === 3) {
-        this.phase = 4;
-        this.speed = 20;
-        this.attackRate = 1.2;
+      // Keep boss on screen
+      this.x = clamp(this.x, this.r, W - this.r);
+      this.y = clamp(this.y, this.r, H - this.r);
+      
+      // Rotate spike layers in opposite directions
+      for (let i = 0; i < this.spikeLayers.length; i++) {
+        this.spikeLayers[i].rotation += dt * (i % 2 === 0 ? 0.5 : -0.3);
       }
       
+      // Attack patterns
       this.attackTimer += dt;
       if (this.attackTimer >= this.attackRate) {
         this.attackTimer = 0;
-        
-        const bulletCount = this.phase === 1 ? 12 : 
-                          this.phase === 2 ? 20 : 
-                          this.phase === 3 ? 30 : 40;
-        
-        for (let i = 0; i < bulletCount; i++) {
-          const angle = this.bulletAngle + (i / bulletCount) * Math.PI * 2;
-          bullets.push({
-            x: this.x,
-            y: this.y,
-            dx: Math.cos(angle),
-            dy: Math.sin(angle),
-            t: 0,
-            life: 5.0 - this.phase,
-            speed: 150 + this.phase * 50,
-            size: 21 - this.phase * 4,
-            color: '#4b0082',
-            enemy: true
-          });
-        }
-        
-        this.bulletAngle += 0.2;
-        
-        sfx(100, 0.25, 0.07, 'sawtooth');
-        spawnParticles(this.x, this.y, 'rgba(75,0,130,0.9)', 40, Math.PI*2, 150);
+        this.darkEnergyAttack();
       }
       
+      // Special attacks
       if (this.specialAttackTimer >= this.specialAttackCooldown) {
         this.specialAttackTimer = 0;
-        this.specialAttack();
+        this.voidEruption();
       }
       
-      if (this.cannonTimer >= this.cannonCooldown) {
-        this.cannonTimer = 0;
-        this.fireCannon();
-      }
-      
-      if (this.heatSeekingTimer >= this.heatSeekingCooldown) {
-        this.heatSeekingTimer = 0;
-        this.fireHeatSeekingMissiles();
-      }
-      
-      // Update reflection walls
-      for (let i = this.reflectionWalls.length - 1; i >= 0; i--) {
-        const wall = this.reflectionWalls[i];
-        wall.timer -= dt;
-        if (wall.timer <= 0) {
-          this.reflectionWalls.splice(i, 1);
-        }
-      }
-      
-            // Update cover blocks - break ENEMY bullets (player bullets can pass through)
-      for (const block of this.coverBlocks) {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const b = bullets[i];
-          if (b.x > block.x - block.width/2 && b.x < block.x + block.width/2 &&
-              b.y > block.y - block.height/2 && b.y < block.y + block.height/2) {
-            // Only block enemy bullets, let player bullets pass through
-            if (b.enemy) {
-              bullets.splice(i, 1);
-              spawnParticles(b.x, b.y, 'rgba(100,100,100,0.7)', 5, Math.PI*2, 40);
-            }
-          }
-        }
-      }
-            
-      // Remove dead bosses from echoes array
+      // Remove if dead
       if (this.health <= 0) {
+        this.deathExplosion();
         const index = echoes.indexOf(this);
         if (index > -1) {
           echoes.splice(index, 1);
         }
         return false;
       }
-      return true;    }
+      return true;
+    }
     
-    specialAttack() {
-      // Dark red fire wave that pushes player away
-      const waveCount = 3;
-      for (let i = 0; i < waveCount; i++) {
-        const delay = i * 0.5;
-        setTimeout(() => {
-          if (running) {
-            const wave = new FireWave(this.x, this.y);
-            fires.push(wave);
-            
-            // Push player away
-            const toPlayer = vecTo(this.x, this.y, player.x, player.y);
-            const pushForce = 300;
-            player.vx += toPlayer.x * pushForce;
-            player.vy += toPlayer.y * pushForce;
-          }
-        }, delay * 1000);
+    enterPhase2() {
+      // Activate void shard weapons
+      for (const shard of this.voidShards) {
+        shard.weaponActive = true;
       }
       
-      // Create reflection wall
-      this.reflectionWalls.push({
-        x: this.x,
-        y: this.y,
-        radius: 150,
-        timer: 5.0
-      });
+      // Visual effect
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        particles.push({
+          x: this.x + Math.cos(angle) * this.r * 1.8,
+          y: this.y + Math.sin(angle) * this.r * 1.8,
+          vx: Math.cos(angle) * 200,
+          vy: Math.sin(angle) * 200,
+          life: 1,
+          col: '#8b00ff',
+          r: 3
+        });
+      }
+      
+      sfx(120, 0.5, 0.15, 'sawtooth');
+    }
+    
+    enterPhase3() {
+      // Increase black hole strength
+      this.blackHole.pullStrength = 120;
+      this.blackHole.damage = 1.5;
+      
+      // Visual effect
+      spawnParticles(this.x, this.y, 'rgba(255, 0, 255, 0.9)', 50, Math.PI*2, 300);
+      createScreenFlash('rgba(75, 0, 130, 0.3)', 0.5);
+      sfx(80, 1, 0.2, 'square');
+    }
+    
+    enterFinalPhase() {
+      // Activate all spikes as weapons
+      this.energyField.damage = 1;
+      this.energyField.radius = this.r * 1.5;
+      
+      // Final phase visual
+      for (let i = 0; i < 360; i += 5) {
+        const angle = i * Math.PI / 180;
+        particles.push({
+          x: this.x,
+          y: this.y,
+          vx: Math.cos(angle) * 500,
+          vy: Math.sin(angle) * 500,
+          life: 2,
+          col: '#ff00ff',
+          r: 2
+        });
+      }
+      
+      shake = 40;
+      sfx(60, 2, 0.25, 'sawtooth');
+    }
+    
+    darkEnergyAttack() {
+      // Pattern based on phase
+      let patternCount, bulletCount, speed;
+      
+      switch(this.phase) {
+        case 1:
+          patternCount = 3;
+          bulletCount = 4;
+          speed = 100;
+          break;
+        case 2:
+          patternCount = 5;
+          bulletCount = 6;
+          speed = 130;
+          break;
+        case 3:
+          patternCount = 7;
+          bulletCount = 10;
+          speed = 160;
+          break;
+        case 4:
+          patternCount = 9;
+          bulletCount = 14;
+          speed = 200;
+          break;
+      }
+      
+      // Multiple concentric rings
+      for (let p = 0; p < patternCount; p++) {
+        const patternOffset = (p / patternCount) * Math.PI * 2;
+        
+        for (let i = 0; i < bulletCount; i++) {
+          const angle = patternOffset + (i / bulletCount) * Math.PI * 2 + this.bulletAngle;
+          
+          bullets.push({
+            x: this.x,
+            y: this.y,
+            dx: Math.cos(angle),
+            dy: Math.sin(angle),
+            t: 0,
+            life: 5,
+            speed: speed + p * 50,
+            size: 9 + p * 3,
+            color: p === 0 ? '#ff00ff' : (p === 1 ? '#8b00ff' : '#4b0082'),
+            enemy: true,
+            darkEnergy: true,
+            trail: []
+          });
+        }
+      }
+      
+      this.bulletAngle += 0.1;
+      
+      // Sound effect - deep thrum
+      sfx(80 + this.phase * 10, 0.3, 0.1, 'sawtooth');
+      
+      // Particle emission from spikes
+      for (let layer = 0; layer < this.spikeLayers.length; layer++) {
+        const spikeLayer = this.spikeLayers[layer];
+        for (let i = 0; i < spikeLayer.count; i += 2) {
+          const angle = (i / spikeLayer.count) * Math.PI * 2 + spikeLayer.rotation;
+          const spikeX = this.x + Math.cos(angle) * (this.r + 10);
+          const spikeY = this.y + Math.sin(angle) * (this.r + 10);
+          
+          spawnParticles(spikeX, spikeY, '#8b00ff', 3, Math.PI/6, 100);
+        }
+      }
+    }
+    
+    voidEruption() {
+      // Massive eruption of dark energy
+      const eruptionCount = this.phase * 4;
+      
+      for (let e = 0; e < eruptionCount; e++) {
+        setTimeout(() => {
+          if (!running) return;
+          
+          const eruptionAngle = (e / eruptionCount) * Math.PI * 2;
+          
+          // Create void tendrils
+          const tendrilCount = 8;
+          for (let t = 0; t < tendrilCount; t++) {
+            const tendrilAngle = eruptionAngle + (t / tendrilCount) * Math.PI * 2;
+            
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                if (!running) return;
+                
+                bullets.push({
+                  x: this.x + Math.cos(tendrilAngle) * this.r,
+                  y: this.y + Math.sin(tendrilAngle) * this.r,
+                  dx: Math.cos(tendrilAngle),
+                  dy: Math.sin(tendrilAngle),
+                  t: 0,
+                  life: 3,
+                  speed: 300,
+                  size: 12,
+                  color: '#2c003e',
+                  enemy: true,
+                  voidTendril: true
+                });
+                
+                // Tendril trail
+                spawnParticles(
+                  this.x + Math.cos(tendrilAngle) * this.r,
+                  this.y + Math.sin(tendrilAngle) * this.r,
+                  '#4b0082',
+                  5,
+                  Math.PI/4,
+                  80
+                );
+              }, i * 100);
+            }
+          }
+          
+          // Visual effect
+          spawnParticles(this.x, this.y, '#ff00ff', 20, Math.PI*2, 200);
+          shake = 20 + e * 5;
+          
+        }, e * 300);
+      }
+      
+      // Epic sound
+      sfx(60, 1, 0.2, 'sawtooth');
+      sfx(120, 0.5, 0.15, 'square');
+    }
+    
+    deathExplosion() {
+      // Black hole collapse
+      for (let i = 0; i < 500; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * this.r * 3;
+        particles.push({
+          x: this.x + Math.cos(angle) * distance,
+          y: this.y + Math.sin(angle) * distance,
+          vx: -Math.cos(angle) * 500 * (distance / (this.r * 3)),
+          vy: -Math.sin(angle) * 500 * (distance / (this.r * 3)),
+          life: 1 + Math.random() * 2,
+          col: Math.random() > 0.5 ? '#4b0082' : '#2c003e',
+          r: 2 + Math.random() * 6
+        });
+      }
+      
+      // Energy release
+      for (let i = 0; i < 360; i += 3) {
+        const angle = i * Math.PI / 180;
+        particles.push({
+          x: this.x,
+          y: this.y,
+          vx: Math.cos(angle) * 800,
+          vy: Math.sin(angle) * 800,
+          life: 1.5,
+          col: '#ff00ff',
+          r: 3
+        });
+      }
       
       shake = 30;
-      sfx(80, 0.4, 0.1, 'sawtooth');
+      sfx(40, 3, 0.4, 'sawtooth');
+      createScreenFlash('rgba(255, 0, 255, 0.7)', 2);
       
-      spawnParticles(this.x, this.y, 'rgba(138,43,226,0.9)', 60, Math.PI*2, 250);
-      spawnParticles(this.x, this.y, 'rgba(75,0,130,0.7)', 50, Math.PI*2, 220);
-      spawnParticles(this.x, this.y, 'rgba(148,0,211,0.5)', 40, Math.PI*2, 190);
-    }
-    
-    fireCannon() {
-      const angle = Math.atan2(player.y - this.y, player.x - this.x);
-      
-      bullets.push({
-        x: this.x,
-        y: this.y,
-        dx: Math.cos(angle),
-        dy: Math.sin(angle),
-        t: 0,
-        life: 6.0,
-        speed: 120,
-        size: 40,
-        color: '#ff0000',
-        enemy: true,
-        finalBossCannon: true
-      });
-      
-      playSound('tankThrow');
-      spawnParticles(this.x, this.y, 'rgba(255,0,0,0.9)', 30, Math.PI*2, 150);
-    }
-    
-    fireHeatSeekingMissiles() {
-      const missileCount = 3;
-      for (let i = 0; i < missileCount; i++) {
-        const angle = (i / missileCount) * Math.PI * 2;
-        const distance = 50;
-        const spawnX = this.x + Math.cos(angle) * distance;
-        const spawnY = this.y + Math.sin(angle) * distance;
-        
-        const heatSeekingRocket = new HeatSeekingRocket(spawnX, spawnY);
-        rockets.push(heatSeekingRocket);
-      }
-      
-      playSound('rocket');
+      // Remove all dark matter
+      this.darkMatter = [];
     }
     
     draw(ctx) {
-      const phaseColors = ['#4b0082', '#6a0dad', '#8a2be2', '#9370db'];
-      const pulseSize = this.r * (1 + Math.sin(this.pulse) * 0.2);
-      const g = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, pulseSize*2);
-      g.addColorStop(0, phaseColors[this.phase-1] + 'DD');
-      g.addColorStop(1, phaseColors[this.phase-1] + '11');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(this.x, this.y, pulseSize*2, 0, Math.PI*2); ctx.fill();
+      // 1. DARK MATTER CLOUD
+      for (const particle of this.darkMatter) {
+        const alpha = particle.life / 20;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(44, 0, 62, ${alpha * 0.3})`;
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // 2. ENERGY FIELD
+      const fieldPulse = 0.7 + Math.sin(this.energyField.pulse) * 0.3;
+      const fieldGradient = ctx.createRadialGradient(
+        this.x, this.y, this.r * 0.5,
+        this.x, this.y, this.energyField.radius
+      );
+      fieldGradient.addColorStop(0, `rgba(75, 0, 130, ${0.3 * fieldPulse})`);
+      fieldGradient.addColorStop(0.5, `rgba(139, 0, 139, ${0.1 * fieldPulse})`);
+      fieldGradient.addColorStop(1, `rgba(75, 0, 130, 0)`);
       
       ctx.beginPath();
-      ctx.fillStyle = phaseColors[this.phase-1];
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+      ctx.fillStyle = fieldGradient;
+      ctx.arc(this.x, this.y, this.energyField.radius, 0, Math.PI * 2);
       ctx.fill();
       
+      // 3. BLACK HOLE CORE
+      const holePulse = 0.5 + Math.sin(this.pulse * 3) * 0.5;
+      const holeGradient = ctx.createRadialGradient(
+        this.x, this.y, 1,
+        this.x, this.y, this.r
+      );
+      holeGradient.addColorStop(0, `rgba(0, 0, 0, ${0.9})`);
+      holeGradient.addColorStop(0.3, `rgba(44, 0, 62, ${0.7})`);
+      holeGradient.addColorStop(1, `rgba(75, 0, 130, ${0.5})`);
+      
       ctx.beginPath();
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.arc(this.x, this.y, this.r*0.8, 0, Math.PI*2);
+      ctx.fillStyle = holeGradient;
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
       ctx.fill();
       
-      // Large cannon
-      const cannonAngle = Math.atan2(player.y - this.y, player.x - this.x);
-      const cannonLength = this.r * 2;
-      const cannonEndX = this.x + Math.cos(cannonAngle) * cannonLength;
-      const cannonEndY = this.y + Math.sin(cannonAngle) * cannonLength;
-      
-      ctx.strokeStyle = '#ff0000';
-      ctx.lineWidth = 12;
+      // 4. EVENT HORIZON
+      ctx.strokeStyle = `rgba(255, 0, 255, ${0.3 + holePulse * 0.2})`;
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(this.x, this.y);
-      ctx.lineTo(cannonEndX, cannonEndY);
+      ctx.arc(this.x, this.y, this.r * 0.9, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Cannon tip with glow
-      const cannonTipGradient = ctx.createRadialGradient(cannonEndX, cannonEndY, 1, cannonEndX, cannonEndY, 15);
-      cannonTipGradient.addColorStop(0, '#dd00ff');
-      cannonTipGradient.addColorStop(1, '#ff0088');
-      ctx.fillStyle = cannonTipGradient;
+      // 5. SPIKES - Multiple layers
+      for (let layer = 0; layer < this.spikeLayers.length; layer++) {
+        const spikeLayer = this.spikeLayers[layer];
+        const spikeCount = spikeLayer.count;
+        const spikeLength = spikeLayer.length;
+        const rotation = spikeLayer.rotation;
+        
+        for (let i = 0; i < spikeCount; i++) {
+          const angle = (i / spikeCount) * Math.PI * 2 + rotation;
+          const baseX = this.x + Math.cos(angle) * this.r;
+          const baseY = this.y + Math.sin(angle) * this.r;
+          const tipX = this.x + Math.cos(angle) * (this.r + spikeLength);
+          const tipY = this.y + Math.sin(angle) * (this.r + spikeLength);
+          
+          // Spike glow
+          const spikePulse = Math.sin(this.pulse * 5 + i * 0.5 + layer) * 0.3 + 0.7;
+          const spikeGlow = ctx.createLinearGradient(baseX, baseY, tipX, tipY);
+          spikeGlow.addColorStop(0, `rgba(139, 0, 255, ${0.8 * spikePulse})`);
+          spikeGlow.addColorStop(1, `rgba(255, 0, 255, ${0.3 * spikePulse})`);
+          
+          ctx.beginPath();
+          ctx.strokeStyle = spikeGlow;
+          ctx.lineWidth = 4 + layer * 2;
+          ctx.lineCap = 'round';
+          ctx.moveTo(baseX, baseY);
+          ctx.lineTo(tipX, tipY);
+          ctx.stroke();
+          
+          // Spike tip
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 0, 255, ${spikePulse})`;
+          ctx.arc(tipX, tipY, 3 + layer, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Energy crackle between spikes
+          if (i % 2 === 0 && Math.sin(this.pulse * 8 + i) > 0.5) {
+            const nextAngle = ((i + 1) % spikeCount / spikeCount) * Math.PI * 2 + rotation;
+            const nextX = this.x + Math.cos(nextAngle) * this.r;
+            const nextY = this.y + Math.sin(nextAngle) * this.r;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, 0, 255, ${0.3})`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.moveTo(tipX, tipY);
+            ctx.lineTo(
+              this.x + Math.cos(nextAngle) * (this.r + spikeLength),
+              this.y + Math.sin(nextAngle) * (this.r + spikeLength)
+            );
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+      
+      // 6. VOID SHARDS
+      for (const shard of this.voidShards) {
+        if (shard.health <= 0) continue;
+        
+        const shardX = this.x + Math.cos(shard.angle) * shard.distance;
+        const shardY = this.y + Math.sin(shard.angle) * shard.distance;
+        const shardSize = 12;
+        const shardPulse = 0.6 + Math.sin(shard.pulse) * 0.4;
+        
+        ctx.save();
+        ctx.translate(shardX, shardY);
+        ctx.rotate(shard.rotation);
+        
+        // Shard crystal
+        ctx.beginPath();
+        ctx.moveTo(0, -shardSize);
+        ctx.lineTo(shardSize * 0.7, 0);
+        ctx.lineTo(0, shardSize);
+        ctx.lineTo(-shardSize * 0.7, 0);
+        ctx.closePath();
+        
+        const shardGradient = ctx.createLinearGradient(-shardSize, 0, shardSize, 0);
+        shardGradient.addColorStop(0, `rgba(75, 0, 130, ${shardPulse})`);
+        shardGradient.addColorStop(0.5, `rgba(139, 0, 255, ${shardPulse})`);
+        shardGradient.addColorStop(1, `rgba(75, 0, 130, ${shardPulse})`);
+        
+        ctx.fillStyle = shardGradient;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255, 0, 255, ${shardPulse * 0.8})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Shard connection to core
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(139, 0, 255, ${0.2 * shardPulse})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(shardX, shardY);
+        ctx.stroke();
+      }
+      
+      // 7. SWIRLING ENERGY LINES
+      const swirlCount = 3;
+      for (let s = 0; s < swirlCount; s++) {
+        const swirlRadius = this.r * (0.7 + s * 0.1);
+        const swirlSpeed = 0.5 + s * 0.2;
+        
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 0, 255, ${0.1})`;
+        ctx.lineWidth = 1;
+        
+        for (let a = 0; a < Math.PI * 2; a += 0.1) {
+          const x = this.x + Math.cos(a + this.pulse * swirlSpeed) * swirlRadius * (1 + Math.sin(a * 3) * 0.1);
+          const y = this.y + Math.sin(a + this.pulse * swirlSpeed) * swirlRadius * (1 + Math.cos(a * 3) * 0.1);
+          
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      
+      // 8. GRAVITATIONAL DISTORTION
+      const distortionGradient = ctx.createRadialGradient(
+        this.x, this.y, this.r * 1.5,
+        this.x, this.y, this.r * 3
+      );
+      distortionGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      distortionGradient.addColorStop(0.5, 'rgba(44, 0, 62, 0.1)');
+      distortionGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
       ctx.beginPath();
-      ctx.arc(cannonEndX, cannonEndY, 12, 0, Math.PI*2);
+      ctx.fillStyle = distortionGradient;
+      ctx.arc(this.x, this.y, this.r * 3, 0, Math.PI * 2);
       ctx.fill();
       
-      const eyeCount = this.phase + 2;
-      for (let i = 0; i < eyeCount; i++) {
-        const angle = (i / eyeCount) * Math.PI * 2;
-        const eyeX = this.x + Math.cos(angle) * this.r * 0.6;
-        const eyeY = this.y + Math.sin(angle) * this.r * 0.6;
-        
-        ctx.beginPath();
-        ctx.fillStyle = '#ff6b6b';
-        ctx.arc(eyeX, eyeY, this.r*0.2, 0, Math.PI*2);
-        ctx.fill();
-        
-        // Glowing eyes
-        const eyeGlow = ctx.createRadialGradient(eyeX, eyeY, 1, eyeX, eyeY, this.r*0.4);
-        eyeGlow.addColorStop(0, 'rgba(255,107,107,0.8)');
-        eyeGlow.addColorStop(1, 'rgba(255,107,107,0.1)');
-        ctx.fillStyle = eyeGlow;
-        ctx.beginPath();
-        ctx.arc(eyeX, eyeY, this.r*0.4, 0, Math.PI*2);
-        ctx.fill();
-      }
-      
-      // Draw reflection walls
-      for (const wall of this.reflectionWalls) {
-        const alpha = wall.timer / 5.0;
-        ctx.strokeStyle = `rgba(255,0,0,${alpha * 0.7})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(wall.x, wall.y, wall.radius, 0, Math.PI*2);
-        ctx.stroke();
-        
-        ctx.fillStyle = `rgba(255,0,0,${alpha * 0.2})`;
-        ctx.beginPath();
-        ctx.arc(wall.x, wall.y, wall.radius, 0, Math.PI*2);
-        ctx.fill();
-      }
-      
-      // Draw cover blocks
-      for (const block of this.coverBlocks) {
-        ctx.fillStyle = 'rgba(100,100,100,0.8)';
-        ctx.fillRect(block.x - block.width/2, block.y - block.height/2, block.width, block.height);
-        
-        ctx.strokeStyle = 'rgba(200,200,200,0.5)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(block.x - block.width/2, block.y - block.height/2, block.width, block.height);
-      }
-      
-      if (this.specialAttackTimer > this.specialAttackCooldown - 3) {
-        const warningPulse = Math.sin(this.specialAttackTimer * 10) * 0.5 + 0.5;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255,255,0,${warningPulse})`;
-        ctx.lineWidth = 4;
-        ctx.arc(this.x, this.y, this.r * 2, 0, Math.PI*2);
-        ctx.stroke();
+      // 9. PULL EFFECT VISUALIZATION
+      if (this.blackHole.active) {
+        const lines = 12;
+        for (let i = 0; i < lines; i++) {
+          const angle = (i / lines) * Math.PI * 2 + this.pulse * 0.5;
+          const startX = this.x + Math.cos(angle) * this.r * 4;
+          const startY = this.y + Math.sin(angle) * this.r * 4;
+          
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(139, 0, 255, ${0.1})`;
+          ctx.lineWidth = 1;
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(this.x + Math.cos(angle) * this.r * 1.2, this.y + Math.sin(angle) * this.r * 1.2);
+          ctx.stroke();
+        }
       }
     }
     
     takeDamage(amount) {
+      // Check void shards first
+      const activeShards = this.voidShards.filter(s => s.health > 0);
+      if (activeShards.length > 0 && amount > 10) {
+        // Damage a random shard
+        const shard = activeShards[Math.floor(Math.random() * activeShards.length)];
+        shard.health -= amount * 0.5;
+        
+        if (shard.health <= 0) {
+          // Shard destruction
+          const shardX = this.x + Math.cos(shard.angle) * shard.distance;
+          const shardY = this.y + Math.sin(shard.angle) * shard.distance;
+          
+          spawnParticles(shardX, shardY, '#ff00ff', 20, Math.PI*2, 200);
+          sfx(800, 0.2, 0.1, 'square');
+          
+          // Energy feedback to boss
+          this.health -= 50;
+        } else {
+          // Shard hit effect
+          const shardX = this.x + Math.cos(shard.angle) * shard.distance;
+          const shardY = this.y + Math.sin(shard.angle) * shard.distance;
+          spawnParticles(shardX, shardY, '#8b00ff', 10, Math.PI*2, 100);
+        }
+        return false;
+      }
+      
+      // Damage main health
       this.health -= amount;
-      spawnParticles(this.x, this.y, 'rgba(255,255,255,0.9)', 20, Math.PI*2, 120);
+      
+      // Dark energy flare on hit
+      spawnParticles(this.x, this.y, '#ff00ff', 15 + amount * 2, Math.PI*2, 150 + amount * 10);
+      
+      // Sound effect
+      sfx(120 + amount * 10, 0.2, 0.08, 'sawtooth');
+      
+      // Health-based effects
+      if (this.health < this.maxHealth * 0.3) {
+        // Low health - increased activity
+        this.energyField.damage = 1.2;
+        this.blackHole.pullStrength = 160;
+        
+        // Visual intensity increase
+        if (Math.random() < 0.1) {
+          spawnParticles(this.x, this.y, '#ff0000', 10, Math.PI*2, 200);
+        }
+      }
+      
       return this.health <= 0;
     }
   }
 
-  // NEW: Mega Creeper Boss class
-  class MegaCreeperBoss {
+
+// NEW: Mega Creeper Boss class
+class MegaCreeperBoss {
     constructor() {
       let angle = Math.random() * Math.PI * 2;
       let distance = 600;
@@ -5160,7 +6260,7 @@ function setHardcoreStartingStats() {
       this.r = 100;
       this.health = 1000 + bossesKilled * 500;
       this.maxHealth = 1000 + bossesKilled * 500;
-      this.speed = 0;
+      this.speed = 2;
       this.color = '#006400';
       this.attackTimer = 0;
       this.attackRate = 1.5;
@@ -5169,8 +6269,13 @@ function setHardcoreStartingStats() {
       this.bulletAngle = 0;
       this.specialAttackTimer = 0;
       this.specialAttackCooldown = 4;
+      this.bulletRingTimer = 0;
+      this.bulletRingCooldown = 6;
       this.frozen = false;
-      this.originalSpeed = 0;
+      this.originalSpeed = 2;
+      this.spikeCount = 12;
+      this.spikeLength = 20;
+      this.spikeAngle = 0;
       
       createBossSpawnEffect(this.x, this.y);
     }
@@ -5180,6 +6285,12 @@ function setHardcoreStartingStats() {
       
       this.pulse += dt * 4;
       this.specialAttackTimer += dt;
+      this.bulletRingTimer += dt;
+      this.spikeAngle += dt * 2;
+      
+      // Make spikes pulse with health
+      this.spikeLength = 20 + (1 - this.health / this.maxHealth) * 30;
+      this.spikeCount = Math.floor(12 + (1 - this.health / this.maxHealth) * 8);
       
       this.r = Math.max(50, 100 * (this.health / this.maxHealth));
       
@@ -5191,21 +6302,23 @@ function setHardcoreStartingStats() {
         this.phase = 2;
         this.speed = 5;
         this.attackRate = 1.0;
-        this.specialAttackCooldown = 2;
+        this.specialAttackCooldown = 5; // Increased from 2
+        this.bulletRingCooldown = 5;
       }
 
       if (this.health < this.maxHealth * 0.1 && this.phase === 2) {
         this.phase = 3;
         this.speed = 20;
         this.attackRate = 0.8;
-        this.specialAttackCooldown = 1;
+        this.specialAttackCooldown = 3; // Increased from 1
+        this.bulletRingCooldown = 3;
       }
       
       this.attackTimer += dt;
       if (this.attackTimer >= this.attackRate) {
         this.attackTimer = 0;
         
-        const bulletCount = this.phase === 1 ? 6 : this.phase === 2 ? 8 : 10;
+        const bulletCount = this.phase === 1 ? 8 : this.phase === 2 ? 12 : 16;
         
         for (let i = 0; i < bulletCount; i++) {
           const angle = this.bulletAngle + (i / bulletCount) * Math.PI * 2;
@@ -5216,22 +6329,33 @@ function setHardcoreStartingStats() {
             dy: Math.sin(angle),
             t: 0,
             life: 2.0 + this.phase,
-            speed: 300 - this.phase * 50,
-            size: 30 + this.phase * 10,
-            color: '#006400',
-            enemy: true
+            speed: 120 + this.phase * 60,
+            size: 9 + this.phase * 4, // Smaller bullets
+            color: this.phase === 1 ? 'rgba(255,0,0,0.5' : this.phase === 2 ? 'rgba(255,0,0,0.5)' : 'rgba(255,0,0,058)',
+            trailColor: this.phase === 1 ? 'rgba(255,0,0,0.4)' : 
+                       this.phase === 2 ? 'rgba(255,0,0,0.4)' : 'rgba(255,0,0,0.4)',
+            enemy: true,
+            dangerous: true,
+            rotation: angle
           });
         }
         
-        this.bulletAngle += 0.2;
+        this.bulletAngle += 0.3;
         
-        sfx(100, 0.2, 0.06, 'sawtooth');
-        spawnParticles(this.x, this.y, 'rgba(0,100,0,0.9)', 40, Math.PI*2, 150);
+        sfx(120 + this.phase * 20, 0.2, 0.06, 'sawtooth');
+        spawnParticles(this.x, this.y, 'rgba(0,255,0,0.9)', 40, Math.PI*2, 150);
       }
       
+      // Special attack - creeper spawning around boss
       if (this.specialAttackTimer >= this.specialAttackCooldown) {
         this.specialAttackTimer = 0;
         this.specialAttack();
+      }
+      
+      // Bullet ring attack
+      if (this.bulletRingTimer >= this.bulletRingCooldown) {
+        this.bulletRingTimer = 0;
+        this.bulletRingAttack();
       }
             
       // Remove dead bosses from echoes array
@@ -5242,16 +6366,17 @@ function setHardcoreStartingStats() {
         }
         return false;
       }
-      return true;    }
+      return true;
+    }
     
     specialAttack() {
-      // Spawn a ring of bombers around the player
-      const bomberCount = 8;
-      for (let i = 0; i < bomberCount; i++) {
-        const angle = (i / bomberCount) * Math.PI * 2;
-        const distance = 150;
-        const spawnX = player.x + Math.cos(angle) * distance;
-        const spawnY = player.y + Math.sin(angle) * distance;
+      // Spawn creepers around the boss instead of player
+      const creeperCount = this.phase === 1 ? 3 : this.phase === 2 ? 4 : 5; // Fewer creepers
+      for (let i = 0; i < creeperCount; i++) {
+        const angle = (i / creeperCount) * Math.PI * 2 + Math.random() * 0.5;
+        const distance = 200;
+        const spawnX = this.x + Math.cos(angle) * distance;
+        const spawnY = this.y + Math.sin(angle) * distance;
         
         spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'bomber'));
         
@@ -5262,99 +6387,371 @@ function setHardcoreStartingStats() {
         }, 1000);
       }
       
-      shake = 30;
+      shake = 25;
       sfx(80, 0.4, 0.1, 'sawtooth');
       
-      spawnParticles(this.x, this.y, 'rgba(0,100,0,0.9)', 80, Math.PI*2, 300);
-      spawnParticles(this.x, this.y, 'rgba(0,255,0,0.7)', 60, Math.PI*2, 250);
-      spawnParticles(this.x, this.y, 'rgba(100,255,100,0.5)', 40, Math.PI*2, 200);
+      spawnParticles(this.x, this.y, 'rgba(0,100,0,0.9)', 60, Math.PI*2, 200);
+      spawnParticles(this.x, this.y, 'rgba(0,255,0,0.7)', 40, Math.PI*2, 150);
+      spawnParticles(this.x, this.y, 'rgba(100,255,100,0.5)', 30, Math.PI*2, 100);
+    }
+    
+    bulletRingAttack() {
+      // Create multiple expanding rings of dangerous bullets
+      const ringCount = this.phase === 1 ? 2 : this.phase === 2 ? 3 : 4;
+      const bulletsPerRing = 16;
+      
+      for (let ring = 0; ring < ringCount; ring++) {
+        setTimeout(() => {
+          for (let i = 0; i < bulletsPerRing; i++) {
+            const angle = (i / bulletsPerRing) * Math.PI * 2 + Math.random() * 0.2;
+            const speed = 200 + ring * 50;
+            const size = 6 + ring * 2;
+            
+            bullets.push({
+              x: this.x,
+              y: this.y,
+              dx: Math.cos(angle),
+              dy: Math.sin(angle),
+              t: 0,
+              life: 3.0,
+              speed: speed,
+              size: size,
+              color: ring === 0 ? '#ff5500' : ring === 1 ? '#ffaa00' : '#ffff00',
+              trailColor: ring === 0 ? 'rgba(255,85,0,0.4)' : 
+                         ring === 1 ? 'rgba(255,170,0,0.4)' : 'rgba(255,255,0,0.4)',
+              enemy: true,
+              dangerous: true,
+              rotation: angle
+            });
+          }
+          
+          sfx(150 - ring * 20, 0.3, 0.08, 'square');
+          spawnParticles(this.x, this.y, 'rgba(255,100,0,0.8)', 30, Math.PI*2, 200);
+        }, ring * 300);
+      }
+      
+      shake = 20;
     }
     
     draw(ctx) {
       const phaseColors = ['#006400', '#228b22', '#32cd32'];
-      const pulseSize = this.r * (1 + Math.sin(this.pulse) * 0.15);
-      const g = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, pulseSize*2);
-      g.addColorStop(0, phaseColors[this.phase-1] + 'DD');
-      g.addColorStop(1, phaseColors[this.phase-1] + '11');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(this.x, this.y, pulseSize*2, 0, Math.PI*2); ctx.fill();
+      const phaseGlowColors = ['rgba(0,100,0,', 'rgba(34,139,34,', 'rgba(50,205,50,'];
+      const phaseSpikeColors = ['#004400', '#1a6b1a', '#28a428'];
       
-      ctx.beginPath();
+      // Tanky armor effect
+      ctx.save();
+      
+      // Outer glow based on phase
+      const pulseSize = this.r * (1 + Math.sin(this.pulse) * 0.2);
+      const g = ctx.createRadialGradient(this.x, this.y, this.r*0.5, this.x, this.y, pulseSize*2);
+      g.addColorStop(0, phaseGlowColors[this.phase-1] + '0.8)');
+      g.addColorStop(0.5, phaseGlowColors[this.phase-1] + '0.3)');
+      g.addColorStop(1, phaseGlowColors[this.phase-1] + '0.1)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); 
+      ctx.arc(this.x, this.y, pulseSize*2, 0, Math.PI*2); 
+      ctx.fill();
+      
+      // Armor plates
       ctx.fillStyle = phaseColors[this.phase-1];
+      ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
       ctx.fill();
       
-      ctx.beginPath();
+      // Inner darker circle for depth
       ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.arc(this.x, this.y, this.r*0.8, 0, Math.PI*2);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r*0.85, 0, Math.PI*2);
       ctx.fill();
       
-      // Creeper face
-      ctx.fillStyle = 'rgba(0,0,0,0.9)';
+      // Tanky details - segmented armor plates
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r*0.9, 0, Math.PI*2);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r*0.7, 0, Math.PI*2);
+      ctx.stroke();
+      
+      // Spikes - more dangerous looking
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.spikeAngle);
+      ctx.fillStyle = phaseSpikeColors[this.phase-1];
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx.lineWidth = 3;
+      
+      for (let i = 0; i < this.spikeCount; i++) {
+        const angle = (i / this.spikeCount) * Math.PI * 2;
+        const spikePulse = Math.sin(this.pulse * 2 + i * 0.5) * 0.3 + 0.7;
+        const currentLength = this.spikeLength * spikePulse;
+        
+        ctx.beginPath();
+        ctx.moveTo(
+          Math.cos(angle) * this.r,
+          Math.sin(angle) * this.r
+        );
+        ctx.lineTo(
+          Math.cos(angle) * (this.r + currentLength),
+          Math.sin(angle) * (this.r + currentLength * 0.8)
+        );
+        ctx.lineTo(
+          Math.cos(angle + 0.1) * (this.r + currentLength * 0.5),
+          Math.sin(angle + 0.1) * (this.r + currentLength * 0.4)
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+      
+      // Creeper face - more menacing with phase changes
+      ctx.fillStyle = this.phase === 1 ? 'rgba(0,0,0,0.9)' : 
+                     this.phase === 2 ? 'rgba(100,0,0,0.9)' : 
+                     'rgba(200,0,0,0.9)';
+      
+      // Eyes - glow in later phases
+      if (this.phase >= 2) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.phase === 2 ? '#ff0000' : '#ffff00';
+      }
+      
       for (let i = 0; i < 4; i++) {
         const row = Math.floor(i / 2);
         const col = i % 2;
         const eyeX = this.x + (col - 0.5) * this.r * 0.4;
         const eyeY = this.y + (row - 0.5) * this.r * 0.4;
+        const eyeSize = this.r * 0.12 * (1 + Math.sin(this.pulse * 3 + i) * 0.2);
+        
         ctx.beginPath();
-        ctx.arc(eyeX, eyeY, this.r*0.1, 0, Math.PI*2);
+        ctx.arc(eyeX, eyeY, eyeSize, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Evil pupil
+        if (this.phase >= 2) {
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          ctx.beginPath();
+          ctx.arc(eyeX, eyeY, eyeSize * 0.4, 0, Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle = this.phase === 2 ? 'rgba(100,0,0,0.9)' : 'rgba(200,0,0,0.9)';
+        }
+      }
+      
+      ctx.shadowBlur = 0;
+      
+      // Mouth - changes with phases
+      const mouthHeight = this.r * 0.1 * (1 + Math.sin(this.pulse * 2) * 0.3);
+      ctx.fillStyle = this.phase === 1 ? 'rgba(0,0,0,0.9)' : 
+                     this.phase === 2 ? 'rgba(150,0,0,0.9)' : 
+                     'rgba(255,0,0,0.9)';
+      ctx.fillRect(
+        this.x - this.r*0.35,
+        this.y + this.r*0.3,
+        this.r*0.7,
+        mouthHeight
+      );
+      
+      // Teeth in later phases
+      if (this.phase >= 2) {
+        const toothCount = 5;
+        const toothWidth = (this.r * 0.7) / toothCount;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        for (let i = 0; i < toothCount; i++) {
+          const toothX = this.x - this.r*0.35 + i * toothWidth + toothWidth/2;
+          ctx.beginPath();
+          ctx.moveTo(toothX, this.y + this.r*0.3);
+          ctx.lineTo(toothX - toothWidth/3, this.y + this.r*0.3 + mouthHeight);
+          ctx.lineTo(toothX + toothWidth/3, this.y + this.r*0.3 + mouthHeight);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+      
+      // Warning indicators
+      if (this.specialAttackTimer > this.specialAttackCooldown - 3) {
+        const warningPulse = Math.sin(this.specialAttackTimer * 12) * 0.5 + 0.5;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255,0,0,${warningPulse})`;
+        ctx.lineWidth = 6;
+        ctx.setLineDash([10, 5]);
+        ctx.arc(this.x, this.y, this.r * 1.8, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      
+      if (this.bulletRingTimer > this.bulletRingCooldown - 2) {
+        const bulletWarningPulse = Math.sin(this.bulletRingTimer * 15) * 0.5 + 0.5;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255,165,0,${bulletWarningPulse})`;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([5, 5]);
+        ctx.arc(this.x, this.y, this.r * 1.3, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      
+      // Health bar effect
+      const healthPercent = this.health / this.maxHealth;
+      if (healthPercent < 0.3) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,0,0,${Math.sin(this.pulse * 5) * 0.3 + 0.1})`;
+        ctx.arc(this.x, this.y, this.r * 1.2, 0, Math.PI*2);
         ctx.fill();
       }
       
-      // Mouth
-      ctx.fillStyle = 'rgba(0,0,0,0.9)';
-      ctx.fillRect(
-        this.x - this.r*0.3,
-        this.y + this.r*0.3,
-        this.r*0.6,
-        this.r*0.1
-      );
-      
-      if (this.specialAttackTimer > this.specialAttackCooldown - 5) {
-        const warningPulse = Math.sin(this.specialAttackTimer * 10) * 0.5 + 0.5;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255,255,0,${warningPulse})`;
-        ctx.lineWidth = 4;
-        ctx.arc(this.x, this.y, this.r * 1.5, 0, Math.PI*2);
-        ctx.stroke();
-      }
+      ctx.restore();
     }
     
     takeDamage(amount) {
       this.health -= amount;
-      spawnParticles(this.x, this.y, 'rgba(255,255,255,0.9)', 25, Math.PI*2, 150);
+      
+      // Damage effect with phase-based colors
+      const damageColor = this.phase === 1 ? 'rgba(255,255,255,0.9)' :
+                         this.phase === 2 ? 'rgba(255,200,0,0.9)' :
+                         'rgba(255,100,100,0.9)';
+      spawnParticles(this.x, this.y, damageColor, 25, Math.PI*2, 150);
       
       if (this.health <= 0) {
-        // Spawn enemies on death
-        for (let i = 0; i < 20; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 150;
-          const spawnX = this.x + Math.cos(angle) * distance;
-          const spawnY = this.y + Math.sin(angle) * distance;
-          echoes.push(new Slim(spawnX, spawnY));
-        }
-        
-        for (let i = 0; i < 10; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 100;
-          const spawnX = this.x + Math.cos(angle) * distance;
-          const spawnY = this.y + Math.sin(angle) * distance;
-          echoes.push(new ArmoredSlim(spawnX, spawnY));
-        }
-        
-        for (let i = 0; i < 5; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 50;
-          const spawnX = this.x + Math.cos(angle) * distance;
-          const spawnY = this.y + Math.sin(angle) * distance;
-          echoes.push(new Tank(spawnX, spawnY));
-        }
+        this.explodeOnDeath();
+        return true;
       }
       
-      return this.health <= 0;
+      return false;
+    }
+    
+    explodeOnDeath() {
+        // Massive explosion effect
+        const explosionSize = 300;
+        const particleCount = 200;
+        
+        // Large central explosion
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 400 + 100;
+            const size = Math.random() * 15 + 5;
+            const life = Math.random() * 1.5 + 0.5;
+            
+            particles.push({
+                x: this.x,
+                y: this.y,
+                dx: Math.cos(angle) * speed,
+                dy: Math.sin(angle) * speed,
+                t: 0,
+                life: life,
+                size: size,
+                color: i < particleCount/2 ? '#ff5500' : '#ffaa00',
+                alpha: 0.4
+            });
+        }
+        
+        // Shockwave rings
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const ringSize = explosionSize * (i * 0.3 + 1);
+                spawnParticles(
+                    this.x, this.y, 
+                    `rgba(255, ${200 - i*40}, ${100 - i*20}, 0.7)`,
+                    40, Math.PI*2, ringSize
+                );
+            }, i * 100);
+        }
+        
+        // Damage to nearby enemies and player
+        const damageRadius = 250;
+        const damageAmount = 50;
+        
+        // Damage player if too close
+        const distToPlayer = Math.sqrt(
+            Math.pow(this.x - player.x, 2) + 
+            Math.pow(this.y - player.y, 2)
+        );
+        if (distToPlayer < damageRadius && player.invul <= 0 && upgradeInvulTimer <= 0) {
+            // Calculate proportional damage
+            const damageMultiplier = (1 - distToPlayer/damageRadius);
+            
+            if (shield > 0 && shieldDamageCooldown <= 0) {
+                // Deal shield damage
+                const shieldDamage = Math.ceil(damageAmount * damageMultiplier);
+                shield = Math.max(0, shield - shieldDamage);
+                shieldDamageCooldown = 1.0;
+                
+                // Shield damage effect
+                spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 25, Math.PI*2, 120);
+                sfx(600, 0.1, 0.03, 'square');
+            } else if (shield <= 0) {
+                // Deal health damage
+                const healthDamage = Math.ceil(damageAmount * damageMultiplier);
+                player.lives = Math.max(0, player.lives - healthDamage);
+                livesEl.textContent = player.lives;
+                player.invul = 1.5;
+                shake = 10;
+                
+                // Health damage effect
+                spawnParticles(player.x, player.y, 'rgba(255,100,100,0.9)', 30, Math.PI*2, 150);
+                sfx(200, 0.3, 0.04, 'sawtooth');
+                
+                // Update health display
+                if (typeof animateHealthDamage === 'function') animateHealthDamage();
+                
+                // Check for death
+                if (player.lives <= 0 && gameMode !== 'freemode') {
+                    running = false;
+                    showDeathScreen();
+                }
+            }
+            
+            shieldTimer = 0;
+        }
+        
+        // Damage other enemies
+        echoes.forEach(enemy => {
+            if (enemy !== this) {
+                const dist = Math.sqrt(
+                    Math.pow(this.x - enemy.x, 2) + 
+                    Math.pow(this.y - enemy.y, 2)
+                );
+                if (dist < damageRadius) {
+                    // Use the enemy's takeDamage method
+                    enemy.takeDamage(damageAmount * (1 - dist/damageRadius));
+                }
+            }
+        });
+        
+        // Spawn enemies on death
+        for (let i = 0; i < 15; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 200 + 50;
+            const spawnX = this.x + Math.cos(angle) * distance;
+            const spawnY = this.y + Math.sin(angle) * distance;
+            echoes.push(new Slim(spawnX, spawnY));
+        }
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 150 + 30;
+            const spawnX = this.x + Math.cos(angle) * distance;
+            const spawnY = this.y + Math.sin(angle) * distance;
+            echoes.push(new ArmoredSlim(spawnX, spawnY));
+        }
+        
+        for (let i = 0; i < 4; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 100 + 20;
+            const spawnX = this.x + Math.cos(angle) * distance;
+            const spawnY = this.y + Math.sin(angle) * distance;
+            echoes.push(new Tank(spawnX, spawnY));
+        }
+        
+        // Screen shake and sound
+        shake = 50;
+        sfx(60, 0.8, 0.2, 'sawtooth');
+        sfx(40, 0.6, 0.3, 'square');
     }
   }
-
+  
+  
   // Heat Seeking Rocket class for Final Boss
   class HeatSeekingRocket {
     constructor(x, y) {
@@ -6324,12 +7721,13 @@ function setHardcoreStartingStats() {
     updateUI();
 
     // Reset boss tracking
+// Boss spawn time
     bossSpawnSchedule = [
       { time: 30, type: 'easy', spawned: false, killed: false },
       { time: 70, type: 'medium', spawned: false, killed: false },
       { time: 120, type: 'hard', spawned: false, killed: false },
-      { time: 200, type: 'final', spawned: false, killed: false },
-      { time: 350, type: 'creeper', spawned: false, killed: false }
+      { time: 240, type: 'final', spawned: false, killed: false },
+      { time: 60, type: 'creeper', spawned: false, killed: false }
     ];
     activeBosses = [];
     bossHealthBars = [];
@@ -8003,26 +9401,23 @@ if (reflectiveMirrorActive && player.stats.reflectiveMirror.level > 0) {
               r: 2 + Math.random() * 3
             });
           }
+
+          spawnParticles(b.x, b.y, 'rgba(170,255,255,0.9)', 25, Math.PI*2, 120);
+
+          // Mirror reflection particle burst
+          for (let j = 0; j < 12; j++) {
+            const angle = (j / 12) * Math.PI * 2;
+            particles.push({
+              x: b.x,
+              y: b.y,
+              vx: Math.cos(angle) * 100,
+              vy: Math.sin(angle) * 100,
+              life: 0.6 + Math.random() * 0.3,
+              col: '#aaffff',
+              r: 2 + Math.random() * 3
+            });
+          }
           
-          // Screen flash for reflection
-          const flash = document.createElement('div');
-          flash.style.position = 'fixed';
-          flash.style.top = '0';
-          flash.style.left = '0';
-          flash.style.width = '100%';
-          flash.style.height = '100%';
-          flash.style.backgroundColor = 'rgba(170,255,255,0.5)';
-          flash.style.pointerEvents = 'none';
-          flash.style.zIndex = '9998';
-          flash.style.transition = 'opacity 0.2s ease-out';
-          document.body.appendChild(flash);
-          
-          setTimeout(() => {
-            flash.style.opacity = '0';
-            setTimeout(() => {
-              if (flash.parentNode) flash.parentNode.removeChild(flash);
-            }, 200);
-          }, 10);
           
           // Sound effect
           sfx(800, 0.2, 0.03, 'square');
@@ -8154,27 +9549,69 @@ if (b.enemy) {
     // Remove the bullet after it hits the player
     bullets.splice(i,1);
   }
+
+
+  // In the render function, find where sniper bullets are drawn and replace with:
+  if (b.sniper) {
+      // Draw danger trail
+      b.trail.push({x: b.x, y: b.y});
+      if (b.trail.length > 8) b.trail.shift();
       
-    // sniper bullets can kill enemies - FIXED
-    if (b.sniper) {
-      for (let j = echoes.length - 1; j >= 0; j--) {
-        const e = echoes[j];
-        if (e !== this) {
-          const d = Math.hypot(b.x - e.x, b.y - e.y);
-          if (d < e.r + b.size) {
-            if (e.takeDamage(2)) {
-              echoesKilled++;
-              echoes.splice(j, 1);
-            }
-            spawnParticles(e.x, e.y, 'rgba(138,43,226,0.9)', 8, Math.PI*2, 60);
-          }
-        }
+      for (let i = 0; i < b.trail.length; i++) {
+          const point = b.trail[i];
+          const alpha = i / b.trail.length * 0.6;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+          ctx.arc(point.x, point.y, b.size * 0.5 * (i / b.trail.length), 0, Math.PI*2);
+          ctx.fill();
+      }
+      
+      // Main bullet - dark red core
+      const pulse = 0.7 + Math.sin(b.t * 20) * 0.3;
+      const bulletGradient = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, b.size);
+      bulletGradient.addColorStop(0, `rgba(255, 0, 0, ${pulse})`);
+      bulletGradient.addColorStop(0.5, `rgba(139, 0, 0, ${pulse * 0.8})`);
+      bulletGradient.addColorStop(1, `rgba(75, 0, 0, ${pulse * 0.6})`);
+      
+      ctx.fillStyle = bulletGradient;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Danger glow
+      const dangerGlow = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, b.size * 3);
+      dangerGlow.addColorStop(0, `rgba(255, 50, 50, ${pulse * 0.5})`);
+      dangerGlow.addColorStop(1, `rgba(255, 0, 0, 0)`);
+      
+      ctx.fillStyle = dangerGlow;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size * 3, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Warning rings
+      ctx.strokeStyle = `rgba(255, 0, 0, ${pulse * 0.7})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size * 1.5, 0, Math.PI*2);
+      ctx.stroke();
+      
+      // Add danger particles
+      if (Math.random() < 0.4) {
+          particles.push({
+              x: b.x,
+              y: b.y,
+              vx: (Math.random() - 0.5) * 40,
+              vy: (Math.random() - 0.5) * 40,
+              life: 0.2 + Math.random() * 0.2,
+              col: `rgba(255, 100, 0, 0.9)`,
+              r: 2 + Math.random() * 2
+          });
       }
     }
   }
 }
 
-    }
+}
 
     if (bossSpawnEffect) {
       bossSpawnEffect.timer -= dt;
