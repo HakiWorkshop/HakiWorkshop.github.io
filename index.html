@@ -900,12 +900,12 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 <div id="updateLogPanel" class="upgrade-menu" style="display: none;">
   <h2 style="text-align:center;margin-bottom:20px">UPDATE LOG</h2>
-  <div class="update-log-title">Updated version - V.21</div>
+  <div class="update-log-title">Updated version - V.21.2</div>
   <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
     
         <div class="update-log-entry">
       <div class="update-log-title">New Balance changes</div>
-      <div class="update-log-date">12.01.2025</div>
+      <div class="update-log-date">23.01.2026</div>
       <div class="update-log-content">
         <ul>
           <p><strong>Balance Changes</strong></p>
@@ -920,16 +920,21 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li>Improved visual effects for the mega creeper boss as well as an update in attacks.</li>
           <li><strong>Tanker</strong></li>
           <li>Updated visuals and slim spawning</li>
+          <li><strong>Witch</strong></li>
+          <li>Doubled spawn chance</li>
 
           <p><strong>NEW & ADDED!</strong></p>
+          <li><strong>New ⊙ Burning bullets upgrade</strong></li>
+          <li>Max 3 - rare</li>
+          <li>Much like the knockback upgrade this bullet affects all bullets and works as a powerfull damage over time upgrade that affects all enemies</li>
 
           <p><strong>Bug fixes</strong></p>
           <li>Rocket damage</li>
-          
 
           <p><strong>Improvements</strong></p>
-          <li>Sniper visuals</li>
+          <li>sniper visuals</li>
           <li>Shockwave visuals</li>
+          <li>Witch visuals</li>
   
         </ul>
       </div>
@@ -961,7 +966,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li><strong>Explosive enemy - Buff</strong></li>
           <li>Moves twice as fast</li>
           <li>Slims now spawns a little closer to each other</li>
-          <li><strong>Sniper Enemy - Nerf</strong></li>
+          <li><strong>sniper Enemy - Nerf</strong></li>
           <li>40% Less health</li>          
           <li><strong>Final boss - Buff</strong></li>
           <li>Phase system buffed - now turned upside down, starts slow but fires faster.</li>
@@ -1324,7 +1329,8 @@ function initAudio() {
       mineCount: {level: 0, max: 3, rarity: 'common'},
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
-      lightningStrike: {level: 0, max: 2, rarity: 'mythical'}
+      lightningStrike: {level: 0, max: 2, rarity: 'mythical'},
+      fireBullet: {level: 0, max: 3, rarity: 'rare'},
     }
   };
 
@@ -1443,6 +1449,9 @@ function initAudio() {
         break;
       case 'fire':
         sfx(120, 0.3, 0.04, 'sawtooth');
+        // Additional fire sounds for variety
+        setTimeout(() => sfx(80, 0.2, 0.02, 'square'), 50);
+        setTimeout(() => sfx(160, 0.1, 0.03, 'sawtooth'), 100);
         break;
       case 'shockwave':
         sfx(80, 1.0, 0.08, 'sawtooth');
@@ -2973,7 +2982,7 @@ function setHardcoreStartingStats() {
     }
   }
 
-  // Fire class
+  // Fire class - UPDATED with burning effects
   class Fire {
     constructor(x, y, width, duration, damage) {
       this.x = x;
@@ -2984,6 +2993,7 @@ function setHardcoreStartingStats() {
       this.damage = damage;
       this.damageTimer = 0;
       this.pulse = 0;
+      this.burningEnemies = new Set(); // Track enemies currently burning
     }
     
     update(dt) {
@@ -2991,11 +3001,17 @@ function setHardcoreStartingStats() {
       this.damageTimer += dt;
       this.pulse += dt * 5;
       
+      // Apply burning damage to enemies in the fire
       if (this.damageTimer >= 0.5) {
         this.damageTimer = 0;
         for (const e of echoes) {
           const d = dist({x: this.x, y: this.y}, e);
           if (d < this.width) {
+            // Apply burn effect
+            e.burning = true;
+            e.burnTimer = 3.0;
+            e.burnDamage = this.damage * 0.3;
+            
             if (e.takeDamage(this.damage)) {
               echoesKilled++;
               spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
@@ -3010,6 +3026,17 @@ function setHardcoreStartingStats() {
         }
       }
       
+      // Update burning effects on already affected enemies
+      for (const e of this.burningEnemies) {
+        if (e.burning && e.burnTimer > 0) {
+          e.burnTimer -= dt;
+          if (e.burnTimer <= 0) {
+            e.burning = false;
+            this.burningEnemies.delete(e);
+          }
+        }
+      }
+      
       return this.duration > 0;
     }
     
@@ -3017,25 +3044,49 @@ function setHardcoreStartingStats() {
       const alpha = this.duration / this.maxDuration;
       const pulseSize = 1 + Math.sin(this.pulse) * 0.1;
       
-      const g = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, this.width * pulseSize);
-      g.addColorStop(0, `rgba(255, 100, 0, ${alpha * 0.8})`);
-      g.addColorStop(0.3, `rgba(255, 150, 0, ${alpha * 0.6})`);
-      g.addColorStop(0.7, `rgba(255, 200, 0, ${alpha * 0.4})`);
-      g.addColorStop(1, `rgba(255, 50, 0, ${alpha * 0.2})`);
+      // Multi-layered fire effect
+      const layers = 3;
+      for (let l = 0; l < layers; l++) {
+        const layerAlpha = alpha * (1 - l * 0.3);
+        const layerSize = this.width * pulseSize * (0.8 + l * 0.2);
+        
+        const g = ctx.createRadialGradient(
+          this.x, this.y, 1, 
+          this.x, this.y, layerSize
+        );
+        
+        if (l === 0) {
+          // Inner core - bright yellow
+          g.addColorStop(0, `rgba(255, 220, 0, ${layerAlpha * 0.9})`);
+          g.addColorStop(0.7, `rgba(255, 150, 0, ${layerAlpha * 0.6})`);
+          g.addColorStop(1, `rgba(255, 100, 0, ${layerAlpha * 0.3})`);
+        } else if (l === 1) {
+          // Middle layer - orange
+          g.addColorStop(0, `rgba(255, 150, 0, ${layerAlpha * 0.7})`);
+          g.addColorStop(0.5, `rgba(255, 100, 0, ${layerAlpha * 0.5})`);
+          g.addColorStop(1, `rgba(255, 50, 0, ${layerAlpha * 0.2})`);
+        } else {
+          // Outer layer - red
+          g.addColorStop(0, `rgba(255, 100, 0, ${layerAlpha * 0.5})`);
+          g.addColorStop(1, `rgba(255, 0, 0, ${layerAlpha * 0.1})`);
+        }
+        
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, layerSize, 0, Math.PI*2);
+        ctx.fill();
+      }
       
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.width * pulseSize, 0, Math.PI*2);
-      ctx.fill();
-      
+      // Flicker effect
       if (Math.random() < 0.3) {
-        const flickerSize = this.width * (0.8 + Math.random() * 0.4);
-        ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.3})`;
+        const flickerSize = this.width * (0.7 + Math.random() * 0.6);
+        ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.4})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, flickerSize, 0, Math.PI*2);
         ctx.fill();
       }
       
+      // Rising embers
       if (Math.random() < 0.4) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * this.width * 0.8;
@@ -3045,60 +3096,145 @@ function setHardcoreStartingStats() {
         particles.push({
           x: particleX,
           y: particleY,
-          vx: (Math.random()-0.5)*20,
-          vy: -Math.random()*30,
-          life: 0.5 + Math.random() * 0.5,
-          col: `rgba(255, ${150 + Math.random()*100}, 0, ${alpha * 0.8})`,
-          r: 2 + Math.random() * 3
+          vx: (Math.random() - 0.5) * 20,
+          vy: -Math.random() * 40,
+          life: 0.6 + Math.random() * 0.6,
+          col: `rgba(255, ${150 + Math.random()*100}, 0, ${alpha * 0.9})`,
+          r: 2 + Math.random() * 4
         });
       }
     }
   }
 
   // FirePulse class
+  // FirePulse class - SEPARATED and ENHANCED
   class FirePulse {
     constructor(x, y, angle) {
       this.x = x;
       this.y = y;
       this.angle = angle;
-      this.speed = 500;
-      this.life = 1;
-      this.damage = 0.25;
-      this.width = player.stats.fire.level === 1 ? 30 : 40;
-      this.duration = player.stats.fire.level === 1 ? 2 : 3;
+      this.speed = 900; // Increased from 800
+      this.life = 0.6; // Increased from 0.4
+      this.damage = 0.2; // Increased from 0.5
+      this.width = player.stats.fire.level === 1 ? 35 : 50; // Increased from 30/40
+      this.duration = player.stats.fire.level === 1 ? 2.5 : 3.5; // Increased from 2/3
+      this.trail = [];
+      this.trailTimer = 0;
+      this.trailInterval = 0.05;
+      this.spawnTime = performance.now();
+      this.pulseRate = 0;
+      this.rotation = 0;
+      this.particleSpawnTimer = 0;
+      
+      // Level 2 enhancements
+      if (player.stats.fire.level >= 2) {
+        this.speed *= 1.2;
+        this.damage *= 1.3;
+        this.duration *= 1.2;
+      }
     }
     
     update(dt) {
       this.life -= dt;
+      this.trailTimer += dt;
+      this.pulseRate += dt * 8;
+      this.rotation += dt * 3;
+      this.particleSpawnTimer += dt;
       
-      this.x += Math.cos(this.angle) * this.speed * dt;
-      this.y += Math.sin(this.angle) * this.speed * dt;
+      // Leave trail
+      if (this.trailTimer >= this.trailInterval) {
+        this.trailTimer = 0;
+        this.trail.push({
+          x: this.x,
+          y: this.y,
+          life: this.duration * 0.6,
+          width: this.width * 0.7
+        });
+        
+        // Limit trail length
+        if (this.trail.length > 15) {
+          this.trail.shift();
+        }
+      }
       
+      // Update trail
+      for (let i = this.trail.length - 1; i >= 0; i--) {
+        this.trail[i].life -= dt;
+        if (this.trail[i].life <= 0) {
+          this.trail.splice(i, 1);
+        }
+      }
+      
+      // Movement with slight wave effect
+      const waveOffset = Math.sin(this.pulseRate) * 0.1;
+      this.x += Math.cos(this.angle + waveOffset) * this.speed * dt;
+      this.y += Math.sin(this.angle + waveOffset) * this.speed * dt;
+      
+      // Create fire zone at current position
       fires.push(new Fire(this.x, this.y, this.width, this.duration, this.damage));
       
+      // Damage enemies in path
       for (let i = echoes.length - 1; i >= 0; i--) {
         const e = echoes[i];
         const d = dist({x: this.x, y: this.y}, e);
         if (d < this.width/2 + e.r) {
+          // Apply burning effect to enemies
+          e.burning = true;
+          e.burnTimer = 2.0;
+          e.burnDamage = this.damage * 0.5;
+          
           if (e.takeDamage(this.damage)) {
             echoesKilled++;
             spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
             echoes.splice(i, 1);
           } else {
-            spawnParticles(e.x, e.y, 'rgba(255, 100, 0, 0.7)', 5, Math.PI/4, 40);
+            // Enhanced hit particles
+            spawnParticles(e.x, e.y, 'rgba(255, 100, 0, 0.8)', 8, Math.PI/4, 60);
           }
         }
       }
       
-      if (Math.random() < 0.7) {
+      // Spawn particles along the path
+      if (this.particleSpawnTimer >= 0.02) {
+        this.particleSpawnTimer = 0;
+        
+        // Core fire particles
+        for (let i = 0; i < 3; i++) {
+          particles.push({
+            x: this.x + (Math.random() - 0.5) * this.width * 0.3,
+            y: this.y + (Math.random() - 0.5) * this.width * 0.3,
+            vx: (Math.random() - 0.5) * 60,
+            vy: (Math.random() - 0.5) * 60,
+            life: 0.5 + Math.random() * 0.4,
+            col: `rgba(255, ${150 + Math.random()*100}, 0, 0.9)`,
+            r: 3 + Math.random() * 4
+          });
+        }
+        
+        // Spark particles
+        if (Math.random() < 0.4) {
+          particles.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(this.angle + Math.PI) * 100 + (Math.random() - 0.5) * 40,
+            vy: Math.sin(this.angle + Math.PI) * 100 + (Math.random() - 0.5) * 40,
+            life: 0.3 + Math.random() * 0.3,
+            col: `rgba(255, 255, 150, 0.9)`,
+            r: 1 + Math.random() * 2
+          });
+        }
+      }
+      
+      // Spawn occasional large embers
+      if (Math.random() < 0.1) {
         particles.push({
-          x: this.x,
-          y: this.y,
-          vx: (Math.random()-0.5)*40,
-          vy: (Math.random()-0.5)*40,
-          life: 0.3 + Math.random() * 0.4,
-          col: `rgba(255, ${100 + Math.random()*100}, 0, 0.8)`,
-          r: 3 + Math.random() * 4
+          x: this.x + (Math.random() - 0.5) * this.width * 0.5,
+          y: this.y + (Math.random() - 0.5) * this.width * 0.5,
+          vx: (Math.random() - 0.5) * 80,
+          vy: (Math.random() - 0.5) * 80,
+          life: 0.8 + Math.random() * 0.5,
+          col: `rgba(255, ${100 + Math.random()*50}, 0, 0.8)`,
+          r: 4 + Math.random() * 3
         });
       }
       
@@ -3106,26 +3242,116 @@ function setHardcoreStartingStats() {
     }
     
     draw(ctx) {
-      const alpha = this.life / 1.5;
-      const size = 15 + Math.sin(performance.now() * 0.01) * 5;
+      const alpha = this.life / 0.6;
+      const pulse = Math.sin(this.pulseRate) * 0.3 + 0.7;
       
-      const g = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, size*2);
-      g.addColorStop(0, `rgba(255, 100, 0, ${alpha * 0.9})`);
-      g.addColorStop(1, `rgba(255, 200, 0, ${alpha * 0.3})`);
+      // Draw trail first
+      for (let i = 0; i < this.trail.length; i++) {
+        const point = this.trail[i];
+        const trailAlpha = (i / this.trail.length) * alpha * 0.5;
+        const trailSize = point.width * (i / this.trail.length) * pulse;
+        
+        const trailGradient = ctx.createRadialGradient(
+          point.x, point.y, 1,
+          point.x, point.y, trailSize * 1.5
+        );
+        trailGradient.addColorStop(0, `rgba(255, 100, 0, ${trailAlpha * 0.8})`);
+        trailGradient.addColorStop(0.5, `rgba(255, 150, 0, ${trailAlpha * 0.4})`);
+        trailGradient.addColorStop(1, `rgba(255, 200, 0, ${trailAlpha * 0.1})`);
+        
+        ctx.fillStyle = trailGradient;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, trailSize * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
-      ctx.fillStyle = g;
+      // Main fire pulse core
+      const coreSize = 15 + Math.sin(this.pulseRate * 2) * 5;
+      const coreGradient = ctx.createRadialGradient(
+        this.x, this.y, 1,
+        this.x, this.y, coreSize * 2
+      );
+      coreGradient.addColorStop(0, `rgba(255, 200, 0, ${alpha * 0.9})`);
+      coreGradient.addColorStop(0.3, `rgba(255, 150, 0, ${alpha * 0.7})`);
+      coreGradient.addColorStop(0.7, `rgba(255, 100, 0, ${alpha * 0.5})`);
+      coreGradient.addColorStop(1, `rgba(255, 50, 0, ${alpha * 0.2})`);
+      
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      
+      // Core shape - star-like fireball
+      ctx.fillStyle = coreGradient;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, size, 0, Math.PI*2);
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = coreSize * (i % 2 === 0 ? 1 : 0.7);
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
       ctx.fill();
       
-      ctx.strokeStyle = `rgba(255, 255, 0, ${alpha * 0.7})`;
-      ctx.lineWidth = 2;
+      // Inner glow
+      const innerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 0.8);
+      innerGlow.addColorStop(0, `rgba(255, 255, 200, ${alpha * 0.8})`);
+      innerGlow.addColorStop(1, `rgba(255, 200, 100, 0)`);
+      
+      ctx.fillStyle = innerGlow;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, size * 0.7, 0, Math.PI*2);
-      ctx.stroke();
+      ctx.arc(0, 0, coreSize * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Outer rings
+      const ringCount = 3;
+      for (let r = 0; r < ringCount; r++) {
+        const ringSize = coreSize * (1.5 + r * 0.5);
+        const ringAlpha = alpha * (0.4 - r * 0.1);
+        
+        ctx.strokeStyle = `rgba(255, ${150 - r * 30}, 0, ${ringAlpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringSize, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+      
+      // Flame tendrils
+      const tendrilCount = 6;
+      for (let i = 0; i < tendrilCount; i++) {
+        const tendrilAngle = this.angle + (i / tendrilCount) * Math.PI * 2;
+        const tendrilLength = this.width * (0.8 + Math.sin(this.pulseRate * 3 + i) * 0.2);
+        const tendrilX = this.x + Math.cos(tendrilAngle) * tendrilLength;
+        const tendrilY = this.y + Math.sin(tendrilAngle) * tendrilLength;
+        
+        const tendrilGradient = ctx.createLinearGradient(
+          this.x, this.y,
+          tendrilX, tendrilY
+        );
+        tendrilGradient.addColorStop(0, `rgba(255, 200, 0, ${alpha * 0.7})`);
+        tendrilGradient.addColorStop(1, `rgba(255, 100, 0, 0)`);
+        
+        ctx.strokeStyle = tendrilGradient;
+        ctx.lineWidth = 3 + Math.sin(this.pulseRate * 4 + i) * 1.5;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(tendrilX, tendrilY);
+        ctx.stroke();
+        
+        // Tendril tip
+        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(tendrilX, tendrilY, 2 + Math.sin(this.pulseRate * 5 + i) * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
-
   // Rocket class
   class Rocket {
     constructor(x, y) {
@@ -3290,9 +3516,43 @@ function setHardcoreStartingStats() {
       this.isFriendly = false;
       this.frozen = false;
       this.originalSpeed = 30;
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+
       if (this.frozen) return true;
       
       this.age += dt;
@@ -3344,6 +3604,16 @@ function setHardcoreStartingStats() {
       
       return this.health > 0;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Visual effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.8)', 5, Math.PI*2, 50);
+    }
     
     draw(ctx) {
       ctx.beginPath();
@@ -3380,10 +3650,43 @@ function setHardcoreStartingStats() {
       this.frozen = false;
       this.originalSpeed = 40;
       this.healTimer = 0;
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
     }
 
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+
       if (this.frozen) return true;
       
       this.age += dt;
@@ -3405,6 +3708,18 @@ function setHardcoreStartingStats() {
       
       return this.health > 0;
     }
+
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Armor heating effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,50,0.9)', 8, Math.PI*2, 60);
+    }
+
     
     draw(ctx) {
       ctx.beginPath();
@@ -3451,7 +3766,6 @@ function setHardcoreStartingStats() {
   }
 
   // Tank enemy class
-  // Tank enemy class - IMPROVED VISUALS WITH BETTER SHOOTING
   class Tank {
       constructor(spawnX, spawnY) {
           this.x = spawnX;
@@ -3474,9 +3788,42 @@ function setHardcoreStartingStats() {
           this.isCharging = false;
           this.chargeTimer = 0;
           this.projectileTrail = [];
+          this.burning = false;
+          this.burnTimer = 0;
+          this.burnDamagePerTick = 0;
+          this.burnDamageTimer = 0;
+          this.burnStacks = 0;
       }
       
       update(dt) {
+        // Handle burning damage (add this at the start)
+        if (this.burning && this.burnTimer > 0) {
+          this.burnTimer -= dt;
+          this.burnDamageTimer += dt;
+          
+          // Damage every 0.5 seconds
+          if (this.burnDamageTimer >= 0.5) {
+            this.burnDamageTimer = 0;
+            
+            // Take burn damage based on stacks
+            const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+            if (this.takeDamage(totalBurnDamage)) {
+              // Burning death effect
+              spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+              return false;
+            } else {
+              // Burning damage effect
+              spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+            }
+          }
+          
+          // End burning effect when timer runs out
+          if (this.burnTimer <= 0) {
+            this.burning = false;
+            this.burnStacks = 0;
+          }
+        }
+
           if (this.frozen) return true;
           
           this.age += dt;
@@ -3524,6 +3871,18 @@ function setHardcoreStartingStats() {
           
           return this.health > 0;
       }
+
+      applyBurn(duration, damagePerTick) {
+        this.burning = true;
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+        this.burnStacks = Math.min(5, this.burnStacks + 1);
+        
+        // Extra visual effect for tanks (metal heating up)
+        spawnParticles(this.x, this.y, 'rgba(255,150,0,0.9)', 8, Math.PI*2, 60);
+        sfx(300, 0.1, 0.02, 'square');
+      }
+
       
       throwSlim() {
           const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -3963,9 +4322,42 @@ function setHardcoreStartingStats() {
       this.aimAngle = 0;
       this.frozen = false;
       this.originalSpeed = 10;
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+      
       if (this.frozen) return true;
       
       this.age += dt;
@@ -3987,6 +4379,17 @@ function setHardcoreStartingStats() {
       
       return this.health > 0;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Visual effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.8)', 5, Math.PI*2, 50);
+    }
+
     
     fire() {
       const inaccuracy = (Math.random() - 0.5) * 0.3;
@@ -4063,29 +4466,94 @@ function setHardcoreStartingStats() {
   }
 
   // Witch enemy class
+  // Replace the existing Witch class with this enhanced version
   class Witch {
     constructor(spawnX, spawnY) {
       this.x = spawnX;
       this.y = spawnY;
-      this.r = 15;
-      this.health = 2;
-      this.maxHealth = 2;
+      this.r = 18; // Increased from 15
+      this.health = 5;
+      this.maxHealth = 5;
       this.speed = 40;
-      this.color = '#a78bfa';
+      this.baseColor = '#a78bfa';
+      this.glowColor = '#c4b5fd';
+      this.detailColor = '#f0abfc';
       this.castTimer = 0;
       this.castCooldown = 8;
       this.age = 0;
-      this.pulse = 0;
+      this.floatPulse = 0;
       this.frozen = false;
       this.originalSpeed = 40;
+      this.spellCharge = 0;
+      this.capeSway = 0;
+      this.sparkles = [];
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+      
+      // Create initial sparkles
+      for (let i = 0; i < 8; i++) {
+        this.sparkles.push({
+          angle: Math.random() * Math.PI * 2,
+          distance: this.r * (0.8 + Math.random() * 0.4),
+          speed: 0.5 + Math.random() * 1,
+          size: 1.5 + Math.random() * 1.5,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
     }
-
+    
     update(dt) {
+      // Handle burning damage
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+      
       if (this.frozen) return true;
       
       this.age += dt;
       this.castTimer += dt;
-      this.pulse += dt * 5;
+      this.floatPulse += dt * 3;
+      this.capeSway += dt * 2;
+      this.spellCharge = Math.min(1, this.castTimer / this.castCooldown);
+      
+      // Update sparkles
+      for (const sparkle of this.sparkles) {
+        sparkle.angle += dt * sparkle.speed;
+        sparkle.phase += dt * 2;
+      }
+      
+      // Add magical particles around the witch
+      if (Math.random() < 0.3) {
+        particles.push({
+          x: this.x + (Math.random() - 0.5) * this.r * 2,
+          y: this.y + (Math.random() - 0.5) * this.r * 2,
+          vx: (Math.random() - 0.5) * 10,
+          vy: (Math.random() - 0.5) * 10,
+          life: 0.5 + Math.random() * 0.5,
+          col: Math.random() > 0.5 ? this.glowColor : this.detailColor,
+          r: 1 + Math.random() * 1.5
+        });
+      }
       
       const toPlayer = vecTo(this.x, this.y, player.x, player.y);
       this.x += toPlayer.x * this.speed * dt * 0.2;
@@ -4093,6 +4561,22 @@ function setHardcoreStartingStats() {
       
       this.x = clamp(this.x, this.r, W - this.r);
       this.y = clamp(this.y, this.r, H - this.r);
+      
+      // Visual effect when charging spell
+      if (this.spellCharge > 0.8) {
+        const chargePulse = Math.sin(this.floatPulse * 10) * 0.5 + 0.5;
+        for (let i = 0; i < 2; i++) {
+          particles.push({
+            x: this.x,
+            y: this.y,
+            vx: (Math.random() - 0.5) * 30,
+            vy: (Math.random() - 0.5) * 30,
+            life: 0.3 + Math.random() * 0.2,
+            col: `rgba(255, 0, 255, ${0.7 * chargePulse})`,
+            r: 1.5 + Math.random() * 1.5
+          });
+        }
+      }
       
       if (this.castTimer >= this.castCooldown) {
         this.castTimer = 0;
@@ -4102,19 +4586,46 @@ function setHardcoreStartingStats() {
       return this.health > 0;
     }
     
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Purple fire effect for witches
+      spawnParticles(this.x, this.y, 'rgba(255,50,150,0.8)', 8, Math.PI*2, 60);
+    }
+
     castSpell() {
       this.health -= 1;
-      spawnParticles(this.x, this.y, 'rgba(167,139,250,0.9)', 15, Math.PI*2, 80);
+      
+      // Enhanced casting effect
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        particles.push({
+          x: this.x,
+          y: this.y,
+          vx: Math.cos(angle) * 150,
+          vy: Math.sin(angle) * 150,
+          life: 0.8 + Math.random() * 0.4,
+          col: this.glowColor,
+          r: 2 + Math.random() * 2
+        });
+      }
+      
       playSound('witchCast');
+      
+      // Magic circle effect
+      this.createMagicCircle();
       
       if (this.health > 0) {
         const spellType = Math.floor(Math.random() * 4);
         
         switch(spellType) {
-          case 0:
+          case 0: // Summon slims
             for (let i = 0; i < 4; i++) {
               const angle = (i / 4) * Math.PI * 2;
-              const distance = 50;
+              const distance = 60;
               const spawnX = this.x + Math.cos(angle) * distance;
               const spawnY = this.y + Math.sin(angle) * distance;
               spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'slim'));
@@ -4127,10 +4638,10 @@ function setHardcoreStartingStats() {
             }
             break;
             
-          case 1:
+          case 1: // Summon normal echoes
             for (let i = 0; i < 2; i++) {
               const angle = (i / 2) * Math.PI * 2;
-              const distance = 60;
+              const distance = 80;
               const spawnX = this.x + Math.cos(angle) * distance;
               const spawnY = this.y + Math.sin(angle) * distance;
               spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'normal'));
@@ -4143,10 +4654,10 @@ function setHardcoreStartingStats() {
             }
             break;
             
-          case 2:
+          case 2: // Summon bow enemies
             for (let i = 0; i < 2; i++) {
               const angle = (i / 2) * Math.PI * 2;
-              const distance = 70;
+              const distance = 90;
               const spawnX = this.x + Math.cos(angle) * distance;
               const spawnY = this.y + Math.sin(angle) * distance;
               spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'bow'));
@@ -4159,125 +4670,413 @@ function setHardcoreStartingStats() {
             }
             break;
             
-          case 3:
-            for (let i = 0; i < 2; i++) {
-              const angle = (i / 2) * Math.PI * 2;
-              const distance = 70;
-              const spawnX = this.x;
-              const spawnY = this.y;
-              spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'bomber'));
-              
-              setTimeout(() => {
-                if (running) {
-                  echoes.push(new Tank(spawnX, spawnY));
-                }
-              }, 1000);
-              break;
-          }
+          case 3: // Summon tank
+            const spawnX = this.x;
+            const spawnY = this.y;
+            spawnIndicators.push(new SpawnIndicator(spawnX, spawnY, 'tank'));
+            
+            setTimeout(() => {
+              if (running) {
+                echoes.push(new Tank(spawnX, spawnY));
+              }
+            }, 1000);
+            break;
         }
       }
     }
     
+    createMagicCircle() {
+      // Create a magical circle animation
+      const circleCount = 3;
+      for (let c = 0; c < circleCount; c++) {
+        setTimeout(() => {
+          if (!running) return;
+          
+          const size = this.r * (2 + c);
+          for (let i = 0; i < 24; i++) {
+            const angle = (i / 24) * Math.PI * 2;
+            particles.push({
+              x: this.x + Math.cos(angle) * size,
+              y: this.y + Math.sin(angle) * size,
+              vx: Math.cos(angle) * 50,
+              vy: Math.sin(angle) * 50,
+              life: 1 + Math.random() * 0.5,
+              col: c === 0 ? this.baseColor : (c === 1 ? this.glowColor : this.detailColor),
+              r: 3 + Math.random() * 2
+            });
+          }
+        }, c * 100);
+      }
+    }
+    
     draw(ctx) {
-      const pulseSize = 1 + Math.sin(this.pulse) * 0.1;
+      const floatOffset = Math.sin(this.floatPulse) * 4;
+      const capeSwayOffset = Math.sin(this.capeSway) * 0.2;
+      const spellChargeGlow = this.spellCharge * 0.5;
       
-      const g = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, this.r*3);
-      g.addColorStop(0, 'rgba(167,139,250,0.6)');
-      g.addColorStop(1, 'rgba(167,139,250,0.1)');
-      ctx.fillStyle = g;
+      // Witch's magical aura
+      const auraGradient = ctx.createRadialGradient(
+        this.x, this.y + floatOffset, this.r * 0.5,
+        this.x, this.y + floatOffset, this.r * 4
+      );
+      auraGradient.addColorStop(0, `rgba(167, 139, 250, ${0.4 + spellChargeGlow})`);
+      auraGradient.addColorStop(0.5, `rgba(196, 181, 253, ${0.2 + spellChargeGlow})`);
+      auraGradient.addColorStop(1, `rgba(240, 171, 252, 0)`);
+      
+      ctx.fillStyle = auraGradient;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r*3, 0, Math.PI*2);
+      ctx.arc(this.x, this.y + floatOffset, this.r * 4, 0, Math.PI * 2);
       ctx.fill();
       
+      // Witch's robe (main body)
+      ctx.save();
+      ctx.translate(this.x, this.y + floatOffset);
+      
+      // Cape with sway effect
+      ctx.save();
+      ctx.rotate(capeSwayOffset);
+      
+      // Cape
+      const capeGradient = ctx.createLinearGradient(-this.r * 1.2, -this.r, -this.r * 1.2, this.r * 1.5);
+      capeGradient.addColorStop(0, '#8b5cf6');
+      capeGradient.addColorStop(0.5, '#a78bfa');
+      capeGradient.addColorStop(1, '#7c3aed');
+      
+      ctx.fillStyle = capeGradient;
       ctx.beginPath();
-      ctx.fillStyle = this.color;
-      ctx.arc(this.x, this.y, this.r * pulseSize, 0, Math.PI*2);
+      ctx.moveTo(-this.r * 1.2, -this.r);
+      ctx.quadraticCurveTo(-this.r * 0.5, this.r * 0.5, -this.r * 0.8, this.r * 1.5);
+      ctx.quadraticCurveTo(0, this.r, this.r * 0.8, this.r * 1.5);
+      ctx.quadraticCurveTo(this.r * 0.5, this.r * 0.5, this.r * 1.2, -this.r);
+      ctx.closePath();
       ctx.fill();
       
+      // Cape details (stitching)
+      ctx.strokeStyle = '#f0abfc';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
       ctx.beginPath();
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.moveTo(this.x - this.r*1.2, this.y - this.r*0.5);
-      ctx.lineTo(this.x, this.y - this.r*1.8);
-      ctx.lineTo(this.x + this.r*1.2, this.y - this.r*0.5);
+      ctx.moveTo(-this.r * 0.8, this.r * 1.5);
+      ctx.quadraticCurveTo(0, this.r * 1.2, this.r * 0.8, this.r * 1.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      ctx.restore(); // Restore rotation for cape
+      
+      // Robe body
+      const bodyGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.r);
+      bodyGradient.addColorStop(0, this.glowColor);
+      bodyGradient.addColorStop(0.7, this.baseColor);
+      bodyGradient.addColorStop(1, '#7c3aed');
+      
+      ctx.fillStyle = bodyGradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI * 2);
       ctx.fill();
       
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      // Robe details
+      ctx.strokeStyle = '#f0abfc';
       ctx.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        const angle = (i / 3) * Math.PI * 2 + this.pulse;
-        const runeX = this.x + Math.cos(angle) * this.r * 1.5;
-        const runeY = this.y + Math.sin(angle) * this.r * 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r * 0.9, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Magic belt
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillRect(-this.r * 0.8, this.r * 0.3, this.r * 1.6, 4);
+      
+      // Witch hat
+      ctx.fillStyle = '#4c1d95';
+      ctx.beginPath();
+      ctx.moveTo(-this.r * 1.2, -this.r * 0.5);
+      ctx.lineTo(0, -this.r * 2);
+      ctx.lineTo(this.r * 1.2, -this.r * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Hat brim
+      ctx.fillStyle = '#5b21b6';
+      ctx.beginPath();
+      ctx.ellipse(0, -this.r * 0.5, this.r * 1.5, this.r * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Hat details (band)
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillRect(-this.r * 0.8, -this.r * 0.8, this.r * 1.6, 3);
+      
+      // Face
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.beginPath();
+      ctx.ellipse(0, this.r * 0.1, this.r * 0.5, this.r * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Glowing eyes
+      const eyePulse = 0.7 + Math.sin(this.floatPulse * 5) * 0.3;
+      ctx.fillStyle = `rgba(255, 0, 255, ${eyePulse})`;
+      ctx.beginPath();
+      ctx.arc(-this.r * 0.2, 0, this.r * 0.15, 0, Math.PI * 2);
+      ctx.arc(this.r * 0.2, 0, this.r * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Mouth
+      ctx.strokeStyle = '#f0abfc';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, this.r * 0.3, this.r * 0.2, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      
+      // Floating sparkles
+      for (const sparkle of this.sparkles) {
+        const sparkleX = Math.cos(sparkle.angle) * sparkle.distance;
+        const sparkleY = Math.sin(sparkle.angle) * sparkle.distance;
+        const sparklePulse = 0.5 + Math.sin(this.floatPulse * 2 + sparkle.phase) * 0.5;
         
+        ctx.fillStyle = `rgba(255, 255, 255, ${sparklePulse})`;
         ctx.beginPath();
-        ctx.arc(runeX, runeY, 3, 0, Math.PI*2);
-        ctx.stroke();
+        ctx.arc(sparkleX, sparkleY, sparkle.size * sparklePulse, 0, Math.PI * 2);
+        ctx.fill();
       }
       
-      const barWidth = this.r * 1.5;
-      const barHeight = 4;
+      // Magic staff
+      if (this.spellCharge > 0.5) {
+        const staffCharge = (this.spellCharge - 0.5) * 2;
+        ctx.save();
+        ctx.translate(this.r * 1.5, 0);
+        
+        // Staff
+        ctx.fillStyle = '#5b21b6';
+        ctx.fillRect(-2, -this.r, 4, this.r * 2);
+        
+        // Staff orb
+        const orbGradient = ctx.createRadialGradient(0, -this.r, 1, 0, -this.r, this.r * 0.8);
+        orbGradient.addColorStop(0, `rgba(255, 0, 255, ${staffCharge})`);
+        orbGradient.addColorStop(1, `rgba(167, 139, 250, ${staffCharge * 0.5})`);
+        
+        ctx.fillStyle = orbGradient;
+        ctx.beginPath();
+        ctx.arc(0, -this.r, this.r * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Orb glow
+        ctx.fillStyle = `rgba(255, 0, 255, ${staffCharge * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(0, -this.r, this.r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+      }
+      
+      ctx.restore(); // Restore main translation
+      
+      // Health bar
+      const barWidth = this.r * 1.8;
+      const barHeight = 5;
       const barX = this.x - barWidth/2;
-      const barY = this.y - this.r - 8;
+      const barY = this.y - this.r - 12 - floatOffset;
       
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
+      // Bar background
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
       
-      ctx.fillStyle = this.health > this.maxHealth/2 ? '#7ee787' : '#ff9e44';
-      ctx.fillRect(barX, barY, barWidth * (this.health / this.maxHealth), barHeight);
+      // Health fill with gradient
+      const healthPercent = this.health / this.maxHealth;
+      const barFill = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+      
+      if (healthPercent > 0.5) {
+        barFill.addColorStop(0, '#a78bfa');
+        barFill.addColorStop(1, '#7c3aed');
+      } else if (healthPercent > 0.25) {
+        barFill.addColorStop(0, '#f0abfc');
+        barFill.addColorStop(1, '#d946ef');
+      } else {
+        barFill.addColorStop(0, '#f472b6');
+        barFill.addColorStop(1, '#db2777');
+      }
+      
+      ctx.fillStyle = barFill;
+      ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+      
+      // Bar border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
+      
+      // Health text
+      ctx.fillStyle = '#f0abfc';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `WITCH ${Math.ceil(this.health)}/${this.maxHealth}`,
+        this.x,
+        barY - 5
+      );
+      ctx.textAlign = 'left';
+      
+      // Spell charge indicator
+      if (this.spellCharge > 0) {
+        const chargeRadius = this.r * 1.5;
+        const chargeAngle = this.spellCharge * Math.PI * 2;
+        
+        ctx.strokeStyle = `rgba(255, 0, 255, ${0.3 + this.spellCharge * 0.2})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y + floatOffset, chargeRadius, 0, chargeAngle);
+        ctx.stroke();
+        
+        // Glow around witch when fully charged
+        if (this.spellCharge > 0.9) {
+          const warningPulse = Math.sin(this.floatPulse * 10) * 0.5 + 0.5;
+          ctx.strokeStyle = `rgba(255, 0, 255, ${warningPulse * 0.5})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y + floatOffset, chargeRadius * 1.2, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
     }
     
     takeDamage(amount) {
       this.health -= amount;
-      spawnParticles(this.x, this.y, 'rgba(167,139,250,0.9)', 8, Math.PI*2, 60);
+      
+      // Magical damage effect
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        particles.push({
+          x: this.x,
+          y: this.y,
+          vx: Math.cos(angle) * 100,
+          vy: Math.sin(angle) * 100,
+          life: 0.4 + Math.random() * 0.2,
+          col: this.glowColor,
+          r: 2 + Math.random() * 2
+        });
+      }
+      
+      // Magical shield shatter effect
+      if (Math.random() < 0.3) {
+        spawnParticles(this.x, this.y, 'rgba(167,139,250,0.9)', 12, Math.PI*2, 80);
+        sfx(800, 0.1, 0.02, 'sine');
+      }
+      
       return this.health <= 0;
     }
   }
 
   // sniper enemy class - IMPROVED LOOKS
-  // Sniper enemy class - DANGEROUS WAR MACHINE VERSION
-  class Sniper {
+  // Replace the existing sniper enemy class with this enhanced version
+  class sniper {
       constructor(spawnX, spawnY) {
           this.x = spawnX;
           this.y = spawnY;
-          this.r = 22; // Smaller, more compact
-          this.health = 20; // Reduced health for balance
+          this.r = 28; // Slightly larger for more presence
+          this.health = 20;
           this.maxHealth = 20;
-          this.speed = 20;
-          this.color = '#3a0c0c'; // Dark blood red
+          this.speed = 15; // Slower, more deliberate movement
+          this.color = '#2a52be'; // Medium blue base color
+          this.secondaryColor = '#4169e1'; // Royal blue accent
+          this.detailColor = '#00bfff'; // Bright blue for details
+          this.camoColor = '#4682b4'; // Steel blue for camo pattern
+          
           this.fireTimer = 0;
           this.fireCooldown = 3;
           this.age = 0;
           this.frozen = false;
-          this.originalSpeed = 20;
+          this.originalSpeed = 15;
           this.glowPulse = 0;
           this.isCharging = false;
           this.chargeLevel = 0;
           this.warningGlow = 0;
-          this.spikePulse = 0;
-          this.rustColor = '#5d4037'; // Rusty metal color
-          this.damageScars = [];
+          this.turretAngle = 0;
+          this.turretPulse = 0;
+          this.tankBodyRotation = 0;
           
-          // Add random battle damage
-          for (let i = 0; i < 5; i++) {
-              this.damageScars.push({
+          // Tank-like body parts
+          this.treads = {
+              left: { width: 8, height: this.r * 1.2 },
+              right: { width: 8, height: this.r * 1.2 }
+          };
+          
+          // Scope details
+          this.scopeLength = this.r * 1.8;
+          this.laserActive = false;
+          this.laserLength = 300;
+          this.laserTimer = 0;
+          
+          // Camo pattern points
+          this.camoPattern = [];
+          for (let i = 0; i < 6; i++) {
+              this.camoPattern.push({
                   x: (Math.random() - 0.5) * this.r * 1.5,
                   y: (Math.random() - 0.5) * this.r * 1.5,
+                  size: 3 + Math.random() * 4
+              });
+          }
+          
+          // Damage indicators
+          this.damageScars = [];
+          for (let i = 0; i < 4; i++) {
+              this.damageScars.push({
+                  x: (Math.random() - 0.5) * this.r * 1.2,
+                  y: (Math.random() - 0.5) * this.r * 1.2,
                   size: 2 + Math.random() * 3
               });
           }
+          
+          this.burning = false;
+          this.burnTimer = 0;
+          this.burnDamagePerTick = 0;
+          this.burnDamageTimer = 0;
+          this.burnStacks = 0;
       }
       
       update(dt) {
+          // Handle burning damage
+          if (this.burning && this.burnTimer > 0) {
+              this.burnTimer -= dt;
+              this.burnDamageTimer += dt;
+              
+              if (this.burnDamageTimer >= 0.5) {
+                  this.burnDamageTimer = 0;
+                  const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+                  if (this.takeDamage(totalBurnDamage)) {
+                      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+                      return false;
+                  } else {
+                      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+                  }
+              }
+              
+              if (this.burnTimer <= 0) {
+                  this.burning = false;
+                  this.burnStacks = 0;
+              }
+          }
+          
           if (this.frozen) return true;
           
           this.age += dt;
           this.fireTimer += dt;
-          this.glowPulse += dt * 5;
-          this.warningGlow += dt * 8;
-          this.spikePulse += dt * 2;
+          this.glowPulse += dt * 4;
+          this.turretPulse += dt * 3;
+          this.tankBodyRotation += dt * 0.5;
+          this.laserTimer += dt;
+          
+          // Toggle laser sight
+          if (this.laserTimer >= 0.5) {
+              this.laserTimer = 0;
+              this.laserActive = !this.laserActive;
+          }
           
           const toPlayer = vecTo(this.x, this.y, player.x, player.y);
           this.x += toPlayer.x * this.speed * dt * 0.5;
           this.y += toPlayer.y * this.speed * dt * 0.5;
+          
+          // Update turret angle to track player smoothly
+          const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
+          const angleDiff = targetAngle - this.turretAngle;
+          this.turretAngle += Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)) * 0.1;
           
           this.x = clamp(this.x, this.r, W - this.r);
           this.y = clamp(this.y, this.r, H - this.r);
@@ -4292,20 +5091,20 @@ function setHardcoreStartingStats() {
               this.chargeLevel += dt * 2;
               if (this.chargeLevel > 1) this.chargeLevel = 1;
               
-              // Danger particles
-              if (Math.random() < 0.4) {
-                  const angle = Math.atan2(player.y - this.y, player.x - this.x);
+              // Laser becomes more intense when charging
+              if (Math.random() < 0.3) {
+                  const angle = this.turretAngle;
                   const particleX = this.x + Math.cos(angle) * (this.r * 1.3);
                   const particleY = this.y + Math.sin(angle) * (this.r * 1.3);
                   
                   particles.push({
                       x: particleX,
                       y: particleY,
-                      vx: (Math.random() - 0.5) * 30,
-                      vy: (Math.random() - 0.5) * 30,
-                      life: 0.3 + Math.random() * 0.2,
-                      col: `rgba(255, 50, 0, 0.9)`,
-                      r: 2 + Math.random() * 2
+                      vx: (Math.random() - 0.5) * 20,
+                      vy: (Math.random() - 0.5) * 20,
+                      life: 0.2 + Math.random() * 0.1,
+                      col: `rgba(0, 191, 255, ${this.chargeLevel})`,
+                      r: 1 + Math.random() * 1
                   });
               }
           }
@@ -4320,10 +5119,19 @@ function setHardcoreStartingStats() {
           return this.health > 0;
       }
       
-      fire() {
-          const angle = Math.atan2(player.y - this.y, player.x - this.x);
+      applyBurn(duration, damagePerTick) {
+          this.burning = true;
+          this.burnTimer = Math.max(this.burnTimer, duration);
+          this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+          this.burnStacks = Math.min(5, this.burnStacks + 1);
           
-          // DANGEROUS PROJECTILE
+          spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 10, Math.PI*2, 70);
+      }
+      
+      fire() {
+          // High-precision sniper shot
+          const angle = this.turretAngle;
+          
           const sniperBullet = {
               x: this.x,
               y: this.y,
@@ -4331,165 +5139,104 @@ function setHardcoreStartingStats() {
               dy: Math.sin(angle),
               t: 0,
               life: 3.0,
-              speed: 900,
-              size: 16, // Smaller, more focused
-              color: '#8b0000',
+              speed: 1000, // Very fast sniper bullet
+              size: 8,
+              color: '#00bfff',
               enemy: true,
               sniper: true,
               charge: 1.0,
               trail: [],
-              warningPulse: 0,
-              impactRadius: 25 // Smaller area damage
+              laserGuided: true,
+              precision: true
           };
           
           bullets.push(sniperBullet);
           
-          // Firing sound effect
-          sfx(300, 0.2, 0.05, 'sawtooth');
+          // Sniper firing sound - high pitch for precision
+          sfx(800, 0.15, 0.04, 'sawtooth');
           
-          // Muzzle flash - realistic looking
+          // Muzzle flash with blue tint
           const muzzleX = this.x + Math.cos(angle) * (this.r * 1.2);
           const muzzleY = this.y + Math.sin(angle) * (this.r * 1.2);
           
-          spawnParticles(muzzleX, muzzleY, 'rgba(255, 150, 0, 0.9)', 15, Math.PI/8, 120);
-          spawnParticles(muzzleX, muzzleY, 'rgba(139, 0, 0, 0.7)', 12, Math.PI/8, 100);
-          
-          // Smoke and debris
-          for (let i = 0; i < 8; i++) {
-              particles.push({
-                  x: muzzleX,
-                  y: muzzleY,
-                  vx: Math.cos(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
-                  vy: Math.sin(angle + Math.PI) * 30 + (Math.random() - 0.5) * 20,
-                  life: 0.6 + Math.random() * 0.3,
-                  col: `rgba(50, 50, 50, ${0.6 + Math.random() * 0.2})`,
-                  r: 2 + Math.random() * 3
-              });
-          }
+          spawnParticles(muzzleX, muzzleY, 'rgba(0, 191, 255, 0.9)', 12, Math.PI/12, 100);
+          spawnParticles(muzzleX, muzzleY, 'rgba(65, 105, 225, 0.7)', 10, Math.PI/12, 80);
           
           // Recoil effect
-          const recoilForce = 20;
-          this.x -= Math.cos(angle) * recoilForce * 0.3;
-          this.y -= Math.sin(angle) * recoilForce * 0.3;
+          const recoilForce = 15;
+          this.x -= Math.cos(angle) * recoilForce * 0.2;
+          this.y -= Math.sin(angle) * recoilForce * 0.2;
           
           // Screen shake
-          shake = 15;
+          shake = 8;
       }
       
       draw(ctx) {
-          const dangerPulse = 0.5 + Math.sin(this.glowPulse) * 0.5;
-          const mainAngle = Math.atan2(player.y - this.y, player.x - this.x);
+          const bodyPulse = 0.8 + Math.sin(this.turretPulse) * 0.2;
+          const laserPulse = this.laserActive ? Math.sin(this.glowPulse * 10) * 0.3 + 0.7 : 0;
           
-          // Save context
+          // Save context for rotation
           ctx.save();
           ctx.translate(this.x, this.y);
-          ctx.rotate(mainAngle);
           
-          // === MAIN BODY - War Machine Style ===
+          // === TANK BODY ===
+          ctx.save();
+          ctx.rotate(this.tankBodyRotation);
           
-          // Body base - Rusty metal tank
-          ctx.fillStyle = this.rustColor;
-          ctx.fillRect(-this.r * 0.8, -this.r * 0.5, this.r * 1.6, this.r);
+          // Tank body glow
+          const bodyGlow = ctx.createRadialGradient(0, 0, this.r * 0.5, 0, 0, this.r * 2);
+          bodyGlow.addColorStop(0, `rgba(42, 82, 190, ${0.6 * bodyPulse})`);
+          bodyGlow.addColorStop(1, `rgba(42, 82, 190, 0.1)`);
           
-          // Main armor plates
-          ctx.fillStyle = '#5d4037';
-          // Front armor (angled)
+          ctx.fillStyle = bodyGlow;
           ctx.beginPath();
-          ctx.moveTo(-this.r * 0.6, -this.r * 0.5);
-          ctx.lineTo(this.r * 0.6, -this.r * 0.5);
-          ctx.lineTo(this.r * 0.4, -this.r * 0.3);
-          ctx.lineTo(-this.r * 0.6, -this.r * 0.3);
+          ctx.arc(0, 0, this.r * 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Main tank body - hexagonal shape for sniper tank
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          const sides = 6;
+          for (let i = 0; i < sides; i++) {
+              const angle = (i / sides) * Math.PI * 2;
+              const radius = this.r * 0.9;
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+          }
           ctx.closePath();
           ctx.fill();
           
-          // Rear armor
-          ctx.fillRect(-this.r * 0.8, this.r * 0.2, this.r * 1.6, this.r * 0.3);
+          // Tank treads
+          ctx.fillStyle = '#191970'; // Midnight blue for treads
+          // Left tread
+          ctx.fillRect(-this.r - 4, -this.treads.left.height/2, 
+                      this.treads.left.width, this.treads.left.height);
+          // Right tread
+          ctx.fillRect(this.r - 4, -this.treads.right.height/2, 
+                      this.treads.right.width, this.treads.right.height);
           
-          // === SNIPER CANNON - Compact and Dangerous ===
-          const barrelLength = this.r * 1.8;
-          const barrelWidth = this.r * 0.3;
-          
-          // Barrel base
-          ctx.fillStyle = '#3e2723';
-          ctx.fillRect(this.r * 0.6, -barrelWidth/2, barrelLength, barrelWidth);
-          
-          // Barrel details - reinforced rings
-          ctx.strokeStyle = '#5d4037';
-          ctx.lineWidth = 2;
-          for (let i = 0; i < 4; i++) {
-              const ringX = this.r * 0.6 + (barrelLength * 0.2 * (i + 1));
-              ctx.beginPath();
-              ctx.moveTo(ringX, -barrelWidth/2);
-              ctx.lineTo(ringX, barrelWidth/2);
-              ctx.stroke();
+          // Tread details
+          ctx.fillStyle = '#4682b4';
+          const treadSegmentWidth = 3;
+          for (let i = 0; i < 5; i++) {
+              const yPos = -this.treads.left.height/2 + 3 + i * 5;
+              // Left tread segments
+              ctx.fillRect(-this.r - 3, yPos, treadSegmentWidth, 2);
+              // Right tread segments
+              ctx.fillRect(this.r - 1, yPos, treadSegmentWidth, 2);
           }
           
-          // Muzzle brake
-          ctx.fillStyle = '#263238';
-          ctx.fillRect(this.r * 0.6 + barrelLength - barrelWidth/2, -barrelWidth, barrelWidth/2, barrelWidth * 2);
-          
-          // Charging effect
-          if (this.isCharging) {
-              const chargePulse = Math.sin(this.glowPulse * 15) * 0.5 + 0.5;
-              const chargeSize = this.chargeLevel * barrelLength * 0.8;
-              
-              // Energy buildup
-              ctx.fillStyle = `rgba(255, 50, 0, ${chargePulse * 0.7})`;
-              ctx.fillRect(this.r * 0.6, -barrelWidth/4, chargeSize, barrelWidth/2);
-              
-              // Muzzle glow
-              if (this.chargeLevel >= 0.9) {
-                  const warningPulse = Math.sin(this.warningGlow * 10) * 0.5 + 0.5;
-                  ctx.fillStyle = `rgba(255, 0, 0, ${warningPulse * 0.6})`;
-                  ctx.beginPath();
-                  ctx.arc(this.r * 0.6 + barrelLength, 0, barrelWidth * 1.5, 0, Math.PI * 2);
-                  ctx.fill();
-              }
-          }
-          
-          // === SPIKES - War Machine Spikes ===
-          ctx.fillStyle = '#263238';
-          
-          // Front spikes
-          for (let i = 0; i < 3; i++) {
-              const spikeX = -this.r * 0.6 + (i * this.r * 0.6);
-              const spikeLength = 8 + Math.sin(this.spikePulse + i) * 2;
-              
+          // Camo pattern
+          ctx.fillStyle = this.camoColor;
+          for (const camo of this.camoPattern) {
               ctx.beginPath();
-              ctx.moveTo(spikeX, -this.r * 0.5);
-              ctx.lineTo(spikeX, -this.r * 0.5 - spikeLength);
-              ctx.lineTo(spikeX + 3, -this.r * 0.5);
-              ctx.closePath();
+              ctx.arc(camo.x, camo.y, camo.size, 0, Math.PI * 2);
               ctx.fill();
           }
           
-          // Side spikes
-          for (let i = 0; i < 2; i++) {
-              const sideY = -this.r * 0.1 + (i * this.r * 0.6);
-              const spikeLength = 6 + Math.sin(this.spikePulse + i + 2) * 2;
-              
-              ctx.beginPath();
-              ctx.moveTo(-this.r * 0.8, sideY);
-              ctx.lineTo(-this.r * 0.8 - spikeLength, sideY);
-              ctx.lineTo(-this.r * 0.8, sideY + 3);
-              ctx.closePath();
-              ctx.fill();
-          }
-          
-          // Rear spikes
-          for (let i = 0; i < 4; i++) {
-              const spikeX = -this.r * 0.8 + (i * this.r * 0.5);
-              const spikeLength = 5 + Math.sin(this.spikePulse + i + 4) * 1.5;
-              
-              ctx.beginPath();
-              ctx.moveTo(spikeX, this.r * 0.5);
-              ctx.lineTo(spikeX, this.r * 0.5 + spikeLength);
-              ctx.lineTo(spikeX + 2, this.r * 0.5);
-              ctx.closePath();
-              ctx.fill();
-          }
-          
-          // === DAMAGE SCARS ===
+          // Damage scars
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           for (const scar of this.damageScars) {
               ctx.beginPath();
@@ -4497,22 +5244,113 @@ function setHardcoreStartingStats() {
               ctx.fill();
           }
           
-          // === EYE SENSOR - Single Targeting Eye ===
+          ctx.restore(); // End body rotation
+          
+          // === ROTATING TURRET ===
+          ctx.save();
+          ctx.rotate(this.turretAngle);
+          
+          // Turret base
+          ctx.fillStyle = this.secondaryColor;
+          ctx.fillRect(-this.r * 0.4, -this.r * 0.3, this.r * 0.8, this.r * 0.6);
+          
+          // Turret details
+          ctx.fillStyle = this.detailColor;
+          // Front armor plate
+          ctx.fillRect(-this.r * 0.3, -this.r * 0.2, this.r * 0.6, this.r * 0.4);
+          
+          // === SNIPER SCOPE ===
+          const scopeLength = this.scopeLength;
+          const scopeWidth = this.r * 0.25;
+          
+          // Scope body
+          ctx.fillStyle = '#1e3a8a'; // Dark blue
+          ctx.fillRect(this.r * 0.4, -scopeWidth/2, scopeLength, scopeWidth);
+          
+          // Scope rings
+          ctx.strokeStyle = '#00bfff';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+              const ringX = this.r * 0.4 + (scopeLength * 0.2 * (i + 1));
+              ctx.beginPath();
+              ctx.moveTo(ringX, -scopeWidth/2);
+              ctx.lineTo(ringX, scopeWidth/2);
+              ctx.stroke();
+          }
+          
+          // Scope lens
+          ctx.fillStyle = '#00ffff';
+          ctx.beginPath();
+          ctx.arc(this.r * 0.4 + scopeLength, 0, scopeWidth * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Lens glow
+          const lensGlow = ctx.createRadialGradient(
+              this.r * 0.4 + scopeLength, 0, 1,
+              this.r * 0.4 + scopeLength, 0, scopeWidth * 1.5
+          );
+          lensGlow.addColorStop(0, `rgba(0, 255, 255, ${0.6})`);
+          lensGlow.addColorStop(1, `rgba(0, 255, 255, 0)`);
+          
+          ctx.fillStyle = lensGlow;
+          ctx.beginPath();
+          ctx.arc(this.r * 0.4 + scopeLength, 0, scopeWidth * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Laser sight when charging
+          if (this.laserActive || this.isCharging) {
+              const laserAlpha = this.isCharging ? this.chargeLevel : laserPulse * 0.7;
+              ctx.strokeStyle = `rgba(255, 0, 0, ${laserAlpha})`;
+              ctx.lineWidth = 1;
+              ctx.setLineDash([5, 3]);
+              ctx.beginPath();
+              ctx.moveTo(this.r * 0.4 + scopeLength, 0);
+              ctx.lineTo(this.r * 0.4 + scopeLength + this.laserLength, 0);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              
+              // Laser dot at end
+              ctx.fillStyle = `rgba(255, 0, 0, ${laserAlpha})`;
+              ctx.beginPath();
+              ctx.arc(this.r * 0.4 + scopeLength + this.laserLength, 0, 3, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          // Charging effect at muzzle
+          if (this.isCharging) {
+              const chargePulse = Math.sin(this.glowPulse * 20) * 0.5 + 0.5;
+              const chargeGradient = ctx.createRadialGradient(
+                  this.r * 0.4 + scopeLength, 0, 1,
+                  this.r * 0.4 + scopeLength, 0, scopeWidth * 2
+              );
+              chargeGradient.addColorStop(0, `rgba(0, 191, 255, ${chargePulse})`);
+              chargeGradient.addColorStop(0.5, `rgba(65, 105, 225, ${chargePulse * 0.7})`);
+              chargeGradient.addColorStop(1, `rgba(42, 82, 190, 0)`);
+              
+              ctx.fillStyle = chargeGradient;
+              ctx.beginPath();
+              ctx.arc(this.r * 0.4 + scopeLength, 0, scopeWidth * 2, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          
+          ctx.restore(); // End turret rotation
+          
+          // === EYE SENSOR ===
           const eyeRadius = this.r * 0.15;
           ctx.fillStyle = '#000000';
           ctx.beginPath();
           ctx.arc(0, 0, eyeRadius, 0, Math.PI * 2);
           ctx.fill();
           
-          // Glowing eye
+          // Glowing red eye
           const eyePulse = Math.sin(this.glowPulse * 8) * 0.3 + 0.7;
           ctx.fillStyle = `rgba(255, 0, 0, ${eyePulse})`;
           ctx.beginPath();
           ctx.arc(0, 0, eyeRadius * 0.7, 0, Math.PI * 2);
           ctx.fill();
           
-          // Eye pupil - tracks player even more precisely
-          const pupilAngle = Math.atan2(player.y - this.y, player.x - this.x) - mainAngle;
+          // Eye pupil that tracks player
+          const pupilAngle = Math.atan2(player.y - this.y, player.x - this.x);
           const pupilX = Math.cos(pupilAngle) * eyeRadius * 0.3;
           const pupilY = Math.sin(pupilAngle) * eyeRadius * 0.3;
           
@@ -4521,21 +5359,34 @@ function setHardcoreStartingStats() {
           ctx.arc(pupilX, pupilY, eyeRadius * 0.3, 0, Math.PI * 2);
           ctx.fill();
           
-          ctx.restore();
+          ctx.restore(); // End main translation
           
           // === HEALTH BAR ===
           const barWidth = this.r * 2;
-          const barHeight = 4;
+          const barHeight = 5;
           const barX = this.x - barWidth/2;
-          const barY = this.y - this.r - 15;
+          const barY = this.y - this.r - 20;
           
-          // Bar background
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          // Bar background with shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
           ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
           
-          // Health fill
+          // Health fill with gradient
           const healthPercent = this.health / this.maxHealth;
-          ctx.fillStyle = healthPercent > 0.5 ? '#8b0000' : '#ff0000';
+          const barFill = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+          
+          if (healthPercent > 0.5) {
+              barFill.addColorStop(0, '#00bfff');
+              barFill.addColorStop(1, '#4169e1');
+          } else if (healthPercent > 0.25) {
+              barFill.addColorStop(0, '#ff8c00');
+              barFill.addColorStop(1, '#ff4500');
+          } else {
+              barFill.addColorStop(0, '#ff0000');
+              barFill.addColorStop(1, '#8b0000');
+          }
+          
+          ctx.fillStyle = barFill;
           ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
           
           // Bar border
@@ -4543,21 +5394,21 @@ function setHardcoreStartingStats() {
           ctx.lineWidth = 1;
           ctx.strokeRect(barX, barY, barWidth, barHeight);
           
-          // Name label
-          ctx.fillStyle = '#ff0000';
-          ctx.font = 'bold 9px sans-serif';
+          // Name label with blue color
+          ctx.fillStyle = '#00bfff';
+          ctx.font = 'bold 10px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('SNIPER', this.x, barY - 6);
+          ctx.fillText('SNIPER TANK', this.x, barY - 6);
           ctx.textAlign = 'left';
           
-          // === DANGER AURA ===
+          // === DANGER AURA WHEN CHARGING ===
           if (this.isCharging && this.chargeLevel >= 0.9) {
               const auraSize = this.r * (1.5 + Math.sin(this.warningGlow * 15) * 0.3);
               const auraGradient = ctx.createRadialGradient(
                   this.x, this.y, this.r * 0.5,
                   this.x, this.y, auraSize
               );
-              auraGradient.addColorStop(0, `rgba(255, 0, 0, ${dangerPulse * 0.3})`);
+              auraGradient.addColorStop(0, `rgba(255, 0, 0, ${0.3 * this.chargeLevel})`);
               auraGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
               
               ctx.fillStyle = auraGradient;
@@ -4570,14 +5421,14 @@ function setHardcoreStartingStats() {
       takeDamage(amount) {
           this.health -= amount;
           
-          // Damage effects
-          spawnParticles(this.x, this.y, 'rgba(255, 100, 0, 0.9)', 8, Math.PI*2, 60);
-          spawnParticles(this.x, this.y, 'rgba(139, 0, 0, 0.7)', 6, Math.PI*2, 50);
+          // Blue metallic damage effect
+          spawnParticles(this.x, this.y, 'rgba(0, 191, 255, 0.9)', 8, Math.PI*2, 60);
+          spawnParticles(this.x, this.y, 'rgba(42, 82, 190, 0.7)', 6, Math.PI*2, 50);
           
           // Add new damage scar
           this.damageScars.push({
-              x: (Math.random() - 0.5) * this.r * 1.5,
-              y: (Math.random() - 0.5) * this.r * 1.5,
+              x: (Math.random() - 0.5) * this.r * 1.2,
+              y: (Math.random() - 0.5) * this.r * 1.2,
               size: 2 + Math.random() * 2
           });
           
@@ -4586,14 +5437,12 @@ function setHardcoreStartingStats() {
               this.damageScars.shift();
           }
           
-          // Metal impact sound
-          sfx(250, 0.1, 0.04, 'square');
+          // Metallic impact sound
+          sfx(300, 0.08, 0.03, 'square');
           
           return this.health <= 0;
       }
   }
-
-
 
   // Bomber enemy class - IMPROVED EXPLOSION PARTICLES
   class Bomber {
@@ -4608,6 +5457,11 @@ function setHardcoreStartingStats() {
       this.age = 0;
       this.frozen = false;
       this.originalSpeed = 111;
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
     }
     
     update(dt) {
@@ -4624,6 +5478,17 @@ function setHardcoreStartingStats() {
       
       return this.health > 0;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Explosive burning effect
+      spawnParticles(this.x, this.y, 'rgba(255,150,0,0.9)', 12, Math.PI*2, 80);
+    }
+
     
     draw(ctx) {
       ctx.beginPath();
@@ -5069,11 +5934,46 @@ function setHardcoreStartingStats() {
       this.bulletAngle = 0;
       this.frozen = false;
       this.originalSpeed = 50;
+
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
       
       createBossSpawnEffect(this.x, this.y);
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+      
       if (this.frozen) return true;
       
       this.pulse += dt * 3;
@@ -5107,16 +6007,30 @@ function setHardcoreStartingStats() {
         spawnParticles(this.x, this.y, 'rgba(255,71,87,0.9)', 15, Math.PI*2, 80);
       }
           
-    // Remove dead bosses from echoes array
-    if (this.health <= 0) {
-      const index = echoes.indexOf(this);
-      if (index > -1) {
-        echoes.splice(index, 1);
+      // Remove dead bosses from echoes array
+      if (this.health <= 0) {
+        const index = echoes.indexOf(this);
+        if (index > -1) {
+          echoes.splice(index, 1);
+        }
+        return false;
       }
-      return false;
+      return true;    
     }
-    return true;    
-  }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Boss-specific burning effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+      
+      // Special boss burning sound
+      sfx(200, 0.2, 0.05, 'sawtooth');
+    }
+
     
     draw(ctx) {
       const pulseSize = this.r * (1 + Math.sin(this.pulse) * 0.1);
@@ -5174,10 +6088,45 @@ function setHardcoreStartingStats() {
       this.frozen = false;
       this.originalSpeed = 80;
 
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
+
       createBossSpawnEffect(this.x, this.y);
     }
-    
+        
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+  
       if (this.frozen) return true;
       
       this.pulse += dt * 3;
@@ -5231,6 +6180,20 @@ function setHardcoreStartingStats() {
       }
       return true;    
   }
+
+  applyBurn(duration, damagePerTick) {
+    this.burning = true;
+    this.burnTimer = Math.max(this.burnTimer, duration);
+    this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+    this.burnStacks = Math.min(5, this.burnStacks + 1);
+    
+    // Boss-specific burning effect
+    spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+    
+    // Special boss burning sound
+    sfx(200, 0.2, 0.05, 'sawtooth');
+  }
+
     
     draw(ctx) {
       const phaseColors = ['#ff6b6b', '#ff4757'];
@@ -5296,11 +6259,46 @@ function setHardcoreStartingStats() {
       this.specialAttackCooldown = 8;
       this.frozen = false;
       this.originalSpeed = 40;
+
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
       
       createBossSpawnEffect(this.x, this.y);
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+
       if (this.frozen) return true;
       
       this.pulse += dt * 4;
@@ -5367,6 +6365,20 @@ function setHardcoreStartingStats() {
       }
       return true;    
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Boss-specific burning effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+      
+      // Special boss burning sound
+      sfx(200, 0.2, 0.05, 'sawtooth');
+    }
+
     
     specialAttack() {
       const bulletCount = 24;
@@ -5475,6 +6487,13 @@ function setHardcoreStartingStats() {
       this.specialAttackTimer = 0;
       this.specialAttackCooldown = 7;
       this.frozen = false;
+
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
       
       // DARK ENERGY FIELD
       this.energyField = {
@@ -5580,6 +6599,34 @@ function setHardcoreStartingStats() {
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+      
       if (this.frozen) return true;
       
       this.pulse += dt * 8;
@@ -5773,6 +6820,20 @@ function setHardcoreStartingStats() {
       }
       return true;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Boss-specific burning effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+      
+      // Special boss burning sound
+      sfx(200, 0.2, 0.05, 'sawtooth');
+    }
+
     
     enterPhase2() {
       // Activate void shard weapons
@@ -6277,11 +7338,45 @@ class MegaCreeperBoss {
       this.spikeCount = 12;
       this.spikeLength = 20;
       this.spikeAngle = 0;
-      
+
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0;
+
       createBossSpawnEffect(this.x, this.y);
     }
     
     update(dt) {
+      // Handle burning damage (add this at the start)
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+            return false;
+          } else {
+            // Burning damage effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+      
       if (this.frozen) return true;
       
       this.pulse += dt * 4;
@@ -6369,6 +7464,20 @@ class MegaCreeperBoss {
       }
       return true;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1);
+      
+      // Boss-specific burning effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 15, Math.PI*2, 100);
+      
+      // Special boss burning sound
+      sfx(200, 0.2, 0.05, 'sawtooth');
+    }
+
     
     specialAttack() {
       // Spawn creepers around the boss instead of player
@@ -6986,7 +8095,8 @@ class MegaCreeperBoss {
         mineCount: '#00ffaa', // Bright Cyan-Green
         cooldownRefresh: '#00ffaa', // Bright Cyan-Green
         reflectiveMirror: '#aaffff', // Pale Cyan
-        lightningStrike: '#636bff' // Indigo Blue
+        lightningStrike: '#636bff', // Indigo Blue
+        fireBullet: '#ff6b00' // Add this missing color
       };
       // Level 1: Orbs last 5 seconds longer
       this.life = player.stats.xpBoost.level === 1 ? 20 : 15;
@@ -7014,9 +8124,9 @@ class MegaCreeperBoss {
       ctx.font = 'bold 14px sans-serif';
       
       const icons = {
-        fireRate: 'xp', bulletSpeed: '➤', movement: 'xp',
-        knockback: 'xp', bulletSize: '●', bulletLife: '●',
-        xpBoost: 'xp', extraLife: '●', workers: '●',
+        fireRate: 'xp', bulletSpeed: 'xp', movement: 'xp',
+        knockback: 'xp', bulletSize: 'xp', bulletLife: '●',
+        xpBoost: 'xp', extraLife: 'xp', workers: 'xp',
         ghost: 'xp',
         holyLife: 'xp', killBoost: 'xp',
         boomerang: 'xp', fire: 'xp', shotgun: 'xp',
@@ -7025,19 +8135,20 @@ class MegaCreeperBoss {
         powerBullet: 'xp',
         knockbackBullets: 'xp',
         workerCollector: 'xp',
-        flanker: '➤',
+        flanker: 'xp',
         shockwave: 'xp',
-        guards: '🛡️',
+        guards: 'xp',
         freeze: '❄',
-        lastResort: '🛡️',
+        lastResort: 'xp',
         music: 'xp',
         damageZone: '⚔',
         minigun: 'xp',
-        saferSpaces: '🛡️',
+        saferSpaces: 'xp',
         mineCount: 'xp',
-        cooldownRefresh: '⏱',
-        reflectiveMirror: '🛡️',
-        lightningStrike: 'xp'
+        cooldownRefresh: 'xp',
+        reflectiveMirror: 'xp',
+        lightningStrike: 'xp',
+        fireBullet: 'xp'
       };
       
       ctx.fillText(icons[this.type], this.x, this.y + floatY);
@@ -7094,6 +8205,15 @@ class MegaCreeperBoss {
       this.knockbackTimer = 0;
       this.knockbackX = 0;
       this.knockbackY = 0;
+      this.burning = false;
+      this.burnTimer = 0;
+      this.burnDamagePerTick = 0;
+      this.burnDamageTimer = 0;
+      this.burnStacks = 0; // Track multiple burn stacks
+      this.burnColor = '#ff6b00';
+      this.currentAngle = Math.random() * Math.PI * 2; // Random starting direction
+      this.maxTurnAngle = Math.PI / 0.8; // Higer value means worse turning
+      this.acceleration = 200; // How quickly they can change speed
     }
     
     update(dt){
@@ -7103,6 +8223,51 @@ class MegaCreeperBoss {
       this.hitTimer -= dt;
       this.rocketDamageTimer += dt;
       this.knockbackTimer -= dt;
+
+      // Handle burning damage
+      if (this.burning && this.burnTimer > 0) {
+        this.burnTimer -= dt;
+        this.burnDamageTimer += dt;
+        
+        // Damage every 0.5 seconds
+        if (this.burnDamageTimer >= 0.5) {
+          this.burnDamageTimer = 0;
+          
+          // Take burn damage based on stacks
+          const totalBurnDamage = this.burnDamagePerTick * (1 + this.burnStacks * 0.2);
+          if (this.takeDamage(totalBurnDamage)) {
+            // Special burning death effect
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 20, Math.PI*2, 150);
+            spawnParticles(this.x, this.y, 'rgba(255,150,0,0.7)', 15, Math.PI*2, 120);
+            
+            // If it was a burning death, create fire explosion
+            if (this.burning) {
+              // Small fire explosion on burning death
+              const explosion = new Fire(this.x, this.y, 40, 1.5, 0.5);
+              fires.push(explosion);
+              
+              // Spread burning to nearby enemies
+              for (const e of echoes) {
+                if (e !== this && dist({x: this.x, y: this.y}, e) < 60) {
+                  e.applyBurn(2.0, 0.2); // Reduced duration and damage for spread
+                }
+              }
+            }
+            
+            return false;
+          } else {
+            // Burning damage effect particles
+            spawnParticles(this.x, this.y, 'rgba(255,100,0,0.7)', 3, Math.PI/4, 30);
+          }
+        }
+        
+        // End burning effect when timer runs out
+        if (this.burnTimer <= 0) {
+          this.burning = false;
+          this.burnStacks = 0;
+        }
+      }
+
       
       if (this.rocketDamage > 0 && this.rocketDamageTimer >= 0.25) {
         this.rocketDamageTimer = 0;
@@ -7148,10 +8313,33 @@ class MegaCreeperBoss {
         this.y += this.knockbackY * dt;
         speed *= 0.5; // Slow down during knockback
       } else {
-        this.x += toPlayer.x * speed * dt;
-        this.y += toPlayer.y * speed * dt;
-      }
-      
+        // Calculate desired angle to face player
+        const desiredAngle = Math.atan2(toPlayer.y, toPlayer.x);
+        
+        // Calculate angle difference
+        let angleDiff = desiredAngle - this.currentAngle;
+        
+        // Normalize angle difference to [-PI, PI]
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        
+        // Apply turn rate limit
+        const maxTurnThisFrame = this.maxTurnAngle * dt;
+        if (Math.abs(angleDiff) > maxTurnThisFrame) {
+          angleDiff = Math.sign(angleDiff) * maxTurnThisFrame;
+        }
+        
+        // Update current angle
+        this.currentAngle += angleDiff;
+        
+        // Normalize angle
+        while (this.currentAngle > Math.PI * 2) this.currentAngle -= Math.PI * 2;
+        while (this.currentAngle < 0) this.currentAngle += Math.PI * 2;
+        
+        // Move in the current facing direction
+        this.x += Math.cos(this.currentAngle) * speed * dt;
+        this.y += Math.sin(this.currentAngle) * speed * dt;
+      }      
       if (this.chargeTimer > 1.6){
         this.x += toPlayer.x * 150 * dt;
         this.y += toPlayer.y * 150 * dt;
@@ -7177,6 +8365,17 @@ class MegaCreeperBoss {
       
       return this.health > 0;
     }
+
+    applyBurn(duration, damagePerTick) {
+      this.burning = true;
+      this.burnTimer = Math.max(this.burnTimer, duration);
+      this.burnDamagePerTick = Math.max(this.burnDamagePerTick, damagePerTick);
+      this.burnStacks = Math.min(5, this.burnStacks + 1); // Cap at 5 stacks
+      
+      // Visual effect
+      spawnParticles(this.x, this.y, 'rgba(255,100,0,0.8)', 5, Math.PI*2, 50);
+    }
+
     
     draw(ctx){
       const hitEffect = this.hitTimer > 0 ? Math.sin(this.hitTimer * 20) * 0.5 + 0.5 : 0;
@@ -7189,7 +8388,52 @@ class MegaCreeperBoss {
       ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
       
       ctx.beginPath(); ctx.fillStyle = hitColor; ctx.arc(this.x, this.y, this.r*0.6, 0, Math.PI*2); ctx.fill();
-      
+        
+      // Draw burning effect
+      if (this.burning && this.burnTimer > 0) {
+        const burnAlpha = Math.min(0.7, (this.burnTimer / 4) * (1 + this.burnStacks * 0.1));
+        const burnPulse = Math.sin(timeAlive * 8) * 0.3 + 0.7;
+        const burnSize = this.r * (1.5 + this.burnStacks * 0.1);
+        
+        // Burning aura with gradient
+        const burnGradient = ctx.createRadialGradient(
+          this.x, this.y, this.r * 0.3,
+          this.x, this.y, burnSize
+        );
+        burnGradient.addColorStop(0, `rgba(255, 0, 0, ${burnAlpha * burnPulse * 0.9})`);
+        burnGradient.addColorStop(0.5, `rgba(255, 0, 0, ${burnAlpha * burnPulse * 0.5})`);
+        burnGradient.addColorStop(1, `rgba(255, 0, 0, 0)`);
+        
+        ctx.fillStyle = burnGradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, burnSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Fire particles rising from burning enemy
+        if (Math.random() < 0.2 * (1 + this.burnStacks * 0.2)) {
+          particles.push({
+            x: this.x + (Math.random() - 0.5) * this.r * 1.2,
+            y: this.y - this.r * 0.3,
+            vx: (Math.random() - 0.5) * 15,
+            vy: -Math.random() * 50 - this.burnStacks * 5,
+            life: 0.4 + Math.random() * 0.3,
+            col: `rgba(255, ${150 + Math.random()*50}, 0, 0.8)`,
+            r: 1 + Math.random() * (1 + this.burnStacks * 0.2)
+          });
+        }
+        
+        // Stack indicator
+        if (this.burnStacks > 1) {
+          ctx.fillStyle = `rgba(255, 100, 0, ${burnAlpha})`;
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`x${this.burnStacks}`, this.x, this.y - burnSize - 5);
+          ctx.textAlign = 'left';
+        }
+      }
+
+
       if (this.health < this.maxHealth) {
         const barWidth = this.r * 1.5;
         const barHeight = 4;
@@ -7214,7 +8458,12 @@ class MegaCreeperBoss {
       this.health -= amount;
       this.hitTimer = 0.3;
       spawnParticles(this.x, this.y, 'rgba(255,255,255,0.9)', 8, Math.PI*2, 60);
-      
+
+      // If burning and taking damage, create extra fire particles
+      if (this.burning) {
+        spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 5, Math.PI*2, 60);
+      }
+
       // FIXED: Knockback bullets - third upgrade can push back multiple enemies
       if (player.stats.knockbackBullets.level > 0) {
         const knockbackForce = player.stats.knockbackBullets.level === 1 ? 30 : 
@@ -7355,11 +8604,15 @@ class MegaCreeperBoss {
     
     const randVal = Math.random();
     
+
+    // spawn enemies
+    // spawn mobs
+
     if (timeAlive > 50 && randVal < 0.03) {
       spawnsniperFromOutside();
     } else if (timeAlive > 50 && randVal < 0.2) {
       spawnBomberFromOutside();
-    } else if (timeAlive > 70 && randVal < 0.05) { 
+    } else if (timeAlive > 70 && randVal < 0.1) { 
       spawnWitchFromOutside();
     } else if (timeAlive > 20 && randVal < 0.05) {
       spawnTankFromOutside();
@@ -7665,6 +8918,7 @@ class MegaCreeperBoss {
     saferSpacesTimer = 0;
     saferSpacesHealth = 5;
     saferSpacesWall = null;
+    fireBulletActive = false;
 
     reflectiveMirrorActive = false;
     reflectiveMirrorRadius = 55;
@@ -7858,7 +9112,6 @@ class MegaCreeperBoss {
       lastResort: 'LAST RESORT',
       damageZone: 'DAMAGE ZONE',
       saferSpaces: 'SAFER SPACES',
-      lightningStrike: 'LIGHTNING STRIKE'
     };
     abilityItem.innerHTML = `
       <div class="upgrade-name">Emergency Ability</div>
@@ -8032,13 +9285,21 @@ class MegaCreeperBoss {
     }
     
     // Fire fire pulse as extra, not replacement
+    // In the fireShot function, replace the fire creation:
     if (isFire && fireLevel > 0) {
       const firePulse = new FirePulse(player.x, player.y, Math.atan2(aim.y, aim.x));
       fires.push(firePulse);
       playSound('fire');
-      spawnParticles(player.x, player.y, 'rgba(255,100,0,0.9)', 20, Math.PI*2, 150);
+      
+      // Enhanced spawn effect
+      spawnParticles(player.x, player.y, 'rgba(255,100,0,0.9)', 25, Math.PI*2, 200);
+      spawnParticles(player.x, player.y, 'rgba(255,200,0,0.7)', 20, Math.PI*2, 150);
+      
+      // Muzzle flash
+      const muzzleX = player.x + Math.cos(Math.atan2(aim.y, aim.x)) * player.r * 1.5;
+      const muzzleY = player.y + Math.sin(Math.atan2(aim.y, aim.x)) * player.r * 1.5;
+      spawnParticles(muzzleX, muzzleY, 'rgba(255,150,0,0.9)', 15, Math.PI/6, 100);
     }
-
       if (isFlanker && flankerLevel > 0) {
     const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
     
@@ -8521,7 +9782,8 @@ function selectBonusUpgrade(type) {
       mineCount: 'Mine Capacity',
       cooldownRefresh: ' Dangerous situations',
       reflectiveMirror: 'Mirror Shield',
-      lightningStrike: 'Lightning Strike'
+      lightningStrike: 'Lightning Strike',
+      fireBullet: 'Burning bullet',
     };
     return titles[type];
   }
@@ -8608,8 +9870,10 @@ function selectBonusUpgrade(type) {
         cooldownRefresh: 'Refresh emergency ability cooldown when taking damage',
         reflectiveMirror: player.stats.reflectiveMirror.level === 0 ? '30% chance to reflect enemy bullets' :
                  player.stats.reflectiveMirror.level === 1 ? '+20% chance to reflect enemy bullets(50%)' : '+10% chance to reflect enemy bullets(60%)',
-        lightningStrike: 'Fire a lightning that chains through several enemies'
-
+        lightningStrike: 'Fire a lightning that chains through several enemies',
+        fireBullet: player.stats.fireBullet.level === 0 ? 'Bullets inflict burning damage over time (2 seconds, 0.2 damage/sec)' :
+                  player.stats.fireBullet.level === 1 ? 'Burning duration increased to 3 seconds, 0.3 damage/sec' :
+                  'Burning duration increased to 4 seconds, 0.4 damage/sec',
     };
     return descs[type];
   }
@@ -8796,6 +10060,8 @@ function selectBonusUpgrade(type) {
         }
         break;
       case 'lightningStrike':
+        break;
+      case 'fireBullet':
         break;
       }
     
@@ -9177,23 +10443,53 @@ b.t += dt;
           
     const d = Math.hypot(b.x - e.x, b.y - e.y);
     if (d < e.r + b.size){
-if (b.boomerang && b.returning) {
-  // Initialize hit tracking if not already done
-  if (!b.hitEnemies) {
-    b.hitEnemies = [];
-  }
-  
-  // Check if we've already hit this enemy
-  if (b.hitEnemies.includes(e)) {
-    continue; // Skip - already damaged this enemy
-  }
-  
-  // Check hit cooldown for this specific bullet
-  if (!b.boomerangLastHit || b.t - b.boomerangLastHit > 0.3) {
-    b.boomerangLastHit = b.t;
+
+      // Apply burning effect if player has Fire Bullet upgrade
+      if (!b.enemy && player.stats.fireBullet.level > 0) {
+        const burnDuration = player.stats.fireBullet.level === 1 ? 3 : 
+                            player.stats.fireBullet.level === 2 ? 4 : 2; // 2, 3, or 4 seconds
+        const burnDamage = player.stats.fireBullet.level === 1 ? 0.3 : 
+                          player.stats.fireBullet.level === 2 ? 0.4 : 0.2; // Damage per tick
+        
+        e.applyBurn(burnDuration, burnDamage);
+        
+        // Fire bullet visual effect
+        spawnParticles(e.x, e.y, 'rgba(255,100,0,0.8)', 8, Math.PI/4, 60);
+        
+        // Special sound for fire bullet hit
+        sfx(400, 0.1, 0.02, 'sawtooth');
+      }
+
+      // Fire + Fire Bullet synergy
+      if (player.stats.fire.level > 0) {
+        // Fire + Fire Bullet synergy: Increased burn damage
+        const synergyMultiplier = 1 + (player.stats.fire.level * 0.2);
+        e.burnDamagePerTick *= synergyMultiplier;
+        
+        // Visual synergy effect
+        spawnParticles(e.x, e.y, 'rgba(255,200,0,0.9)', 5, Math.PI*2, 80);
+        
+        // Special synergy sound
+        sfx(600, 0.08, 0.015, 'sine');
+      }
+
+      
+      if (b.boomerang && b.returning) {
+        if (!b.hitEnemies) {
+          b.hitEnemies = [];
+        }
     
-    // Mark this enemy as hit by this bullet
-    b.hitEnemies.push(e);
+    // Check if we've already hit this enemy
+    if (b.hitEnemies.includes(e)) {
+      continue; // Skip - already damaged this enemy
+    }
+    
+    // Check hit cooldown for this specific bullet
+    if (!b.boomerangLastHit || b.t - b.boomerangLastHit > 0.3) {
+      b.boomerangLastHit = b.t;
+      
+      // Mark this enemy as hit by this bullet
+      b.hitEnemies.push(e);
     
     const xpMultiplier = 1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0) + 
                        (player.stats.xpBoost.level > 1 ? 0.2 : 0) +
@@ -9375,9 +10671,9 @@ if (reflectiveMirrorActive && player.stats.reflectiveMirror.level > 0) {
           // Make reflected bullet stronger based on level
           const damageMultiplier = player.stats.reflectiveMirror.level === 3 ? 2 : 
                                   player.stats.reflectiveMirror.level === 2 ? 1.5 : 1;
-          b.speed *= 1.8;
+          b.speed *= 1.4;
           b.damage = damageMultiplier * player.damageMultiplier;
-          b.size *= 0.9;
+          b.size *= 1;
           
           // Piercing effect for reflected bullets (level 3 only)
           if (player.stats.reflectiveMirror.level >= 3) {
@@ -10304,10 +11600,70 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
 
     for (const b of bullets){
       ctx.beginPath();
-      ctx.fillStyle = b.color || (b.boomerang ? 'rgba(255,100,255,0.95)' : 
+      
+      // ======== MODIFIED COLOR LOGIC FOR FIRE BULLETS ========
+      // Set bullet color based on type and fire bullet upgrade
+      let bulletColor;
+      if (player.stats.fireBullet.level > 0 && !b.enemy) {
+        // Fire bullet upgrade active - use fire colors
+        if (b.shotgun) {
+          bulletColor = '#ff8c00';
+        } else if (b.powerBullet) {
+          bulletColor = '#ff4500';
+        } else if (b.boomerang) {
+          bulletColor = '#ff0000'; // Keep some purple tint for boomerang
+        } else {
+          bulletColor = '#ff6b00';
+        }
+      } else {
+        // No fire bullet upgrade - use original colors
+        bulletColor = b.color || (b.boomerang ? 'rgba(255,100,255,0.95)' : 
                                 b.shotgun ? 'rgba(255,200,100,0.95)' : 
                                 b.powerBullet ? 'rgba(255,100,100,0.95)' : 'rgba(255,255,255,0.95)');
-      ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); ctx.fill();
+      }
+      
+      ctx.fillStyle = bulletColor;
+      ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); 
+      ctx.fill();
+      
+      // ======== FIRE BULLET GLOW AND PARTICLES ========
+      if (player.stats.fireBullet.level > 0 && !b.enemy) {
+        // Add fire trail particles
+        if (Math.random() < 0.3) {
+          particles.push({
+            x: b.x,
+            y: b.y,
+            vx: (Math.random() - 0.5) * 30,
+            vy: (Math.random() - 0.5) * 30,
+            life: 0.3 + Math.random() * 0.2,
+            col: `rgba(255, ${100 + Math.random()*50}, 0, 0.8)`,
+            r: 1 + Math.random() * 2
+          });
+        }
+        
+        // Draw fire bullet glow
+        const fireGlow = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, b.size * 3);
+        fireGlow.addColorStop(0, 'rgba(255, 100, 0, 0.8)');
+        fireGlow.addColorStop(0.7, 'rgba(255, 150, 0, 0.3)');
+        fireGlow.addColorStop(1, 'rgba(255, 50, 0, 0)');
+        
+        ctx.fillStyle = fireGlow;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.size * 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+            
+      // Also update shotgun and power bullets to be fire bullets
+      if (player.stats.fireBullet.level > 0) {
+        if (b.shotgun) {
+          b.color = '#ff8c00'; // Darker orange for shotgun
+        }
+        if (b.powerBullet) {
+          b.color = '#ff4500'; // Red-orange for power bullets
+        }
+      }
+      // ======== END FIRE BULLET RENDERING CODE ========
+
       
       ctx.beginPath();
       const gg = ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,20);
@@ -10517,6 +11873,25 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
       ctx.fillText('AUTO-FIRE ACTIVE', 10, H - 40);
     }
 
+    // Right after these similar UI elements
+
+    if (player.stats.fireBullet.level > 0) {
+      ctx.fillStyle = 'rgba(255,100,0,0.8)';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('FIRE BULLETS ACTIVE', 10, H - 120);
+      
+      // Show burn stats
+      const burnDuration = player.stats.fireBullet.level === 1 ? 3 : 
+                          player.stats.fireBullet.level === 2 ? 4 : 2;
+      const burnDPS = player.stats.fireBullet.level === 1 ? 0.6 : 
+                    player.stats.fireBullet.level === 2 ? 0.8 : 0.4;
+      
+      ctx.fillStyle = 'rgba(255,100,0,0.6)';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`${burnDuration}s burn | ${burnDPS}/s`, 12, H - 108);
+    }
+
+
     if (killBoostTimer > 0) {
       const boostDuration = player.stats.killBoost.level === 1 ? 3 : 
                            player.stats.killBoost.level === 2 ? 4 : 
@@ -10557,6 +11932,7 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
     };
     ctx.fillText(`ABILITY: ${abilityNames[emergencyAbility]}`, 10, H - 140);
 
+    
 
 
     // Render multiple boss health bars
