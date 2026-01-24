@@ -4,28 +4,28 @@ Nye upgrades:
 * Burning bullets
 
 Forbedret visuals:
-**Upgrades**
+### **Upgrades**
 * Shockwave
 * Firepulse
-**Enemies**
+### **Enemies**
 * Tank
 * Sniper
 * Witch
-**Bosses**
+### **Bosses**
 * Final Boss
 * Mega creeper boss
 
 Balance changes:
-**Firepulse**
+### **Firepulse**
 * Tiny speed and distance buff to lean into the mythical upgrade aspect
-**Tank**
+### **Tank**
 * Shoots slims further, but with longer cooldown.
-**Final boss**
+### **Final boss**
 * Completly new boss
 * Heavy buff
 * More bullets, faster reload, more powerfull abilities
 * Area damage close
-**Mega creeper boss**
+### **Mega creeper boss**
 * Rework
 * More death spawn enemies
 * Lower preasure
@@ -37,7 +37,7 @@ Bug fix:
 
 
 ----------------------------------------------------
-# V21 - Nyaste versjonen
+# V21
 
 Nye upgrades:
 * Lightning
