@@ -1307,7 +1307,7 @@ function initAudio() {
       holyLife: {level: 0, max: 1, rarity: 'legendary'},
       killBoost: {level: 0, max: 3, rarity: 'rare'},
       boomerang: {level: 0, max: 3, rarity: 'legendary'},
-      fire: {level: 0, max: 2, rarity: 'mythical'},
+      fire: {level: 0, max: 2, rarity: 'common'},
       shotgun: {level: 0, max: 5, rarity: 'rare'},
       shield: {level: 0, max: 3, rarity: 'rare'},
       shieldRegen: {level: 0, max: 2, rarity: 'legendary'},
@@ -3115,10 +3115,10 @@ function setHardcoreStartingStats() {
       this.y = y;
       this.angle = angle;
       this.speed = 900; // Increased from 800
-      this.life = 0.6; // Increased from 0.4
-      this.damage = 0.2; // Increased from 0.5
-      this.width = player.stats.fire.level === 1 ? 35 : 50; // Increased from 30/40
-      this.duration = player.stats.fire.level === 1 ? 2.5 : 3.5; // Increased from 2/3
+      this.life = 1; // Increased from 0.4
+      this.damage = 0.6; // Originally 0.5
+      this.width = player.stats.fire.level === 1 ? 40 : 50; // Increased from 30/40
+      this.duration = player.stats.fire.level === 1 ? 0.15 : 0.15; // Increased from 2/3
       this.trail = [];
       this.trailTimer = 0;
       this.trailInterval = 0.05;
@@ -3129,9 +3129,8 @@ function setHardcoreStartingStats() {
       
       // Level 2 enhancements
       if (player.stats.fire.level >= 2) {
-        this.speed *= 1.2;
-        this.damage *= 1.3;
-        this.duration *= 1.2;
+        this.speed += 150;
+        this.damage *= 2;
       }
     }
     
@@ -10471,7 +10470,7 @@ class MegaCreeperBoss {
 
     if (fireLevel > 0) {
       bulletCounter++;
-      if (bulletCounter >= 5) {
+      if (bulletCounter >= 4) {
         isFire = true;
         bulletCounter = 0;
       }
@@ -11124,7 +11123,7 @@ function selectBonusUpgrade(type) {
                 player.stats.killBoost.level === 1 ? '+50% speed for 4s after kill' : '+60% speed for 5s after kill',
       boomerang: player.stats.boomerang.level === 0 ? '20% chance for bullets to return' :
                 player.stats.boomerang.level === 1 ? '50% chance for bullets to return' : '100% chance for bullets to return',
-      fire: player.stats.fire.level === 0 ? 'Every other bullet becomes a fire pulse' : 'Fire area +50% and duration +50%',
+      fire: player.stats.fire.level === 0 ? 'Every other bullet fires an additional fire pulse' : 'Fire pulse is bigger, faster and deals twice the damage',
       shotgun: player.stats.shotgun.level === 0 ? 'Every third bullet fires 2 extra bullets' :
               player.stats.shotgun.level === 1 ? 'Every other bullet fires 2 extra bullets' :
               player.stats.shotgun.level === 2 ? 'Every other bullet fires 4 extra bullets' :
