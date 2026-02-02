@@ -1307,7 +1307,7 @@ function initAudio() {
       holyLife: {level: 0, max: 1, rarity: 'legendary'},
       killBoost: {level: 0, max: 3, rarity: 'rare'},
       boomerang: {level: 0, max: 3, rarity: 'legendary'},
-      fire: {level: 0, max: 2, rarity: 'common'},
+      fire: {level: 0, max: 2, rarity: 'mythical'},
       shotgun: {level: 0, max: 5, rarity: 'rare'},
       shield: {level: 0, max: 3, rarity: 'rare'},
       shieldRegen: {level: 0, max: 2, rarity: 'legendary'},
@@ -1331,7 +1331,7 @@ function initAudio() {
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
       lightningStrike: {level: 0, max: 2, rarity: 'mythical'},
-      fireBullet: {level: 0, max: 3, rarity: 'rare'},
+      fireBullet: {level: 0, max: 3, rarity: 'legendary'},
     }
   };
 
@@ -1450,7 +1450,6 @@ function initAudio() {
         break;
       case 'fire':
         sfx(120, 0.3, 0.04, 'sawtooth');
-        // Additional fire sounds for variety
         setTimeout(() => sfx(80, 0.2, 0.02, 'square'), 50);
         setTimeout(() => sfx(160, 0.1, 0.03, 'sawtooth'), 100);
         break;
@@ -11179,9 +11178,9 @@ function selectBonusUpgrade(type) {
         reflectiveMirror: player.stats.reflectiveMirror.level === 0 ? '30% chance to reflect enemy bullets' :
                  player.stats.reflectiveMirror.level === 1 ? '+20% chance to reflect enemy bullets(50%)' : '+10% chance to reflect enemy bullets(60%)',
         lightningStrike: 'Fire a lightning that chains through several enemies',
-        fireBullet: player.stats.fireBullet.level === 0 ? 'Bullets inflict burning damage over time (2 seconds, 0.2 damage/sec)' :
-                  player.stats.fireBullet.level === 1 ? 'Burning duration increased to 3 seconds, 0.3 damage/sec' :
-                  'Burning duration increased to 4 seconds, 0.4 damage/sec',
+        fireBullet: player.stats.fireBullet.level === 0 ? 'Bullets inflict burning damage over time for 3 seconds' :
+                  player.stats.fireBullet.level === 1 ? 'Burning duration increased to 6 seconds' :
+                  'Burning duration increased to 10 seconds',
     };
     return descs[type];
   }
@@ -11755,9 +11754,9 @@ b.t += dt;
       // Apply burning effect if player has Fire Bullet upgrade
       if (!b.enemy && player.stats.fireBullet.level > 0) {
         const burnDuration = player.stats.fireBullet.level === 1 ? 3 : 
-                            player.stats.fireBullet.level === 2 ? 4 : 2; // 2, 3, or 4 seconds
-        const burnDamage = player.stats.fireBullet.level === 1 ? 0.3 : 
-                          player.stats.fireBullet.level === 2 ? 0.4 : 0.2; // Damage per tick
+                            player.stats.fireBullet.level === 2 ? 6 : 10; // 3, 6, or 10 seconds
+        const burnDamage = player.stats.fireBullet.level === 1 ? 0.2 : 
+                          player.stats.fireBullet.level === 2 ? 0.5 : 1; // Damage per tick
         
         e.applyBurn(burnDuration, burnDamage);
         
@@ -13179,24 +13178,6 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
       ctx.fillStyle = 'rgba(255,255,255,0.1)';
       ctx.font = '12px sans-serif';
       ctx.fillText('AUTO-FIRE ACTIVE', 10, H - 40);
-    }
-
-    // Right after these similar UI elements
-
-    if (player.stats.fireBullet.level > 0) {
-      ctx.fillStyle = 'rgba(255,100,0,0.8)';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('FIRE BULLETS ACTIVE', 10, H - 120);
-      
-      // Show burn stats
-      const burnDuration = player.stats.fireBullet.level === 1 ? 3 : 
-                          player.stats.fireBullet.level === 2 ? 4 : 2;
-      const burnDPS = player.stats.fireBullet.level === 1 ? 0.6 : 
-                    player.stats.fireBullet.level === 2 ? 0.8 : 0.4;
-      
-      ctx.fillStyle = 'rgba(255,100,0,0.6)';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`${burnDuration}s burn | ${burnDPS}/s`, 12, H - 108);
     }
 
 
