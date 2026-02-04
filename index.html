@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>EchoRun — Amplified Arena</title>
+<title>EchoSwap — Amplified Arena</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <style>
 :root{
@@ -770,7 +770,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 <div class="app">
   <div class="header">
     <div>
-      <h1>EchoRun — Amplified Arena</h1>
+      <h1>EchoSwap — Amplified Arena</h1>
       <div class="subtitle">Survive the hostile echoes in this fast-paced arena shooter. Collect upgrades and master movement!</div>
     </div>
     <div class="meta">
@@ -805,7 +805,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 </div>
 
 <div id="startScreen" class="screen start-screen">
-  <h1 class="start-title">ECHORUN ARENA</h1>
+  <h1 class="start-title">EchoSwap ARENA</h1>
   <p class="start-subtitle">Survive the hostile echoes in this fast-paced arena shooter. Collect upgrades, master movement, and set a new high score!</p>
   
   <div style="display: flex; gap: 20px; margin-bottom: 30px;">
@@ -1050,7 +1050,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 
 <script>
-// EchoRun — Amplified Edition
+// EchoSwap — Amplified Edition
 // Enhanced with new abilities and features
 
 (() => {
@@ -1138,8 +1138,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     { time: 30, type: 'easy', spawned: false, killed: false },
     { time: 70, type: 'medium', spawned: false, killed: false },
     { time: 120, type: 'hard', spawned: false, killed: false },
-    { time: 240, type: 'final', spawned: false, killed: false },
-    { time: 380, type: 'creeper', spawned: false, killed: false }
+    { time: 180, type: 'final', spawned: false, killed: false },
+    { time: 280, type: 'creeper', spawned: false, killed: false }
   ];
   let activeBosses = [];
   let bossHealthBars = [];
@@ -1331,7 +1331,7 @@ function initAudio() {
       cooldownRefresh: {level: 0, max: 1, rarity: 'rare'},
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
       lightningStrike: {level: 0, max: 2, rarity: 'mythical'},
-      fireBullet: {level: 0, max: 3, rarity: 'legendary'},
+      fireBullet: {level: 0, max: 3, rarity: 'common'},
     }
   };
 
@@ -3642,8 +3642,8 @@ function setHardcoreStartingStats() {
       this.x = spawnX;
       this.y = spawnY;
       this.r = 13; // bigger than regular slim
-      this.health = 1 + echoesKilled * 0.2; // Scales with echoes killed
-      this.maxHealth = 50;
+      this.health = 2 + bossesKilled * 2; // Scales with echoes killed
+      this.maxHealth = 10 + bossesKilled * 5;
       this.speed = 40; // faster than regular slim
       this.color = '#ff4500';
       this.age = 0;
@@ -3761,6 +3761,12 @@ function setHardcoreStartingStats() {
     
     takeDamage(amount) {
       this.health -= amount;
+
+        if (this.health < 0) {
+        this.health = 0;
+      }
+
+      
       spawnParticles(this.x, this.y, 'rgba(255,69,0,0.9)', 8, Math.PI*2, 60);
       return this.health <= 0;
     }
@@ -4294,6 +4300,11 @@ function setHardcoreStartingStats() {
       
       takeDamage(amount) {
           this.health -= amount;
+
+            if (this.health < 0) {
+            this.health = 0;
+          }
+
           
           // Damage effect - sparks
           spawnParticles(this.x, this.y, 'rgba(255, 215, 0, 0.9)', 10, Math.PI * 2, 60);
@@ -4461,6 +4472,11 @@ function setHardcoreStartingStats() {
     
     takeDamage(amount) {
       this.health -= amount;
+
+        if (this.health < 0) {
+        this.health = 0;
+      }
+
       spawnParticles(this.x, this.y, 'rgba(77,171,247,0.9)', 5, Math.PI*2, 40);
       return this.health <= 0;
     }
@@ -4940,6 +4956,11 @@ function setHardcoreStartingStats() {
     
     takeDamage(amount) {
       this.health -= amount;
+
+        if (this.health < 0) {
+        this.health = 0;
+      }
+
       
       // Magical damage effect
       for (let i = 0; i < 8; i++) {
@@ -5140,7 +5161,7 @@ function setHardcoreStartingStats() {
               dy: Math.sin(angle),
               t: 0,
               life: 3.0,
-              speed: Math.min(400 + bossesKilled * 100, 1000), // Very fast sniper bullet
+              speed: Math.min(600 + bossesKilled * 100, 1100), // Very fast sniper bullet
               size: Math.min(8 + bossesKilled, 14),
               color: 'rgba(255, 100, 50, 0.1)',
               enemy: true,
@@ -5417,6 +5438,11 @@ function setHardcoreStartingStats() {
       
       takeDamage(amount) {
           this.health -= amount;
+
+            if (this.health < 0) {
+            this.health = 0;
+          }
+
           
           // Blue metallic damage effect
           spawnParticles(this.x, this.y, 'rgba(0, 191, 255, 0.9)', 8, Math.PI*2, 60);
@@ -7735,8 +7761,8 @@ function setHardcoreStartingStats() {
       
       // MASSIVE SIZE
       this.r = 100;
-      this.health = 2000; // Double the original health
-      this.maxHealth = 2000;
+      this.health = 1000; 
+      this.maxHealth = 1000;
       this.speed = 20; // Slow but deliberate
       
       // DARK PURPLE COLOR SCHEME
@@ -8170,18 +8196,18 @@ function setHardcoreStartingStats() {
           speed = 100;
           break;
         case 2:
-          patternCount = 5;
-          bulletCount = 6;
+          patternCount = 4;
+          bulletCount = 5;
           speed = 130;
           break;
         case 3:
-          patternCount = 7;
-          bulletCount = 10;
+          patternCount = 5;
+          bulletCount = 6;
           speed = 160;
           break;
         case 4:
-          patternCount = 9;
-          bulletCount = 14;
+          patternCount = 7;
+          bulletCount = 8;
           speed = 200;
           break;
       }
@@ -9709,6 +9735,11 @@ class MegaCreeperBoss {
     
     takeDamage(amount) {
       this.health -= amount;
+
+        if (this.health < 0) {
+        this.health = 0;
+      }
+
       this.hitTimer = 0.3;
       spawnParticles(this.x, this.y, 'rgba(255,255,255,0.9)', 8, Math.PI*2, 60);
 
@@ -9717,7 +9748,7 @@ class MegaCreeperBoss {
         spawnParticles(this.x, this.y, 'rgba(255,100,0,0.9)', 5, Math.PI*2, 60);
       }
 
-      // FIXED: Knockback bullets - third upgrade can push back multiple enemies
+      // Knockback bullets - third upgrade can push back multiple enemies
       if (player.stats.knockbackBullets.level > 0) {
         const knockbackForce = player.stats.knockbackBullets.level === 1 ? 30 : 
                               player.stats.knockbackBullets.level === 2 ? 60 : 100;
@@ -10288,8 +10319,8 @@ class MegaCreeperBoss {
       { time: 30, type: 'easy', spawned: false, killed: false },
       { time: 70, type: 'medium', spawned: false, killed: false },
       { time: 120, type: 'hard', spawned: false, killed: false },
-      { time: 240, type: 'final', spawned: false, killed: false },
-      { time: 380, type: 'creeper', spawned: false, killed: false }
+      { time: 180, type: 'final', spawned: false, killed: false },
+      { time: 280, type: 'creeper', spawned: false, killed: false }
     ];
     activeBosses = [];
     bossHealthBars = [];
