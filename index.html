@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200254796398157"
-crossorigin="anonymous"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>EchoSwap — Amplified Arena</title>
@@ -764,7 +762,113 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   max-width: 95vw !important;
 }
 
+/* Achievement System Styles */
+.achievement-notification {
+  font-family: 'Inter', sans-serif;
+}
 
+.achievements-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.achievements-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  margin: 5px;
+}
+
+.achievements-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7ee787, #4dabf7);
+  border-radius: 10px;
+  border: 2px solid rgba(5, 15, 25, 0.5);
+}
+
+.achievements-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4dabf7, #7ee787);
+  box-shadow: 0 0 10px rgba(126, 231, 135, 0.5);
+}
+
+.achievement-card {
+  position: relative;
+}
+
+.achievement-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.achievement-card:hover::before {
+  transform: translateX(100%);
+}
+
+.achievement-card.unlocked {
+  animation: achievementPulse 3s infinite alternate;
+}
+
+@keyframes achievementPulse {
+  0% { box-shadow: 0 0 10px rgba(126, 231, 135, 0.1); }
+  100% { box-shadow: 0 0 20px rgba(126, 231, 135, 0.2); }
+}
+
+#achievementBtn {
+  position: relative;
+  overflow: hidden;
+}
+
+#achievementBtn::after {
+  content: '🏆';
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+#achievementBtn:hover {
+  background: linear-gradient(135deg, rgba(50, 30, 80, 0.5), rgba(100, 50, 150, 0.5)) !important;
+  border-color: rgba(218, 112, 214, 0.6) !important;
+  color: #da70d6 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .achievements-panel {
+    padding: 20px;
+  }
+  
+  .achievements-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* Make bottom left buttons smaller */
+#startScreen > div:last-of-type button,
+.start-btn.update-log-btn,
+#achievementBtn,
+#skinBtn {
+  padding: 15px 24px !important;
+  font-size: 13px !important;
+  min-width: 110px;
+}
+
+/* Adjust the button container spacing */
+#startScreen > div:last-of-type {
+  bottom: 26px !important;
+  left: 26px !important;
+  gap: 20px !important;
+}
+
+/* Optional: Make the icon slightly smaller too */
+#achievementBtn::after,
+.update-log-btn::after {
+  font-size: 14px !important;
+  margin-left: 6px !important;
+}
 
 </style>
 </head>
@@ -900,13 +1004,32 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   </div>
 </div>
 
+
 <div id="updateLogPanel" class="upgrade-menu" style="display: none;">
   <h2 style="text-align:center;margin-bottom:20px">UPDATE LOG</h2>
-  <div class="update-log-title">Updated version - V.22</div>
+  <div class="update-log-title">Updated version - V.23</div>
   <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-    
-        <div class="update-log-entry">
+
+      <div class="update-log-entry">
       <div class="update-log-title">New Balance changes</div>
+      <div class="update-log-date">17.02.2026</div>
+      <div class="update-log-content">
+        <ul>
+          <p><strong>NEW & ADDED!</strong></p>
+          <li><strong>STAGE MODE</strong></li>
+          <li>A brand new gamemode in the bottom right corner</li>
+          <li>A game mode with stages and progress, first stage works a bit like a tutorial</li>
+          <li><strong>SKINS</strong></li>
+          <li>13 New cool skins! as well as its own tab for all skins</li>
+          <li><strong>ACHIVEMENTS</strong></li>
+          <li>24 New Achivements with rewards! as well as its own tab for all Achivements</li>
+        </ul>
+      </div>
+    </div>
+
+
+      <div class="update-log-entry">
+      <div class="update-log-title">Changes</div>
       <div class="update-log-date">09.02.2026</div>
       <div class="update-log-content">
         <ul>
@@ -1123,6 +1246,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let maxLevelReached = false;
   let refreshUsed = false;
   let upgradeInvulTimer = 0;
+  let musicIntensity = 1.0;
+  let musicCalm, musicIntense, musicBoss;
+  let currentMusicTrack = 'calm';
+  let musicTransition = 0;
   let reflectiveMirrorActive = false;
   let reflectiveMirrorRadius = 80;
   let reflectiveMirrorChance = 0.3;
@@ -1238,6 +1365,7 @@ function updateBackgroundForGameMode(mode) {
 }
 
 // Initialize audio
+// Initialize audio
 function initAudio() {
   // Create audio elements with actual file sources
   backgroundsong = new Audio('backgroundsong.mp3');
@@ -1252,10 +1380,21 @@ function initAudio() {
   adamMusic.loop = true;
   adamMusic.volume = 0.1;
   
+  // Music system tracks
+  musicCalm = new Audio('calm.mp3');
+  musicIntense = new Audio('intense.mp3');
+  musicBoss = new Audio('boss.mp3');
+  
+  [musicCalm, musicIntense, musicBoss].forEach(track => {
+    track.loop = true;
+    track.volume = 0;
+  });
+  
   // Start passive music immediately
-  passive.play().catch(e => console.log('Passive music play failed:', e));
+  passive.play();
 }
-  // Play background music
+
+// Play background music
   function playbackgroundsong() {
     passive.pause(); // Stop passive music when starting game
     backgroundsong.currentTime = 0;
@@ -1336,6 +1475,1650 @@ function initAudio() {
       fireBullet: {level: 0, max: 3, rarity: 'legendary'},
     }
   };
+
+  // ==================== SKIN SYSTEM ====================
+  const skins = {
+    // Default skin (always available)
+    default: {
+      id: 'default',
+      name: 'Classic Echo',
+      description: 'The original EchoSwap look',
+      icon: '🔰',
+      playerColor: '#7ee787',
+      trailColor: 'rgba(126,231,135,0.5)',
+      bulletColor: '#ffffff',
+      glowColor: 'rgba(126,231,135,0.95)',
+      achievementId: null, // No achievement required
+      unlocked: true
+    },
+    
+    // Combat achievements skins
+    firstBlood: {
+      id: 'firstBlood',
+      name: 'Bloodletter',
+      description: 'Earned by getting your first kill',
+      icon: '⚔️',
+      playerColor: '#ff6b6b',
+      trailColor: 'rgba(255,107,107,0.5)',
+      bulletColor: '#ff8a8a',
+      glowColor: 'rgba(255,107,107,0.95)',
+      achievementId: 'firstBlood',
+      unlocked: false
+    },
+    
+    slayer: {
+      id: 'slayer',
+      name: 'Slayer',
+      description: 'Defeat 100 enemies',
+      icon: '🗡️',
+      playerColor: '#ff4500',
+      trailColor: 'rgba(255,69,0,0.5)',
+      bulletColor: '#ff6b4a',
+      glowColor: 'rgba(255,69,0,0.95)',
+      achievementId: 'slayer',
+      unlocked: false
+    },
+    
+    godSlayer: {
+      id: 'godSlayer',
+      name: 'God Slayer',
+      description: 'Defeat 1000 enemies',
+      icon: '👑',
+      playerColor: '#ffd700',
+      trailColor: 'rgba(255,215,0,0.6)',
+      bulletColor: '#ffd700',
+      glowColor: 'rgba(255,215,0,0.95)',
+      achievementId: 'godSlayer',
+      unlocked: false
+    },
+    
+    // Boss skins
+    bossHunter: {
+      id: 'bossHunter',
+      name: 'Boss Hunter',
+      description: 'Defeat your first boss',
+      icon: '🎯',
+      playerColor: '#9370db',
+      trailColor: 'rgba(147,112,219,0.5)',
+      bulletColor: '#b19cd9',
+      glowColor: 'rgba(147,112,219,0.95)',
+      achievementId: 'bossHunter',
+      unlocked: false
+    },
+    
+    bossMaster: {
+      id: 'bossMaster',
+      name: 'Boss Master',
+      description: 'Defeat 10 bosses',
+      icon: '👹',
+      playerColor: '#8b0000',
+      trailColor: 'rgba(139,0,0,0.5)',
+      bulletColor: '#a52a2a',
+      glowColor: 'rgba(139,0,0,0.95)',
+      achievementId: 'bossMaster',
+      unlocked: false
+    },
+    
+    // Survival skins
+    survivor: {
+      id: 'survivor',
+      name: 'Survivor',
+      description: 'Survive for 5 minutes',
+      icon: '⏱️',
+      playerColor: '#20b2aa',
+      trailColor: 'rgba(32,178,170,0.5)',
+      bulletColor: '#48d1cc',
+      glowColor: 'rgba(32,178,170,0.95)',
+      achievementId: 'survivor',
+      unlocked: false
+    },
+    
+    elite: {
+      id: 'elite',
+      name: 'elite',
+      description: 'Survive for 8 minutes',
+      icon: '⚡',
+      playerColor: '#00ffff',
+      trailColor: 'rgba(0,255,255,0.6)',
+      bulletColor: '#7fffd4',
+      glowColor: 'rgba(0,255,255,0.95)',
+      achievementId: 'elite',
+      unlocked: false
+    },
+    
+    // Score skins
+    legendary: {
+      id: 'legendary',
+      name: 'Legendary',
+      description: 'Reach 10000 points',
+      icon: '🌟',
+      playerColor: '#ff1493',
+      trailColor: 'rgba(255,20,147,0.5)',
+      bulletColor: '#ff69b4',
+      glowColor: 'rgba(255,20,147,0.95)',
+      achievementId: 'legendary',
+      unlocked: false
+    },
+    
+    // Special skins
+    perfectionist: {
+      id: 'perfectionist',
+      name: 'Perfectionist',
+      description: 'Reach max level',
+      icon: '⭐',
+      playerColor: '#ff00ff',
+      trailColor: 'rgba(255,0,255,0.6)',
+      bulletColor: '#da70d6',
+      glowColor: 'rgba(255,0,255,0.95)',
+      achievementId: 'perfectionist',
+      unlocked: false
+    },
+    
+    hardcore: {
+      id: 'hardcore',
+      name: 'Hardcore Legend',
+      description: 'Survive 1 minute in Hardcore mode',
+      icon: '🔥',
+      playerColor: '#ff0000',      // Pure red
+      trailColor: 'rgba(255,0,0,0.6)',
+      bulletColor: '#ff4500',      // Orange-red
+      glowColor: 'rgba(255,0,0,0.95)',
+      achievementId: 'hardcoreSurvivor',
+      unlocked: false
+    },
+    
+    shieldMaster: {
+      id: 'shieldMaster',
+      name: 'Shield Guardian',
+      description: 'Block 50 projectiles with shield',
+      icon: '🛡️',
+      playerColor: '#4dabf7',
+      trailColor: 'rgba(77,171,247,0.5)',
+      bulletColor: '#74c0fc',
+      glowColor: 'rgba(77,171,247,0.95)',
+      achievementId: 'shieldMaster',
+      unlocked: false
+    },
+    
+    bulletHell: {
+      id: 'bulletHell',
+      name: 'Bullet Hell',
+      description: 'Survive with 40+ enemies on screen',
+      icon: '🌀',
+      playerColor: '#9400d3',
+      trailColor: 'rgba(148,0,211,0.5)',
+      bulletColor: '#ba55d3',
+      glowColor: 'rgba(148,0,211,0.95)',
+      achievementId: 'bulletHell',
+      unlocked: false
+    }
+  };
+
+  // Current equipped skin
+  let currentSkin = 'default';
+
+  function syncSkinUnlockStatus() {
+    // Load unlocked achievements
+    const saved = localStorage.getItem('echoswap-achievements');
+    if (saved) {
+      try {
+        const unlocked = JSON.parse(saved);
+        // For each unlocked achievement, unlock the corresponding skin
+        for (const achievementId in unlocked) {
+          if (unlocked[achievementId]) {
+            // Find which skin belongs to this achievement
+            for (const skinId in skins) {
+              if (skins[skinId].achievementId === achievementId) {
+                skins[skinId].unlocked = true;
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.log('Failed to sync skin unlock status');
+      }
+    }
+  }
+
+
+  // Load equipped skin from localStorage
+  function loadEquippedSkin() {
+    const saved = localStorage.getItem('echoswap-skin');
+    if (saved && skins[saved]) {
+      currentSkin = saved;
+    } else {
+      currentSkin = 'default';
+    }
+  }
+
+  // Save equipped skin to localStorage
+  function saveEquippedSkin(skinId) {
+    localStorage.setItem('echoswap-skin', skinId);
+  }
+
+  // Apply skin to player
+  function applySkin(skinId) {
+    if (!skins[skinId]) return;
+    
+    const skin = skins[skinId];
+    if (!skin.unlocked && skinId !== 'default') return;
+    
+    currentSkin = skinId;
+    saveEquippedSkin(skinId);
+    
+    // Visual feedback
+    spawnParticles(player.x, player.y, skin.playerColor, 30, Math.PI*2, 100);
+    sfx(1000, 0.2, 0.03, 'sine');
+    
+    // Show notification
+    showSkinNotification(skin);
+  }
+
+  // Show skin equip notification
+  function showSkinNotification(skin) {
+    const notification = document.createElement('div');
+    notification.className = 'skin-notification';
+    notification.innerHTML = `
+      <div class="skin-icon">${skin.icon}</div>
+      <div class="skin-content">
+        <div class="skin-name">${skin.name} Equipped!</div>
+        <div class="skin-desc">${skin.description}</div>
+      </div>
+    `;
+    
+    notification.style.cssText = `
+      position: fixed;
+      top: 30px;
+      right: -350px;
+      background: linear-gradient(135deg, rgba(20, 30, 45, 0.95), rgba(30, 40, 55, 0.95));
+      border-left: 4px solid ${skin.playerColor};
+      border-radius: 8px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      width: 300px;
+      transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      font-family: 'Inter', sans-serif;
+    `;
+    
+    const icon = notification.querySelector('.skin-icon');
+    icon.style.cssText = `
+      font-size: 32px;
+      background: ${skin.playerColor}30;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid ${skin.playerColor}60;
+    `;
+    
+    const name = notification.querySelector('.skin-name');
+    name.style.cssText = `
+      font-size: 15px;
+      font-weight: 700;
+      color: ${skin.playerColor};
+      margin-bottom: 3px;
+    `;
+    
+    const desc = notification.querySelector('.skin-desc');
+    desc.style.cssText = `
+      font-size: 12px;
+      color: #cbd5e1;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.right = '20px';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.right = '-350px';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 500);
+    }, 3000);
+  }
+
+  // Add this near the top of your script, after the initial state variables
+  // ==================== ACHIEVEMENT SYSTEM ====================
+  const achievements = {
+    // Combat Achievements
+    firstBlood: {
+      id: 'firstBlood',
+      name: 'First Blood',
+      description: 'Defeat your first enemy',
+      icon: '⚔️',
+      condition: (stats) => stats.echoesKilled >= 1,
+      reward: '50 XP',
+      rarity: 'common',
+      unlocked: false
+    },
+    slayer: {
+      id: 'slayer',
+      name: 'Slayer',
+      description: 'Defeat 100 enemies',
+      icon: '🗡️',
+      condition: (stats) => stats.echoesKilled >= 100,
+      reward: '100 XP',
+      rarity: 'common',
+      unlocked: false
+    },
+    exterminator: {
+      id: 'exterminator',
+      name: 'Exterminator',
+      description: 'Defeat 500 enemies',
+      icon: '💀',
+      condition: (stats) => stats.echoesKilled >= 500,
+      reward: '250 XP + 1 Life',
+      rarity: 'rare',
+      unlocked: false
+    },
+    massMurder: {
+      id: 'massMurder',
+      name: 'Mass Murder',
+      description: 'Defeat 1000 enemies',
+      icon: '👑',
+      condition: (stats) => stats.echoesKilled >= 1000,
+      reward: '500 XP + Shield Upgrade',
+      rarity: 'legendary',
+      unlocked: false
+    },
+
+    // Boss Achievements
+    bossHunter: {
+      id: 'bossHunter',
+      name: 'Boss Hunter',
+      description: 'Defeat your first boss',
+      icon: '🎯',
+      condition: (stats) => stats.bossesKilled >= 1,
+      reward: '100 XP',
+      rarity: 'rare',
+      unlocked: false
+    },
+    bossSlayer: {
+      id: 'bossSlayer',
+      name: 'Boss Slayer',
+      description: 'Defeat 5 bosses',
+      icon: '🏆',
+      condition: (stats) => stats.bossesKilled >= 5,
+      reward: '300 XP + Extra Life',
+      rarity: 'legendary',
+      unlocked: false
+    },
+    bossMaster: {
+      id: 'bossMaster',
+      name: 'Boss Master',
+      description: 'Defeat 10 bosses',
+      icon: '👹',
+      condition: (stats) => stats.bossesKilled >= 10,
+      reward: '500 XP + Damage Boost',
+      rarity: 'mythical',
+      unlocked: false
+    },
+
+    // Survival Achievements
+    survivor: {
+      id: 'survivor',
+      name: 'Survivor',
+      description: 'Survive for 3 minutes',
+      icon: '⏱️',
+      condition: (stats) => stats.timeAlive >= 180,
+      reward: '100 XP',
+      rarity: 'common',
+      unlocked: false
+    },
+    veteran: {
+      id: 'veteran',
+      name: 'Veteran',
+      description: 'Survive for 5 minutes',
+      icon: '⌛',
+      condition: (stats) => stats.timeAlive >= 300,
+      reward: '250 XP + Shield',
+      rarity: 'rare',
+      unlocked: false
+    },
+    elite: {
+      id: 'elite',
+      name: 'Elite',
+      description: 'Survive for 8 minutes',
+      icon: '⚡',
+      condition: (stats) => stats.timeAlive >= 480,
+      reward: '500 XP + God Mode (3s)',
+      rarity: 'legendary',
+      unlocked: false
+    },
+
+    // Score Achievements
+    pointCollector: {
+      id: 'pointCollector',
+      name: 'Point Collector',
+      description: 'Reach 1000 points',
+      icon: '💰',
+      condition: (stats) => stats.score >= 1000,
+      reward: '100 XP',
+      rarity: 'common',
+      unlocked: false
+    },
+    highScorer: {
+      id: 'highScorer',
+      name: 'High Scorer',
+      description: 'Reach 6000 points',
+      icon: '💎',
+      condition: (stats) => stats.score >= 6000,
+      reward: '250 XP + Fire Rate Boost',
+      rarity: 'rare',
+      unlocked: false
+    },
+    legendary: {
+      id: 'legendary',
+      name: 'Legendary',
+      description: 'Reach 10000 points',
+      icon: '🌟',
+      condition: (stats) => stats.score >= 10000,
+      reward: '500 XP + Mythical Upgrade',
+      rarity: 'mythical',
+      unlocked: false
+    },
+
+    // Upgrade Achievements
+    collector: {
+      id: 'collector',
+      name: 'Collector',
+      description: 'Collect 20 upgrades',
+      icon: '📦',
+      condition: (stats) => stats.upgradesGathered >= 20,
+      reward: '100 XP',
+      rarity: 'common',
+      unlocked: false
+    },
+    hoarder: {
+      id: 'hoarder',
+      name: 'Hoarder',
+      description: 'Collect 50 upgrades',
+      icon: '🎁',
+      condition: (stats) => stats.upgradesGathered >= 50,
+      reward: '250 XP + Extra Upgrade Slot',
+      rarity: 'rare',
+      unlocked: false
+    },
+    perfectionist: {
+      id: 'perfectionist',
+      name: 'Perfectionist',
+      description: 'Reach max level',
+      icon: '⭐',
+      condition: (stats) => stats.maxLevelReached === true,
+      reward: '1000 XP + Max Upgrade Boost',
+      rarity: 'mythical',
+      unlocked: false
+    },
+
+    // Mode Achievements
+    hardcoreSurvivor: {
+      id: 'hardcoreSurvivor',
+      name: 'Hardcore Survivor',
+      description: 'Survive 1 minute in Hardcore mode',
+      icon: '🔥',
+      condition: (stats) => stats.gameMode === 'hardcore' && stats.timeAlive >= 60,
+      reward: '500 XP + Legendary Upgrade',
+      rarity: 'legendary',
+      unlocked: false
+    },
+    freemodeMaster: {
+      id: 'freemodeMaster',
+      name: 'Freemode Master',
+      description: 'Survive 30 minutes in Freemode',
+      icon: '🕊️',
+      condition: (stats) => stats.gameMode === 'freemode' && stats.timeAlive >= 1800,
+      reward: '300 XP + Extra Life',
+      rarity: 'rare',
+      unlocked: false
+    },
+
+    // Special Achievements
+    pacifist: {
+      id: 'pacifist',
+      name: 'Pacifist',
+      description: 'Survive 40 seconds without killing any enemy',
+      icon: '☮️',
+      condition: (stats) => stats.timeAlive >= 40 && stats.echoesKilled === 0,
+      reward: '100 XP',
+      rarity: 'rare',
+      unlocked: false
+    },
+    sharpshooter: {
+      id: 'sharpshooter',
+      name: 'Sharpshooter',
+      description: 'Hit 10 enemies in a row without missing',
+      icon: '🎯',
+      condition: (stats) => stats.consecutiveHits >= 10,
+      reward: '100 XP + Accuracy Boost',
+      rarity: 'rare',
+      unlocked: false
+    },
+    bulletHell: {
+      id: 'bulletHell',
+      name: 'Bullet Hell',
+      description: 'Survive with 40+ enemies on screen',
+      icon: '🌀',
+      condition: (stats) => stats.maxEnemiesOnScreen >= 40,
+      reward: '200 XP',
+      rarity: 'legendary',
+      unlocked: false
+    },
+    shieldMaster: {
+      id: 'shieldMaster',
+      name: 'Shield Master',
+      description: 'Block 50 projectiles with shield',
+      icon: '🛡️',
+      condition: (stats) => stats.projectilesBlocked >= 50,
+      reward: '200 XP + Shield Regeneration',
+      rarity: 'rare',
+      unlocked: false
+    },
+    speedDemon: {
+      id: 'speedDemon',
+      name: 'Speed Demon',
+      description: 'Move at maximum speed for 10 seconds',
+      icon: '💨',
+      condition: (stats) => stats.maxSpeedTime >= 10,
+      reward: '100 XP + Speed Boost',
+      rarity: 'common',
+      unlocked: false
+    },
+    lastStand: {
+      id: 'lastStand',
+      name: 'Last Stand',
+      description: 'Survive with 1 life for 2 minutes',
+      icon: '⚔️',
+      condition: (stats) => stats.lowLifeTime >= 120,
+      reward: '200 XP + Emergency Boost',
+      rarity: 'legendary',
+      unlocked: false
+    }
+  };
+
+  // Achievement state
+  let achievementStats = {
+    echoesKilled: 0,
+    bossesKilled: 0,
+    timeAlive: 0,
+    score: 0,
+    upgradesGathered: 0,
+    maxLevelReached: false,
+    gameMode: 'classic',
+    consecutiveHits: 0,
+    maxEnemiesOnScreen: 0,
+    projectilesBlocked: 0,
+    maxSpeedTime: 0,
+    lowLifeTime: 0,
+    lastHitTime: 0
+  };
+
+  // Load unlocked achievements from localStorage
+  function loadAchievements() {
+    const saved = localStorage.getItem('echoswap-achievements');
+    if (saved) {
+      try {
+        const unlocked = JSON.parse(saved);
+        for (const achievementId in unlocked) {
+          if (achievements[achievementId]) {
+            achievements[achievementId].unlocked = unlocked[achievementId];
+          }
+        }
+      } catch (e) {
+        console.log('Failed to load achievements');
+      }
+    }
+  }
+
+  // Save unlocked achievements to localStorage
+  function saveAchievements() {
+    const unlocked = {};
+    for (const id in achievements) {
+      unlocked[id] = achievements[id].unlocked;
+    }
+    localStorage.setItem('echoswap-achievements', JSON.stringify(unlocked));
+  }
+
+  // Check and unlock achievements
+  function checkAchievements() {
+    for (const id in achievements) {
+      const achievement = achievements[id];
+      if (!achievement.unlocked && achievement.condition(achievementStats)) {
+        unlockAchievement(id);
+      }
+    }
+  }
+
+  // Unlock achievement and give rewards
+  function unlockAchievement(id) {
+    const achievement = achievements[id];
+    if (!achievement || achievement.unlocked) return;
+    
+    achievement.unlocked = true;
+    
+    // Show achievement notification
+    showAchievementNotification(achievement);
+    
+    // Apply achievement reward
+    applyAchievementReward(id);
+    
+    // Save to localStorage
+    saveAchievements();
+    
+    // Play sound
+    sfx(1200, 0.3, 0.04, 'sine');
+  }
+
+  // Show achievement notification - ENHANCED THEME
+  function showAchievementNotification(achievement) {
+    const notification = document.createElement('div');
+    notification.className = 'achievement-notification';
+    notification.innerHTML = `
+      <div class="achievement-icon">${achievement.icon}</div>
+      <div class="achievement-content">
+        <div class="achievement-name">${achievement.name}</div>
+        <div class="achievement-desc">${achievement.description}</div>
+        <div class="achievement-reward">⚡ ${achievement.reward}</div>
+      </div>
+    `;
+    
+    // Style the notification - THINNER, LONGER, MORE TRANSPARENT
+    notification.style.cssText = `
+      position: fixed;
+      top: 30px;
+      right: -350px;
+      background: linear-gradient(135deg, rgba(10, 20, 35, 0.85), rgba(20, 30, 45, 0.9));
+      border-left: 4px solid ${getRarityColor(achievement.rarity)};
+      border-radius: 8px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(126, 231, 135, 0.1);
+      backdrop-filter: blur(12px);
+      width: 320px;
+      transition: right 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      font-family: 'Inter', sans-serif;
+    `;
+    
+    // Add glow effect based on rarity
+    const rarityGlow = {
+      'common': '0 0 10px rgba(154, 164, 178, 0.3)',
+      'rare': '0 0 15px rgba(77, 171, 247, 0.4)',
+      'legendary': '0 0 20px rgba(255, 215, 0, 0.5)',
+      'mythical': '0 0 25px rgba(218, 112, 214, 0.6)'
+    };
+    
+    notification.style.boxShadow = `0 8px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px ${getRarityColor(achievement.rarity)}40, ${rarityGlow[achievement.rarity] || ''}`;
+    
+    // Style the icon
+    const icon = notification.querySelector('.achievement-icon');
+    icon.style.cssText = `
+      font-size: 32px;
+      background: linear-gradient(135deg, ${getRarityColor(achievement.rarity)}30, transparent);
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid ${getRarityColor(achievement.rarity)}60;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    `;
+    
+    // Style the content
+    const content = notification.querySelector('.achievement-content');
+    content.style.cssText = `
+      flex: 1;
+    `;
+    
+    const name = notification.querySelector('.achievement-name');
+    name.style.cssText = `
+      font-size: 15px;
+      font-weight: 700;
+      color: ${getRarityColor(achievement.rarity)};
+      margin-bottom: 3px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px ${getRarityColor(achievement.rarity)}80;
+    `;
+    
+    const desc = notification.querySelector('.achievement-desc');
+    desc.style.cssText = `
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    `;
+    
+    const reward = notification.querySelector('.achievement-reward');
+    reward.style.cssText = `
+      font-size: 11px;
+      color: #7ee787;
+      background: rgba(126, 231, 135, 0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      border: 1px solid rgba(126, 231, 135, 0.3);
+      letter-spacing: 0.3px;
+    `;
+    
+    // Add progress bar at bottom
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      background: linear-gradient(90deg, ${getRarityColor(achievement.rarity)}, #7ee787);
+      animation: shrinkWidth 5s linear forwards;
+    `;
+    notification.appendChild(progressBar);
+    
+    // Add keyframe animation for progress bar
+    if (!document.getElementById('achievementProgressStyle')) {
+      const style = document.createElement('style');
+      style.id = 'achievementProgressStyle';
+      style.textContent = `
+        @keyframes shrinkWidth {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+      notification.style.right = '20px';
+    }, 100);
+    
+    // Animate out after 5 seconds
+    setTimeout(() => {
+      notification.style.right = '-350px';
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 600);
+    }, 5000);
+  }
+
+  function getRarityColor(rarity) {
+    switch(rarity) {
+      case 'common': return '#9aa4b2';
+      case 'rare': return '#4dabf7';
+      case 'legendary': return '#ffd700';
+      case 'mythical': return '#da70d6';
+      default: return '#7ee787';
+    }
+  }
+
+  // Helper function to convert hex to rgba
+  function hexToRgba(hex, alpha) {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Parse hex values
+    let r, g, b;
+    if (hex.length === 3) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+    } else {
+      r = parseInt(hex.substring(0, 2), 16);
+      g = parseInt(hex.substring(2, 4), 16);
+      b = parseInt(hex.substring(4, 6), 16);
+    }
+    
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  // Function to parse color with alpha
+  function parseColorWithAlpha(color, alpha) {
+    if (!color) return `rgba(126,231,135,${alpha})`;
+    
+    if (color.startsWith('rgba')) {
+      // Replace the alpha value
+      return color.replace(/[^,]+(?=\))/, alpha.toString());
+    } else if (color.startsWith('#')) {
+      // Convert hex to rgba
+      return hexToRgba(color, alpha);
+    } else {
+      // Assume it's a named color or hex without #
+      return `rgba(126,231,135,${alpha})`; // Fallback
+    }
+  }
+
+
+  // Apply achievement rewards - NOW UNLOCKS SKINS INSTEAD OF UPGRADES
+  function applyAchievementReward(id) {
+    // Find which skin belongs to this achievement
+    let unlockedSkin = null;
+    for (const skinId in skins) {
+      if (skins[skinId].achievementId === id && !skins[skinId].unlocked) {
+        skins[skinId].unlocked = true;
+        unlockedSkin = skins[skinId];
+        break;
+      }
+    }
+    
+    // Give XP reward (keep this)
+    switch(id) {
+      case 'firstBlood':
+      case 'slayer':
+      case 'survivor':
+      case 'pointCollector':
+      case 'collector':
+      case 'pacifist':
+        playerXP += 100;
+        break;
+        
+      case 'exterminator':
+        playerXP += 250;
+        player.lives++;
+        livesEl.textContent = player.lives;
+        break;
+        
+      case 'godSlayer':
+        playerXP += 500;
+        break;
+        
+      case 'bossHunter':
+        playerXP += 100;
+        break;
+        
+      case 'bossSlayer':
+        playerXP += 300;
+        player.lives += 2;
+        livesEl.textContent = player.lives;
+        break;
+        
+      case 'bossMaster':
+        playerXP += 500;
+        break;
+        
+      case 'veteran':
+        playerXP += 250;
+        break;
+        
+      case 'elite':
+        playerXP += 500;
+        player.invul = 3;
+        break;
+        
+      case 'highScorer':
+        playerXP += 250;
+        player.fireRate *= 0.9;
+        break;
+        
+      case 'legendary':
+        playerXP += 500;
+        break;
+        
+      case 'hoarder':
+        playerXP += 250;
+        pendingUpgrades++;
+        break;
+        
+      case 'perfectionist':
+        playerXP += 1000;
+        player.damageMultiplier *= 1.5;
+        player.speed *= 1.2;
+        player.fireRate *= 0.8;
+        break;
+        
+      case 'hardcoreSurvivor':
+        playerXP += 500;
+        break;
+        
+      case 'freemodeMaster':
+        playerXP += 300;
+        player.lives++;
+        livesEl.textContent = player.lives;
+        break;
+        
+      case 'sharpshooter':
+        playerXP += 100;
+        player.spread *= 0.8;
+        break;
+        
+      case 'bulletHell':
+        playerXP += 200;
+        break;
+        
+      case 'shieldMaster':
+        playerXP += 200;
+        break;
+        
+      case 'speedDemon':
+        playerXP += 100;
+        player.speed *= 1.1;
+        break;
+        
+      case 'lastStand':
+        playerXP += 200;
+        emergencyAbilityCooldown = 0;
+        break;
+    }
+    
+    checkLevelUp();
+    
+    // Show skin unlocked notification if we unlocked one
+    if (unlockedSkin) {
+      showSkinUnlockedNotification(unlockedSkin);
+    }
+    
+    // Visual effect for reward
+    spawnParticles(player.x, player.y, 'rgba(255,215,0,0.9)', 30, Math.PI*2, 150);
+  }
+
+  // Show skin unlocked notification
+  function showSkinUnlockedNotification(skin) {
+    const notification = document.createElement('div');
+    notification.className = 'skin-unlock-notification';
+    notification.innerHTML = `
+      <div class="skin-icon">${skin.icon}</div>
+      <div class="skin-content">
+        <div class="skin-title">SKIN UNLOCKED!</div>
+        <div class="skin-name">${skin.name}</div>
+        <div class="skin-desc">${skin.description}</div>
+      </div>
+      <button class="equip-skin-btn">EQUIP</button>
+    `;
+    
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(10, 20, 35, 0.98), rgba(20, 30, 45, 0.98));
+    border: 2px solid ${skin.playerColor};
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 10001;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px ${skin.playerColor}80;
+    backdrop-filter: blur(20px);
+    width: 450px;
+    max-width: 90vw;
+    font-family: 'Inter', sans-serif;
+    animation: skinUnlockPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  `;
+
+    // Add animation
+    if (!document.getElementById('skinUnlockStyle')) {
+      const style = document.createElement('style');
+      style.id = 'skinUnlockStyle';
+      style.textContent = `
+        @keyframes skinUnlockPop {
+          0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+          100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }    
+    
+    const icon = notification.querySelector('.skin-icon');
+    icon.style.cssText = `
+      font-size: 64px;
+      background: ${skin.playerColor}30;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      border: 2px solid ${skin.playerColor}80;
+      box-shadow: 0 0 20px ${skin.playerColor}60;
+    `;
+    
+    const content = notification.querySelector('.skin-content');
+    content.style.cssText = `
+      flex: 1;
+    `;
+    
+    const title = notification.querySelector('.skin-title');
+    title.style.cssText = `
+      font-size: 14px;
+      font-weight: 700;
+      color: ${skin.playerColor};
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    `;
+    
+    const name = notification.querySelector('.skin-name');
+    name.style.cssText = `
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 5px;
+    `;
+    
+    const desc = notification.querySelector('.skin-desc');
+    desc.style.cssText = `
+      font-size: 13px;
+      color: #9aa4b2;
+    `;
+    
+    const equipBtn = notification.querySelector('.equip-skin-btn');
+    equipBtn.style.cssText = `
+      background: linear-gradient(135deg, ${skin.playerColor}, ${skin.playerColor}CC);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      color: #02060a;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px ${skin.playerColor}80;
+    `;
+    
+    equipBtn.addEventListener('mouseenter', () => {
+      equipBtn.style.transform = 'translateY(-2px)';
+      equipBtn.style.boxShadow = `0 8px 25px ${skin.playerColor}`;
+    });
+    
+    equipBtn.addEventListener('mouseleave', () => {
+      equipBtn.style.transform = 'translateY(0)';
+      equipBtn.style.boxShadow = `0 4px 15px ${skin.playerColor}80`;
+    });
+    
+    equipBtn.addEventListener('click', () => {
+      applySkin(skin.id);
+      notification.remove();
+    });
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds with fade out over 2 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        // Start fade out
+        notification.style.transition = 'opacity 2s ease, transform 2s ease';
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(-50%) translateY(20px)';
+        
+        // Remove after fade completes
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 2000);
+      }
+    }, 3000); // Wait 3 seconds before starting fade
+  }
+
+  // Add achievement button to start screen - MOVED NEXT TO NEWS BUTTON
+  function addGameButtons() {
+    const achievementBtn = document.createElement('button');
+    achievementBtn.id = 'achievementBtn';
+    achievementBtn.className = 'start-btn update-log-btn'; // Same class as news button
+    achievementBtn.innerHTML = '🏆 Achievements';
+    
+    // Add to the same container as the news button
+    const newsButtonContainer = document.querySelector('#startScreen > div:last-of-type');
+    if (newsButtonContainer) {
+      // Create a container for both buttons
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = `
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        display: flex;
+        gap: 15px;
+      `;
+      
+      // Move the news button into our new container
+      const newsBtn = document.getElementById('newFeatureBtn');
+      if (newsBtn && newsBtn.parentNode) {
+        newsBtn.parentNode.removeChild(newsBtn);
+        buttonContainer.appendChild(newsBtn);
+        buttonContainer.appendChild(achievementBtn);
+        document.querySelector('#startScreen').appendChild(buttonContainer);
+      }
+    }
+    
+    achievementBtn.addEventListener('click', showAchievementsPanel);
+  }
+
+  // Show achievements panel - ENHANCED THEME
+  function showAchievementsPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'achievements-panel';
+    panel.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px rgba(126,231,135,0.3);position:relative;padding-bottom:15px;">🏆 ACHIEVEMENTS</h2>
+      <div class="achievements-grid"></div>
+      <div style="display:flex;gap:10px;margin-top:25px;">
+        <button id="closeAchievements" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px 24px;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s ease;box-shadow:0 4px 15px rgba(15,76,117,0.4);letter-spacing:0.5px;text-transform:uppercase;">CLOSE ACHIEVEMENTS</button>
+      </div>
+    `;
+    
+    panel.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(5, 15, 25, 0.97), rgba(10, 25, 47, 0.97));
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(126, 231, 135, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(126, 231, 135, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      z-index: 10001;
+      width: 850px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      backdrop-filter: blur(20px);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+    `;
+    
+    const grid = panel.querySelector('.achievements-grid');
+    grid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 15px;
+      max-height: 55vh;
+      overflow-y: auto;
+      padding: 5px;
+    `;
+    
+    // Group achievements by rarity
+    const grouped = {};
+    for (const id in achievements) {
+      const a = achievements[id];
+      if (!grouped[a.rarity]) grouped[a.rarity] = [];
+      grouped[a.rarity].push(a);
+    }
+    
+    const rarityOrder = ['mythical', 'legendary', 'rare', 'common'];
+    
+    for (const rarity of rarityOrder) {
+      if (grouped[rarity]) {
+        for (const achievement of grouped[rarity]) {
+          const card = document.createElement('div');
+          card.className = `achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+          
+          const rarityColor = getRarityColor(rarity);
+          const bgGradient = achievement.unlocked 
+            ? `linear-gradient(135deg, ${rarityColor}15, transparent)`
+            : 'rgba(255,255,255,0.03)';
+          
+          card.style.cssText = `
+            background: ${bgGradient};
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid ${achievement.unlocked ? rarityColor + '40' : 'rgba(255,255,255,0.05)'};
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: ${achievement.unlocked ? 1 : 0.7};
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+          `;
+          
+          // Add shine effect on hover
+          card.addEventListener('mouseenter', () => {
+            if (achievement.unlocked) {
+              card.style.transform = 'translateY(-2px)';
+              card.style.boxShadow = `0 8px 20px rgba(0,0,0,0.3), 0 0 0 1px ${rarityColor}60`;
+            }
+          });
+          card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+            card.style.boxShadow = 'none';
+          });
+          
+          // Add corner decoration for unlocked achievements
+          const cornerDeco = achievement.unlocked ? 
+            `<div style="position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 30px 30px 0;border-color:transparent ${rarityColor}40 transparent transparent;"></div>` : '';
+          
+          card.innerHTML = `
+            <div style="font-size:34px;background:${achievement.unlocked ? rarityColor + '20' : 'rgba(255,255,255,0.05)'};width:55px;height:55px;display:flex;align-items:center;justify-content:center;border-radius:16px;border:1px solid ${achievement.unlocked ? rarityColor + '60' : 'rgba(255,255,255,0.1)'};">${achievement.icon}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:${achievement.unlocked ? rarityColor : '#fff'};margin-bottom:4px;font-size:15px;letter-spacing:0.3px;">${achievement.name}</div>
+              <div style="font-size:12px;color:#9aa4b2;margin-bottom:6px;line-height:1.4;">${achievement.description}</div>
+              <div style="font-size:11px;color:#7ee787;background:rgba(126,231,135,0.1);padding:2px 8px;border-radius:12px;display:inline-block;border:1px solid rgba(126,231,135,0.2);">⚡ ${achievement.reward}</div>
+            </div>
+            <div style="font-size:22px;color:${achievement.unlocked ? rarityColor : 'rgba(255,255,255,0.3)'};">${achievement.unlocked ? '✓' : '🔒'}</div>
+            ${cornerDeco}
+          `;
+          
+          grid.appendChild(card);
+        }
+      }
+    }
+    
+    document.body.appendChild(panel);
+    
+    // Get the close button
+    const closeBtn = panel.querySelector('#closeAchievements');
+    
+    // Add hover effects for close button
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.transform = 'translateY(-2px)';
+      closeBtn.style.boxShadow = '0 8px 25px rgba(15, 76, 117, 0.7)';
+      closeBtn.style.background = 'linear-gradient(135deg, #3282b8, #0f4c75)';
+    });
+    
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.transform = 'translateY(0)';
+      closeBtn.style.boxShadow = '0 4px 15px rgba(15, 76, 117, 0.4)';
+      closeBtn.style.background = 'linear-gradient(135deg, #0f4c75, #3282b8)';
+    });
+    
+    closeBtn.addEventListener('mousedown', () => {
+      closeBtn.style.transform = 'translateY(1px)';
+      closeBtn.style.boxShadow = '0 2px 10px rgba(15, 76, 117, 0.4)';
+    });
+    
+    closeBtn.addEventListener('mouseup', () => {
+      closeBtn.style.transform = 'translateY(-2px)';
+      closeBtn.style.boxShadow = '0 8px 25px rgba(15, 76, 117, 0.7)';
+    });
+    
+    // Close button click handler
+    closeBtn.addEventListener('click', () => {
+      closeAchievementsPanel(panel);
+    });
+    
+    // CLICK OUTSIDE TO CLOSE - Improved version
+    panel.addEventListener('click', (e) => {
+      // If the click target is the panel itself (the background overlay), close it
+      if (e.target === panel) {
+        closeAchievementsPanel(panel);
+      }
+    });
+    
+    // Also close when clicking on the semi-transparent backdrop (if any)
+    // This handles any potential backdrop elements
+    
+    // Close with Escape key
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && panel.parentNode) {
+        closeAchievementsPanel(panel);
+        window.removeEventListener('keydown', escHandler);
+      }
+    };
+    window.addEventListener('keydown', escHandler);
+  }
+
+
+
+  // ===== HER LEGGER DU INN showSkinSelector FUNKSJONEN =====
+  // Show skin selector panel
+  function showSkinSelector() {
+    const panel = document.createElement('div');
+    panel.className = 'skin-selector-panel';
+    panel.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">👕 SKINS</h2>
+      <div class="skins-grid"></div>
+      <div style="display:flex;gap:10px;margin-top:25px;">
+        <button id="closeSkins" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px;font-weight:700;cursor:pointer;">CLOSE</button>
+      </div>
+    `;
+    
+    panel.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(5, 15, 25, 0.98), rgba(10, 25, 47, 0.98));
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(126, 231, 135, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      z-index: 10002;
+      width: 900px;
+      max-width: 95vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      backdrop-filter: blur(20px);
+      font-family: 'Inter', sans-serif;
+    `;
+    
+    const grid = panel.querySelector('.skins-grid');
+    grid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 5px;
+    `;
+    
+    // Add all skins to grid
+    for (const skinId in skins) {
+      const skin = skins[skinId];
+      const isEquipped = currentSkin === skinId;
+      const isUnlocked = skin.unlocked || skinId === 'default';
+      
+      const card = document.createElement('div');
+      card.className = `skin-card ${isUnlocked ? 'unlocked' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
+      
+      card.style.cssText = `
+        background: ${isUnlocked ? `linear-gradient(135deg, ${skin.playerColor}15, transparent)` : 'rgba(255,255,255,0.03)'};
+        border-radius: 16px;
+        padding: 20px;
+        border: 2px solid ${isEquipped ? skin.playerColor : (isUnlocked ? skin.playerColor + '40' : 'rgba(255,255,255,0.1)')};
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        cursor: ${isUnlocked ? 'pointer' : 'not-allowed'};
+        opacity: ${isUnlocked ? 1 : 0.5};
+        position: relative;
+      `;
+      
+      if (isEquipped) {
+        card.style.boxShadow = `0 0 20px ${skin.playerColor}80`;
+      }
+      
+      // Preview circle with skin colors
+      const preview = document.createElement('div');
+      preview.style.cssText = `
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, ${skin.playerColor}, ${skin.playerColor}CC);
+        box-shadow: 0 0 30px ${skin.playerColor}80;
+        margin-bottom: 10px;
+        position: relative;
+        overflow: hidden;
+      `;
+      
+      // Add trail effect to preview
+      const trail = document.createElement('div');
+      trail.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: ${skins[currentSkin].trailColor};
+        filter: blur(5px);
+        transform: translate(-50%, -50%);
+      `;
+      preview.appendChild(trail);
+      
+      // Add eyes to preview
+      const eyes = document.createElement('div');
+      eyes.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        display: flex;
+        justify-content: space-between;
+      `;
+      eyes.innerHTML = `
+        <div style="width: 10px; height: 10px; background: white; border-radius: 50%;"></div>
+        <div style="width: 10px; height: 10px; background: white; border-radius: 50%;"></div>
+      `;
+      preview.appendChild(eyes);
+      
+      card.innerHTML = `
+        ${preview.outerHTML}
+        <div style="font-size: 24px; margin-top: 5px;">${skin.icon}</div>
+        <div style="font-weight: 700; font-size: 18px; color: ${skin.playerColor};">${skin.name}</div>
+        <div style="font-size: 12px; color: #9aa4b2; text-align: center;">${skin.description}</div>
+        <div style="font-size: 11px; color: ${isUnlocked ? '#7ee787' : '#ff6b6b'}; margin-top: 5px;">
+          ${isUnlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}
+        </div>
+        ${isEquipped ? '<div style="position:absolute;top:10px;right:10px;color:' + skin.playerColor + ';">EQUIPPED</div>' : ''}
+      `;
+      
+      if (isUnlocked) {
+        card.addEventListener('click', () => {
+          if (currentSkin !== skinId) {
+            applySkin(skinId);
+            panel.remove();
+            showSkinSelector(); // Refresh to show equipped state
+          }
+        });
+        
+        card.addEventListener('mouseenter', () => {
+          card.style.transform = 'translateY(-4px)';
+          card.style.boxShadow = `0 10px 30px ${skin.playerColor}60`;
+        });
+        
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'translateY(0)';
+          card.style.boxShadow = isEquipped ? `0 0 20px ${skin.playerColor}80` : 'none';
+        });
+      }
+      
+      grid.appendChild(card);
+    }
+    
+    document.body.appendChild(panel);
+    
+    panel.querySelector('#closeSkins').addEventListener('click', () => {
+      panel.remove();
+    });
+    
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) {
+        panel.remove();
+      }
+    });
+  }
+  // ===== SLUTT PÅ showSkinSelector =====
+
+
+  loadEquippedSkin();
+
+  // Add achievement and skin buttons to start screen
+  function addGameButtons() {
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      display: flex;
+      gap: 15px;
+    `;
+    
+    // News button
+    const newsBtn = document.getElementById('newFeatureBtn');
+    if (newsBtn && newsBtn.parentNode) {
+      newsBtn.parentNode.removeChild(newsBtn);
+      buttonContainer.appendChild(newsBtn);
+    }
+    
+    // Achievement button
+    const achievementBtn = document.createElement('button');
+    achievementBtn.id = 'achievementBtn';
+    achievementBtn.className = 'start-btn update-log-btn';
+    achievementBtn.innerHTML = '🏆 Achievements';
+    buttonContainer.appendChild(achievementBtn);
+    
+    // Skin button
+    const skinBtn = document.createElement('button');
+    skinBtn.id = 'skinBtn';
+    skinBtn.className = 'start-btn update-log-btn';
+    skinBtn.innerHTML = '👕 Skins';
+    skinBtn.style.background = 'linear-gradient(135deg, rgba(91, 44, 111, 0.4), rgba(156, 39, 176, 0.4)) !important';
+    skinBtn.style.borderColor = 'rgba(156, 39, 176, 0.3) !important';
+    buttonContainer.appendChild(skinBtn);
+    
+    document.querySelector('#startScreen').appendChild(buttonContainer);
+    
+    achievementBtn.addEventListener('click', showAchievementsPanel);
+    skinBtn.addEventListener('click', showSkinSelector);
+  }
+
+  // Replace addAchievementButton call with addGameButtons
+  // Find where it says "addAchievementButton();" and replace with "addGameButtons();"
+
+  // Initialize achievements
+  loadAchievements();
+  
+
+// TEMPORARY: Reset achievements button for testing
+window.addEventListener('keydown', (e) => {
+  // Press 'R' three times quickly to reset achievements
+  if (e.key === 'r' || e.key === 'R') {
+    if (!window.resetKeyCount) window.resetKeyCount = 0;
+    window.resetKeyCount++;
+    
+    if (window.resetKeyCount >= 3) {
+      localStorage.removeItem('echoswap-achievements');
+      localStorage.removeItem('echoswap-skin');
+      console.log('ACHIEVEMENTS AND SKINS RESET!');
+      
+      // Reset all achievement unlocked flags
+      for (const id in achievements) {
+        achievements[id].unlocked = false;
+      }
+      
+      // Reset all skin unlocked flags (except default)
+      for (const skinId in skins) {
+        if (skinId !== 'default') {
+          skins[skinId].unlocked = false;
+        }
+      }
+      
+      // Reset current skin to default
+      currentSkin = 'default';
+      localStorage.setItem('echoswap-skin', 'default');
+      
+      // Visual feedback
+      alert('Achievements and skins have been reset!');
+      window.resetKeyCount = 0;
+    }
+    
+    // Reset counter after 2 seconds
+    clearTimeout(window.resetTimer);
+    window.resetTimer = setTimeout(() => {
+      window.resetKeyCount = 0;
+    }, 2000);
+  }
+});
+
+
+
+  // Helper function to close the achievements panel with animation
+  function closeAchievementsPanel(panel) {
+    // Add a fade-out animation
+    panel.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    panel.style.opacity = '0';
+    panel.style.transform = 'translate(-50%, -48%)';
+    
+    setTimeout(() => {
+      if (panel.parentNode) {
+        panel.parentNode.removeChild(panel);
+      }
+    }, 200);
+  }
+
+
+  
+
+  // Initialize achievements
+  loadAchievements();
+  addGameButtons();
+  syncSkinUnlockStatus();
+
+  // Update achievement stats in game loop
+  function updateAchievementStats() {
+    achievementStats.echoesKilled = echoesKilled;
+    achievementStats.bossesKilled = bossesKilled;
+    achievementStats.timeAlive = Math.floor(timeAlive);
+    achievementStats.score = score;
+    achievementStats.upgradesGathered = upgradesGathered;
+    achievementStats.maxLevelReached = maxLevelReached;
+    achievementStats.gameMode = gameMode;
+    achievementStats.maxEnemiesOnScreen = Math.max(achievementStats.maxEnemiesOnScreen, echoes.length);
+    
+    // Track low life time
+    if (player.lives <= 1) {
+      achievementStats.lowLifeTime += 0.016; // Approximate per frame
+    } else {
+      achievementStats.lowLifeTime = 0;
+    }
+    
+    // Track max speed time
+    if (killBoostTimer > 0 || lastResortActive) {
+      achievementStats.maxSpeedTime += 0.016;
+    }
+    
+    checkAchievements();
+  }
+
+  // Add this to your step function (right after updating echoesKilled, bossesKilled, etc.)
+  // Call updateAchievementStats() in your step function
+
+  // Track consecutive hits
+  let hitStreak = 0;
+  let lastHitTime = 0;
+
+  function trackHit() {
+    const now = performance.now() / 1000;
+    if (now - lastHitTime < 0.5) {
+      hitStreak++;
+    } else {
+      hitStreak = 1;
+    }
+    lastHitTime = now;
+    
+    if (hitStreak > achievementStats.consecutiveHits) {
+      achievementStats.consecutiveHits = hitStreak;
+    }
+  }
+
+  // Add this to bullet hit detection (where you deal damage)
+  // Call trackHit() when a bullet hits an enemy
+
+  // Track projectiles blocked by shield
+  function trackShieldBlock() {
+    achievementStats.projectilesBlocked++;
+  }
+
+  // Add this to shield damage detection
+  // Call trackShieldBlock() when shield blocks a projectile
+
+  // Add achievement button CSS
+  const achievementStyles = document.createElement('style');
+  achievementStyles.textContent = `
+    .achievement-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .achievement-card.unlocked {
+      background: linear-gradient(135deg, rgba(126,231,135,0.1), rgba(126,231,135,0.05));
+    }
+  `;
+  document.head.appendChild(achievementStyles);
 
   // input
   const input = { left:false, right:false, up:false, down:false, mx:W/2, my:H/2, mouseDown:false, mouseClicked: false };
@@ -2528,6 +4311,7 @@ function setHardcoreStartingStats() {
         }
 
           if (e.takeDamage(b.damage)) {
+            trackHit();
             echoesKilled++;
             spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
             echoes.splice(j, 1);
@@ -3786,7 +5570,7 @@ function setHardcoreStartingStats() {
           this.maxSpeed = 30;
           this.color = '#8b4513';
           this.throwTimer = 0;
-          this.throwCooldown = 6;
+          this.throwCooldown = 5;
           this.age = 0;
           this.spikes = 8;
           this.spikeLength = 8;
@@ -3895,7 +5679,7 @@ function setHardcoreStartingStats() {
       
       throwSlim() {
           const angle = Math.atan2(player.y - this.y, player.x - this.x);
-          const inaccuracy = (Math.random() - 0.5) * 0.5;
+          const inaccuracy = (Math.random() - 1) * 1;
           const throwAngle = angle + inaccuracy;
           
           const throwDistance = Math.min(W/3, H/3);
@@ -3957,7 +5741,7 @@ function setHardcoreStartingStats() {
           }
           
           // Tank recoil effect
-          const recoilForce = 150;
+          const recoilForce = 75;
           this.x -= Math.cos(angle) * recoilForce * 0.3;
           this.y -= Math.sin(angle) * recoilForce * 0.3;
           
@@ -4498,7 +6282,7 @@ function setHardcoreStartingStats() {
       this.glowColor = '#c4b5fd';
       this.detailColor = '#f0abfc';
       this.castTimer = 0;
-      this.castCooldown = 8;
+      this.castCooldown = 4;
       this.age = 0;
       this.floatPulse = 0;
       this.frozen = false;
@@ -10265,6 +12049,12 @@ class MegaCreeperBoss {
     reflectiveMirrorChance = 0.3;
     reflectiveMirrorPulse = 0;
 
+    achievementStats.consecutiveHits = 0;
+    achievementStats.maxEnemiesOnScreen = 0;
+    achievementStats.projectilesBlocked = 0;
+    achievementStats.maxSpeedTime = 0;
+    achievementStats.lowLifeTime = 0;
+
     bossHealth.style.display = 'none';
     levelUpNotification.style.display = 'none';
     upgradeMenu.style.display = 'none';
@@ -10368,20 +12158,18 @@ class MegaCreeperBoss {
   }
 
   document.getElementById('restart').addEventListener('click', () => { 
-    if (confirm("Are you sure you want to restart? All progress will be lost.")) {
-      resetGame();
-      startGame(gameMode);
-    }
+    resetGame();
+    startGame(gameMode);
   });
+
   classicBtn.addEventListener('click', () => { startGame('classic'); });
   hardcoreBtn.addEventListener('click', () => { startGame('hardcore'); });
   freemodeBtn.addEventListener('click', () => { startGame('freemode'); });
   
   restartFromDeath.addEventListener('click', () => { 
-    if (confirm("Refresh the game to start a new run?")) {
-      location.reload();
-    }
-  });
+  location.reload();
+});
+
   resumeBtn.addEventListener('click', () => { 
     gamePaused = false;
     hidePauseMenu();
@@ -11132,7 +12920,7 @@ function selectBonusUpgrade(type) {
       fireRate: 'Increase fire rate by 20%',
       bulletSpeed: 'Bullets travel 30% faster',
       mineLayer: 'Deploy 3 mines that explode when touched (3 damage each)',
-      movement: 'Movement speed increased by 15%',
+      movement: 'Movement speed increased by 20%',
       knockback: 'Remove recoil',
       bulletSize: player.stats.bulletSize.level === 0 ? 'Increase bullet size by 100%' :
                  player.stats.bulletSize.level === 1 ? 'Increase bullet size by 50% (total 150%)' : 'Increase bullet size by 50% (total 200%)',
@@ -11235,7 +13023,7 @@ function selectBonusUpgrade(type) {
         player.bulletSpeed *= 1.3 * legendaryBonus;
         break;
       case 'movement':
-        player.speed *= 1.20 * legendaryBonus;
+        player.speed *= 1.2 * legendaryBonus;
         break;
       case 'knockback':
         player.knockback = 0;
@@ -11601,6 +13389,7 @@ function spawnScheduledBoss(type) {
     updateUpgradeChances(dt);
     updateEmergencyAbilities(dt);
     updateMinigunBullets(dt);
+    updateAchievementStats();
 
     if (reflectiveMirrorActive) {
     reflectiveMirrorPulse += dt;
@@ -11702,9 +13491,13 @@ function spawnScheduledBoss(type) {
       }
     }
 
+    if (player.autoFireToggle && bullets.length === 0) {
+      // Reset hit streak if no bullets on screen
+      hitStreak = 0;
+    }
+
     for (let i = bullets.length - 1; i >= 0; i--){
-      const b = bullets[i];
-b.t += dt;
+      const b = bullets[i];b.t += dt;
 
       // FIXED: For mythical heavy caliber - bullets don't break when hitting enemies
       if (b.persistent && b.t > 1.0) {
@@ -11837,6 +13630,7 @@ b.t += dt;
                        (player.stats.xpBoost.level > 4 ? 0.1 : 0);
     
     if (e.takeDamage(b.damage)) {
+      trackHit();
       if (gameMode !== 'freemode' || player.lives > 0) {
         score += 8;
       }
@@ -11882,6 +13676,7 @@ b.t += dt;
   (player.stats.xpBoost.level > 4 ? 0.1 : 0);
       
       if (e.takeDamage(b.damage)) {
+        trackHit();
         if (gameMode !== 'freemode' || player.lives > 0) {
             score += 8;
         }
@@ -11932,7 +13727,7 @@ b.t += dt;
           }
           
           levelUpNotification.style.display = 'block';
-          levelUpNotification.querySelector('.level-up-text').textContent = 'Nigaahh!';
+          levelUpNotification.querySelector('.level-up-text').textContent = 'Continue surviving!';
           levelUpNotification.querySelector('.level-up-hint').textContent = 'Continue surviving!';
           setTimeout(() => {
             levelUpNotification.style.display = 'none';
@@ -12070,40 +13865,41 @@ if (b.enemy) {
   const d = Math.hypot(b.x - player.x, b.y - player.y);
   if (d < player.r + b.size && player.invul <= 0 && upgradeInvulTimer <= 0) {
 
-    if (shield > 0 && shieldDamageCooldown <= 0) {
-      shield--;
-      shieldDamageCooldown = 1.0;
-      spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 25, Math.PI*2, 120);
-      
-      // Shield crack effect
-      for (let j = 0; j < 8; j++) {
-        const angle = (j / 8) * Math.PI * 2;
-        particles.push({
-          x: player.x + Math.cos(angle) * (player.r + 8),
-          y: player.y + Math.sin(angle) * (player.r + 8),
-          vx: Math.cos(angle) * 60,
-          vy: Math.sin(angle) * 60,
-          life: 0.6,
-          col: '#4dabf7',
-          r: 3 + Math.random() * 2
-        });
-      }
-      
-      // Screen flash effect for shield damage
-      createScreenFlash('rgba(77,171,247,0.3)', 0.1);
-      
-      // Animate shield damage display
-      if (typeof animateShieldDamage === 'function') animateShieldDamage();
-      
-      sfx(600, 0.1, 0.03, 'square');
-      bullets.splice(i,1);
-      
-    } else if (shield <= 0) {
-      player.lives--;
-      livesEl.textContent = player.lives;
-      player.invul = 1.5;
-      shake = 10;
-      
+          if (shield > 0 && shieldDamageCooldown <= 0) {
+            shield--;
+            shieldDamageCooldown = 1.0;
+            trackShieldBlock();
+            spawnParticles(player.x, player.y, 'rgba(77,171,247,0.9)', 25, Math.PI*2, 120);
+            
+            // Shield crack effect
+            for (let j = 0; j < 8; j++) {
+              const angle = (j / 8) * Math.PI * 2;
+              particles.push({
+                x: player.x + Math.cos(angle) * (player.r + 8),
+                y: player.y + Math.sin(angle) * (player.r + 8),
+                vx: Math.cos(angle) * 60,
+                vy: Math.sin(angle) * 60,
+                life: 0.6,
+                col: '#4dabf7',
+                r: 3 + Math.random() * 2
+              });
+            }
+            
+            // Screen flash effect for shield damage
+            createScreenFlash('rgba(77,171,247,0.3)', 0.1);
+            
+            // Animate shield damage display
+            if (typeof animateShieldDamage === 'function') animateShieldDamage();
+            
+            sfx(600, 0.1, 0.03, 'square');
+            bullets.splice(i,1);
+            
+          } else if (shield <= 0) {
+            player.lives--;
+            livesEl.textContent = player.lives;
+            player.invul = 1.5;
+            shake = 10;
+                  
       // Enhanced damage effect
       spawnParticles(player.x, player.y, 'rgba(255,100,100,0.9)', 30, Math.PI*2, 150);
       
@@ -12576,6 +14372,8 @@ if (b.enemy) {
 
   // rendering
   function render(){
+    const playerColor = skins[currentSkin].playerColor;
+    const trailColor = skins[currentSkin].trailColor;
     const sx = (Math.random()-0.5)*shake, sy = (Math.random()-0.5)*shake;
     ctx.save(); ctx.translate(sx, sy);
 
@@ -12878,7 +14676,7 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
       const point = player.trail[i];
       const alpha = i / player.trail.length * 0.4;
       ctx.beginPath();
-      ctx.fillStyle = `rgba(126,231,135,${alpha})`;
+      ctx.fillStyle = skins[currentSkin].trailColor;
       ctx.arc(point.x, point.y, player.r * (i / player.trail.length), 0, Math.PI*2);
       ctx.fill();
     }
@@ -13074,15 +14872,20 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
     const invulTimer = player.invul > 0 ? player.invul : (upgradeInvulTimer);
     const invulEffect = hasInvul ? Math.sin(invulTimer * 10) * 0.5 + 0.5 : 1;
     const playerAlpha = hasInvul ? 0.5 + invulEffect * 0.5 : 1;
-    
+
     ctx.globalAlpha = playerAlpha;
+
+    // Player glow with skin color
     ctx.beginPath();
     const pg = ctx.createRadialGradient(player.x, player.y, player.r*0.2, player.x, player.y, player.r*4);
-    pg.addColorStop(0, 'rgba(126,231,135,0.95)'); pg.addColorStop(1, 'rgba(126,231,135,0.02)');
-    ctx.fillStyle = pg; ctx.arc(player.x, player.y, player.r*3.6, 0, Math.PI*2); ctx.fill();
-    
+    pg.addColorStop(0, skins[currentSkin].glowColor);
+    pg.addColorStop(1, parseColorWithAlpha(skins[currentSkin].glowColor, 0.02));
+    ctx.fillStyle = pg;
+    ctx.arc(player.x, player.y, player.r*3.6, 0, Math.PI*2);
+    ctx.fill();
+
     ctx.beginPath(); 
-    ctx.fillStyle = '#7ee787'; 
+    ctx.fillStyle = skins[currentSkin].trailColor; 
     ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); 
     ctx.fill();
     
