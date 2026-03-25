@@ -767,6 +767,96 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   font-family: 'Inter', sans-serif;
 }
 
+/* Gold Currency Display */
+/* Gold Currency Display */
+.gold-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+  border-radius: 30px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  z-index: 1000;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.gold-container.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gold-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+  animation: goldPulse 1.5s ease-in-out infinite;
+}
+
+.gold-amount {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 1px;
+}
+
+.gold-label {
+  font-size: 12px;
+  color: #ffd700;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+/* In-game gold display */
+.ingame-gold {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.ingame-gold .gold-icon {
+  font-size: 18px;
+  animation: none;
+}
+
+.ingame-gold .gold-amount {
+  font-size: 16px;
+}
+
+@keyframes goldPulse {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+  50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(255, 215, 0, 0.9); }
+}
+
+/* Gold Ball Animation - Make it more distinct from slims */
+@keyframes goldFloat {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes goldSparkle {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0); }
+}
+
+.gold-ball-glow {
+  animation: goldFloat 1.2s ease-in-out infinite;
+}
+
 .achievements-panel::-webkit-scrollbar {
   width: 10px;
 }
@@ -870,6 +960,42 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   margin-left: 6px !important;
 }
 
+/* Moving Personal Best Display */
+.moving-best-time {
+  position: absolute;
+  font-family: 'Inter', monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #7ee787;
+  text-shadow: 0 0 12px rgba(126,231,135,0.8);
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  background: none;
+  backdrop-filter: none;
+  border: none;
+  padding: 0;
+  transform: rotate(-330deg);  /* 45-degree oblique */
+  transform-origin: center center;  /* Scale from center */
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  animation: radialPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes radialPulse {
+  0% {
+    transform: rotate(-330deg) scale(1);
+    text-shadow: 0 0 12px rgba(126,231,135,0.6);
+  }
+  50% {
+    transform: rotate(-330deg) scale(1.15);
+    text-shadow: 0 0 20px rgba(126,231,135,1);
+  }
+  100% {
+    transform: rotate(-330deg) scale(1);
+    text-shadow: 0 0 12px rgba(126,231,135,0.6);
+  }
+}
+
 </style>
 </head>
 <body>
@@ -892,6 +1018,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
     <div class="card">Diff: <span id="diff">Normal</span></div>
     <div class="card">Level: <span id="level">1</span></div>
     <div class="card">Lives: <span id="lives">3</span></div>
+    <div class="card ingame-gold">💰 <span id="ingameGold">0</span></div>
     <div style="margin-left:auto" class="small">Aim with mouse — Click to fire — TAB for upgrades — M for auto-fire — L for emergency ability — P to pause</div>
   </div>
 
@@ -899,6 +1026,15 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   <div class="boss-health" id="bossHealth">
     <div class="boss-health-bar" id="bossHealthBar"></div>
     <div class="boss-health-text" id="bossHealthText"></div>
+  </div>
+
+  <!-- Gold Currency Display -->
+  <div id="goldContainer" class="gold-container">
+    <div class="gold-icon">💰</div>
+    <div>
+      <span id="goldAmount" class="gold-amount">0</span>
+      <span class="gold-label">GOLD</span>
+    </div>
   </div>
 
   <div class="ability-cooldown" id="abilityCooldown">
@@ -910,6 +1046,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 Made for fun · Local high score stored in your browser · Tip: click to enable audio</div>
 </div>
 
+
 <div id="startScreen" class="screen start-screen">
   <h1 class="start-title">ECHOSWAP ARENA</h1>
   <p class="start-subtitle">Survive the hostile echoes in this fast-paced arena shooter. Collect upgrades, master movement, and set a new high score!</p>
@@ -918,17 +1055,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     <button id="classicBtn" class="start-btn pulse">CLASSIC MODE</button>
     <button id="hardcoreBtn" class="start-btn">HARDCORE MODE</button>
     <button id="freemodeBtn" class="start-btn">FREEMODE</button>
-  </div>
-
-  <div class="game-description" style="max-width:800px; margin:20px auto; color:#9aa4b2; font-size:14px; line-height:1.6; background:rgba(255,255,255,0.02); padding:15px; border-radius:10px;">
-    <p><strong>ECHOSWAP ARENA</strong> is an intense survival game where you must avoid and fight off waves of enemies. Collect upgrades, unlock new abilities, and set a new high score. The game features three modes: Classic, Hardcore, and Freemode.</p>
-    <p><strong>Latest updates (February 2026):</strong></p>
-    <ul style="text-align:left; margin-left:20px; color:#cbd5e1;">
-      <li>✨ New: Burning bullets – inflicts fire damage over time on enemies</li>
-      <li>✨ New: Dark Echo – a powerful enemy that appears in the endgame</li>
-      <li>⚡ Balance adjustments: Reflective Mirror and Battle Nerve have been buffed</li>
-      <li>🐛 Bug fixes: Ghost, Rocket, and Inferno now kill enemies as intended</li>
-    </ul>
   </div>
 
 <div style="position: absolute; bottom: 30px; left: 30px;">
@@ -953,6 +1079,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       <div class="control-item"><span>Auto Fire</span><span class="control-key">M</span></div>
     </div>
   </div>
+
+  <div id="bestTimeDisplay" class="moving-best-time">Personal Best: 0s</div>
+
 </div>
 
 <div id="deathScreen" class="screen death-screen">
@@ -1297,6 +1426,267 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   let legendaryChance = 9; //maxed at 16
   let mythicalChance = 1; // maxed at 7
   let lastChanceUpdate = 0;
+
+
+  // Gold Currency System
+let playerGold = 0;
+let goldSpawnTimer = 0;
+let goldSpawnDelay = 0;
+
+let goldBalls = [];
+
+function loadGold() {
+  const saved = localStorage.getItem('echoswap-gold');
+  if (saved !== null) {
+    playerGold = parseInt(saved);
+  } else {
+    playerGold = 0;
+  }
+  updateGoldDisplay();
+}
+
+function saveGold() {
+  localStorage.setItem('echoswap-gold', playerGold);
+}
+
+function addGold(amount) {
+  playerGold += amount;
+  saveGold();
+  updateGoldDisplay();
+  
+  // Gold pickup animation
+  spawnGoldPickupEffect();
+  
+  // Play happy sound
+  sfx(1200, 0.15, 0.03, 'sine');
+}
+
+function updateGoldDisplay() {
+  const goldAmountEl = document.getElementById('goldAmount');
+  const ingameGoldEl = document.getElementById('ingameGold');
+  if (goldAmountEl) {
+    goldAmountEl.textContent = playerGold;
+  }
+  if (ingameGoldEl) {
+    ingameGoldEl.textContent = playerGold;
+  }
+}
+
+function spawnGoldBall() {
+  // Spawn from random edge of screen
+  const side = Math.floor(Math.random() * 4);
+  let spawnX, spawnY;
+  
+  switch(side) {
+    case 0:
+      spawnX = Math.random() * W;
+      spawnY = -30;
+      break;
+    case 1:
+      spawnX = W + 30;
+      spawnY = Math.random() * H;
+      break;
+    case 2:
+      spawnX = Math.random() * W;
+      spawnY = H + 30;
+      break;
+    default:
+      spawnX = -30;
+      spawnY = Math.random() * H;
+      break;
+  }
+  
+  // Create gold ball with bubbly movement
+  const goldBall = {
+    x: spawnX,
+    y: spawnY,
+    r: 10,
+    life: 15, // seconds until despawn
+    speed: 40,
+    angle: Math.random() * Math.PI * 2,
+    driftAngle: Math.random() * Math.PI * 2,
+    driftSpeed: 0.5 + Math.random() * 1,
+    floatPhase: Math.random() * Math.PI * 2,
+    bounceX: 0,
+    bounceY: 0,
+    collected: false,
+    value: 1 + Math.floor(Math.random() * 3), // 1-3 gold per ball
+    pulse: Math.random() * Math.PI * 2,
+    
+    update(dt) {
+      this.life -= dt;
+      this.pulse += dt * 4;
+      this.floatPhase += dt * 2;
+      
+      // Bubbly movement pattern
+      const driftX = Math.cos(this.driftAngle + this.floatPhase) * 30;
+      const driftY = Math.sin(this.driftAngle * 0.7 + this.floatPhase) * 30;
+      
+      // Move toward player slowly with random drift
+      const toPlayer = vecTo(this.x, this.y, player.x, player.y);
+      const moveX = toPlayer.x * this.speed * dt;
+      const moveY = toPlayer.y * this.speed * dt;
+      
+      this.x += moveX + driftX * dt;
+      this.y += moveY + driftY * dt;
+      
+      // Keep within bounds with slight bounce
+      if (this.x < 10) { this.x = 10; this.bounceX = -this.bounceX; }
+      if (this.x > W - 10) { this.x = W - 10; this.bounceX = -this.bounceX; }
+      if (this.y < 10) { this.y = 10; this.bounceY = -this.bounceY; }
+      if (this.y > H - 10) { this.y = H - 10; this.bounceY = -this.bounceY; }
+      
+      // Check if player picks up gold
+      const d = Math.hypot(this.x - player.x, this.y - player.y);
+      if (d < player.r + this.r && !this.collected) {
+        this.collected = true;
+        addGold(this.value);
+        return false;
+      }
+      
+      return this.life > 0;
+    },
+    
+    draw(ctx) {
+      const alpha = Math.min(1, this.life / 3);
+      const scale = 0.9 + Math.sin(this.pulse) * 0.15;
+      const floatY = Math.sin(this.floatPhase * 3) * 2;
+      
+      ctx.save();
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+      
+      // Outer glow - star-like
+      const glowGradient = ctx.createRadialGradient(
+        this.x, this.y + floatY, 1,
+        this.x, this.y + floatY, this.r * 2.2
+      );
+      glowGradient.addColorStop(0, `rgba(255, 215, 0, ${alpha * 0.5})`);
+      glowGradient.addColorStop(0.5, `rgba(255, 180, 0, ${alpha * 0.3})`);
+      glowGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
+      
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y + floatY, this.r * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Main gold ball with distinct star-like shape
+      const goldGradient = ctx.createRadialGradient(
+        this.x - 2, this.y - 2 + floatY, 1,
+        this.x, this.y + floatY, this.r
+      );
+      goldGradient.addColorStop(0, `rgba(255, 220, 80, ${alpha})`);
+      goldGradient.addColorStop(0.4, `rgba(255, 180, 40, ${alpha})`);
+      goldGradient.addColorStop(0.7, `rgba(255, 140, 20, ${alpha})`);
+      goldGradient.addColorStop(1, `rgba(200, 100, 10, ${alpha})`);
+      
+      ctx.fillStyle = goldGradient;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y + floatY, this.r * scale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Star-like rays around the gold ball
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(255, 215, 0, ${alpha * 0.7})`;
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 8; i++) {
+        const rayAngle = (i / 8) * Math.PI * 2 + this.pulse;
+        const rayLength = this.r * 1.3;
+        const startX = this.x + Math.cos(rayAngle) * this.r * 0.8;
+        const startY = this.y + floatY + Math.sin(rayAngle) * this.r * 0.8;
+        const endX = this.x + Math.cos(rayAngle) * rayLength;
+        const endY = this.y + floatY + Math.sin(rayAngle) * rayLength;
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+      }
+      
+      // Shine effect - multiple sparkles
+      for (let i = 0; i < 3; i++) {
+        const sparkleAngle = (i / 3) * Math.PI * 2 + this.pulse * 2;
+        const sparkleDist = this.r * 0.7;
+        const sparkleX = this.x + Math.cos(sparkleAngle) * sparkleDist;
+        const sparkleY = this.y + floatY + Math.sin(sparkleAngle) * sparkleDist;
+        
+        ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, this.r * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Central highlight
+      ctx.fillStyle = `rgba(255, 255, 220, ${alpha * 0.9})`;
+      ctx.beginPath();
+      ctx.arc(this.x - 2, this.y - 2 + floatY, this.r * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Gold coin symbol (distinct from slim's face)
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
+      ctx.font = `${Math.floor(this.r * 1.1)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('💰', this.x, this.y + floatY + 1);
+      
+      ctx.restore();
+      
+      // Additional floating sparkle particles
+      if (Math.random() < 0.1 && this.life > 2) {
+        particles.push({
+          x: this.x + (Math.random() - 0.5) * this.r,
+          y: this.y + floatY + (Math.random() - 0.5) * this.r,
+          vx: (Math.random() - 0.5) * 15,
+          vy: (Math.random() - 0.5) * 15 - 10,
+          life: 0.3 + Math.random() * 0.2,
+          col: `rgba(255, 215, 0, ${0.6 + Math.random() * 0.4})`,
+          r: 1 + Math.random() * 2
+        });
+      }
+    }
+  };
+  
+  goldBalls.push(goldBall);
+}
+
+function spawnGoldPickupEffect() {
+  // Create a "GOLD +X" notification that floats up
+  const notification = document.createElement('div');
+  notification.style.position = 'fixed';
+  notification.style.left = (player.x - 30) + 'px';
+  notification.style.top = (player.y - 40) + 'px';
+  notification.style.color = '#ffd700';
+  notification.style.fontSize = '20px';
+  notification.style.fontWeight = 'bold';
+  notification.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
+  notification.style.pointerEvents = 'none';
+  notification.style.zIndex = '9999';
+  notification.style.transition = 'all 0.8s ease-out';
+  notification.style.fontFamily = 'Inter, sans-serif';
+  notification.innerHTML = '💲';
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.top = (player.y - 80) + 'px';
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      if (notification.parentNode) notification.parentNode.removeChild(notification);
+    }, 800);
+  }, 10);
+  
+  // Spawn sparkle particles around player
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x: player.x + (Math.random() - 0.5) * 30,
+      y: player.y + (Math.random() - 0.5) * 30,
+      vx: (Math.random() - 0.5) * 60,
+      vy: (Math.random() - 0.5) * 60 - 20,
+      life: 0.5 + Math.random() * 0.5,
+      col: `rgba(255, 215, 0, ${0.7 + Math.random() * 0.3})`,
+      r: 2 + Math.random() * 3
+    });
+  }
+}
 
 // Emergency ability tracking
 let emergencyAbility = 'minelayer'; // Default ability
@@ -11745,7 +12135,8 @@ class MegaCreeperBoss {
         cooldownRefresh: 'xp',
         reflectiveMirror: 'xp',
         lightningStrike: 'xp',
-        fireBullet: 'xp'
+        fireBullet: 'xp',
+        inferno: 'xp'
       };
       
       ctx.fillText(icons[this.type], this.x, this.y + floatY);
@@ -12476,6 +12867,7 @@ function spawnRandomEnemy() {
 
   // Reset
   function resetGame(){
+    loadGold(); // Add this after resetGame opening
     player.x = W/2; player.y = H/2; player.vx = player.vy = 0; player.invul = 0;
     player.trail = [];
     player.workers = [];
@@ -12594,6 +12986,7 @@ function spawnRandomEnemy() {
     shockwaveTimer = 0;
     shockwaveRadius = 0;
     shockwaveDamage = 0;
+    goldBalls = [];
     
     // Reset stats based on game mode
     if (gameMode !== 'freemode') {
@@ -12643,6 +13036,12 @@ function spawnRandomEnemy() {
     
     // Add fade-out transition to start screen
     startScreen.classList.add('hidden');
+
+    // Hide gold container with start screen
+    const goldContainer = document.getElementById('goldContainer');
+    if (goldContainer) {
+      goldContainer.classList.add('hidden');
+    }
     
     // After transition completes, start the game
     setTimeout(() => {
@@ -14061,6 +14460,7 @@ function spawnScheduledBoss(type) {
         }
       }
 
+
       if (Math.random() < 0.2) {
         const trailColor = b.color || (b.shotgun ? 'rgba(255,200,100,0.8)' : 
                               (b.powerBullet ? 'rgba(255,100,100,0.8)' : 'rgba(255,255,255,0.8)'));
@@ -14470,12 +14870,15 @@ if (b.enemy) {
       
       // ====== CRITICAL FIX: Check if player died ======
       if (player.lives <= 0 && gameMode !== 'freemode') {
+        updatePersonalBestOnDeath();
         running = false;
         if (score > high){ 
           high = score; 
           localStorage.setItem('echoswap-hi', high); 
           hiEl.textContent = high; 
         }
+
+        updatePersonalBestOnDeath();
         
         setTimeout(() => {
           deathScreen.style.display = 'flex';
@@ -14738,12 +15141,15 @@ if (b.enemy) {
           spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
           
           if (player.lives <= 0 && gameMode !== 'freemode') {
+            updatePersonalBestOnDeath();
             running = false;
             if (score > high){ 
               high = score; 
               localStorage.setItem('echoswap-hi', high); 
               hiEl.textContent = high; 
             }
+
+            updatePersonalBestOnDeath();
             
             setTimeout(() => {
               deathScreen.style.display = 'flex';
@@ -14849,6 +15255,13 @@ if (b.enemy) {
         sfx(1000, 0.08, 0.025, 'sine');
       }
     }
+
+    // Update gold balls
+    for (let i = goldBalls.length - 1; i >= 0; i--) {
+      if (!goldBalls[i].update(dt)) {
+        goldBalls.splice(i, 1);
+      }
+    }
     
     if (gameStarted && running) {
     const upgradeChance = 0.015 * (1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0));
@@ -14878,6 +15291,17 @@ if (b.enemy) {
   }
     
     checkBossSpawn(dt);
+
+    // Gold ball spawning
+    if (running && gameStarted && !gamePaused) {
+      goldSpawnDelay += dt;
+      const spawnInterval = 3 + Math.random() * 3; // 3-6 seconds
+      
+      if (goldSpawnDelay >= spawnInterval) {
+        goldSpawnDelay = 0;
+        spawnGoldBall();
+      }
+    }
 
     for (let i = particles.length - 1; i >= 0; i--){
       const p = particles[i];
@@ -15221,6 +15645,11 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
     for (const e of echoes) e.draw(ctx);
 
     for (const u of upgrades) u.draw(ctx);
+
+    // Draw gold balls
+    for (const gold of goldBalls) {
+      gold.draw(ctx);
+    }
 
     for (const w of player.workers) w.draw(ctx);
 
@@ -15731,6 +16160,106 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
   requestAnimationFrame(loop);
 
   window.es = { bullets, echoes, paints, particles, player };
+
+  // === Moving Personal Best Survival Time ===
+  const bestTimeKey = 'echoswap-survival-best';
+
+  function loadBestSurvivalTime() {
+    let best = localStorage.getItem(bestTimeKey);
+    if (!best) best = 0;
+    return parseFloat(best);
+  }
+
+  function saveBestSurvivalTime(time) {
+    const currentBest = loadBestSurvivalTime();
+    if (time > currentBest) {
+      localStorage.setItem(bestTimeKey, time);
+    }
+  }
+
+  function updateBestTimeDisplay() {
+    const best = loadBestSurvivalTime();
+    const display = document.getElementById('bestTimeDisplay');
+    if (display) {
+      const seconds = Math.floor(best);
+      display.textContent = `Personal Best: ${seconds}s`;
+    }
+  }
+
+  function positionBestTimeDisplay() {
+    const display = document.getElementById('bestTimeDisplay');
+    const startScreen = document.getElementById('startScreen');
+    const freemodeBtn = document.getElementById('freemodeBtn');
+    if (!display || !startScreen || !freemodeBtn) return;
+    if (startScreen.classList.contains('hidden')) return;
+
+    // Get positions relative to the start screen
+    const startRect = startScreen.getBoundingClientRect();
+    const btnRect = freemodeBtn.getBoundingClientRect();
+
+    // Calculate offset from button to display
+    // 2cm above ≈ 76px (using 96 DPI, 2cm = 75.59px)
+    const offsetY = -76;      // above the button (negative Y)
+    const offsetX = 100;       // slightly to the right (positive X)
+
+    // Position relative to start screen
+    const left = btnRect.left - startRect.left + offsetX;
+    const top = btnRect.top - startRect.top + offsetY;
+
+    // Ensure it stays within visible bounds (optional)
+    display.style.left = Math.max(5, left) + 'px';
+    display.style.top = Math.max(5, top) + 'px';
+  }
+
+  // Called whenever the start screen becomes visible
+  function onStartScreenShown() {
+    updateBestTimeDisplay();
+    positionBestTimeDisplay();
+    // Also reposition on window resize
+    window.addEventListener('resize', positionBestTimeDisplay);
+  }
+
+  // Called when the start screen is hidden
+  function onStartScreenHidden() {
+    window.removeEventListener('resize', positionBestTimeDisplay);
+  }
+
+  // Observe start screen visibility changes
+  const startScreenObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mut) => {
+      if (mut.attributeName === 'class' && mut.target.id === 'startScreen') {
+        if (mut.target.classList.contains('hidden')) {
+          onStartScreenHidden();
+        } else {
+          onStartScreenShown();
+        }
+      }
+    });
+  });
+  startScreenObserver.observe(document.getElementById('startScreen'), { attributes: true });
+
+  // Save personal best when player dies (called from death logic)
+  function updatePersonalBestOnDeath() {
+    // Only update for Classic mode
+    if (gameMode !== 'classic') return;
+    const survivalTime = Math.floor(timeAlive);
+    saveBestSurvivalTime(survivalTime);
+    updateBestTimeDisplay();
+    // Also reposition in case the start screen is already visible (not needed, but safe)
+    positionBestTimeDisplay();
+  }
+
+  // Initialise when page loads
+  updateBestTimeDisplay();
+  // If start screen is already visible, set position
+  if (!document.getElementById('startScreen').classList.contains('hidden')) {
+    onStartScreenShown();
+  }
+
+
+  // Initialize gold system
+  loadGold();
+
 })();
 </script>
 </body>
