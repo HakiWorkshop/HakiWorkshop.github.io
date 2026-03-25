@@ -40,7 +40,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 .rarity-rare{background:rgba(77,171,247,0.3);color:#4dabf7}
 .rarity-legendary{background:rgba(255,215,0,0.3);color:#ffd700}
 .rarity-mythical{background:rgba(148,0,211,0.3);color:#da70d6}
-.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,6,12,0.9);z-index:50;opacity:1;visibility:visible;transition:opacity 0.2s ease, visibility 0.2s ease;}
+.screen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,6,12,0.9);z-index:50;opacity:1;visibility:visible;transition:opacity 0.2s ease, visibility 0.2s ease;}
 .screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
 .start-screen{background:radial-gradient(circle at 50% 30%, #0a1a2a 0%, #02060a 100%)}
 .start-title{font-size:48px;font-weight:bold;margin-bottom:10px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center;text-shadow:0 0 20px rgba(126,231,135,0.5)}
@@ -920,6 +920,17 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     <button id="freemodeBtn" class="start-btn">FREEMODE</button>
   </div>
 
+  <div class="game-description" style="max-width:800px; margin:20px auto; color:#9aa4b2; font-size:14px; line-height:1.6; background:rgba(255,255,255,0.02); padding:15px; border-radius:10px;">
+    <p><strong>ECHOSWAP ARENA</strong> is an intense survival game where you must avoid and fight off waves of enemies. Collect upgrades, unlock new abilities, and set a new high score. The game features three modes: Classic, Hardcore, and Freemode.</p>
+    <p><strong>Latest updates (February 2026):</strong></p>
+    <ul style="text-align:left; margin-left:20px; color:#cbd5e1;">
+      <li>✨ New: Burning bullets – inflicts fire damage over time on enemies</li>
+      <li>✨ New: Dark Echo – a powerful enemy that appears in the endgame</li>
+      <li>⚡ Balance adjustments: Reflective Mirror and Battle Nerve have been buffed</li>
+      <li>🐛 Bug fixes: Ghost, Rocket, and Inferno now kill enemies as intended</li>
+    </ul>
+  </div>
+
 <div style="position: absolute; bottom: 30px; left: 30px;">
   <button id="newFeatureBtn" class="start-btn update-log-btn">
     📰News
@@ -1016,13 +1027,19 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       <div class="update-log-content">
         <ul>
           <p><strong>NEW & ADDED!</strong></p>
-          <li><strong>STAGE MODE</strong></li>
-          <li>A brand new gamemode in the bottom right corner</li>
-          <li>A game mode with stages and progress, first stage works a bit like a tutorial</li>
           <li><strong>SKINS</strong></li>
           <li>13 New cool skins! as well as its own tab for all skins</li>
           <li><strong>ACHIVEMENTS</strong></li>
           <li>24 New Achivements with rewards! as well as its own tab for all Achivements</li>
+
+          <p><strong>Bug fixes</strong></p>
+          <li>Fixed legendary abilitys that coudnt kill enemies:</li>
+          <li>Burning Bullets</li>
+          <li>Ghost</li>
+          <li>Rocket</li>
+          <li>Inferno</li>
+          <li>Added collision to ghosts to stop them from stacking.</li>
+
         </ul>
       </div>
     </div>
@@ -1327,6 +1344,8 @@ let selectedAbilities = new Set(['mineLayer']); // Start with mineLayer
   let lightningStrikeTimer = 0;
   let lightningStrikeCooldown = 0;
   let lightningStrikeActive = false;
+  let infernoActive = false;
+  let infernoBeam = null;
 
   // Guards array
   const guards = [];
@@ -1473,6 +1492,7 @@ function initAudio() {
       reflectiveMirror: {level: 0, max: 3, rarity: 'rare'},
       lightningStrike: {level: 0, max: 2, rarity: 'mythical'},
       fireBullet: {level: 0, max: 3, rarity: 'legendary'},
+      inferno: {level: 0, max: 1, rarity: 'legendary'},
     }
   };
 
@@ -3060,7 +3080,7 @@ window.addEventListener('keydown', (e) => {
     achievementStats.maxEnemiesOnScreen = Math.max(achievementStats.maxEnemiesOnScreen, echoes.length);
     
     // Track low life time
-    if (player.lives <= 1) {
+    if (player.lives == 1) {
       achievementStats.lowLifeTime += 0.016; // Approximate per frame
     } else {
       achievementStats.lowLifeTime = 0;
@@ -3677,6 +3697,27 @@ function setHardcoreStartingStats() {
         }
       }
     }
+
+    // Update inferno beam (continuous passive)
+    const infernoLevel = player.stats.inferno.level;
+    if (infernoLevel > 0) {
+      if (!infernoActive || !infernoBeam) {
+        // Create new inferno beam
+        infernoBeam = new Inferno(player.x, player.y);
+        infernoActive = true;
+      }
+      
+      // Update existing inferno beam
+      if (infernoBeam && !infernoBeam.update(dt, player.x, player.y)) {
+        infernoActive = false;
+        infernoBeam = null;
+      }
+    } else {
+      // Inferno not active, clean up
+      infernoActive = false;
+      infernoBeam = null;
+    }
+
     
     // Update active abilities
     // Update mines
@@ -3948,7 +3989,434 @@ function setHardcoreStartingStats() {
     }
   }
 
-      // LightningStrike class
+  // Inferno class - Legendary ability (continuous beam that locks onto nearest enemy)
+  class Inferno {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.target = null;
+      this.damage = 0.1; // Starting damage
+      this.damageTimer = 0;
+      this.damageStage = 0; // 0 = 0.2, 1 = 0.5, 2 = 1.2, 3 = 3.0
+      this.stageTimer = 0;
+      this.beamLength = 0;
+      this.beamTimer = 0;
+      this.active = true;
+      this.range = 350; // Range at which beam activates
+      this.maxRange = 500; // Max range before losing target
+      this.pulse = 0;
+      this.particles = [];
+      this.targetLocked = false;
+      this.lockTimer = 0;
+      
+      // Stage timings (in seconds)
+      this.stageDurations = [3, 3, 5]; // Stage 0->1, 1->2, 2->3
+      
+      // Create initial particles
+      for (let i = 0; i < 8; i++) {
+        this.particles.push({
+          x: this.x,
+          y: this.y,
+          life: 1.0,
+          size: 2 + Math.random() * 3
+        });
+      }
+    }
+        
+    update(dt, playerX, playerY) {
+      // Update position to follow player
+      this.x = playerX;
+      this.y = playerY;
+      
+      this.pulse += dt * 10;
+      this.beamTimer += dt;
+      
+      // Update beam length (pulses)
+      this.beamLength = 0.8 + Math.sin(this.beamTimer * 10) * 0.2;
+      
+      // Find target if we don't have one or current target is invalid
+      if (!this.target || !this.isTargetValid()) {
+        this.findTarget();
+      }
+      
+      // If we have a valid target
+      if (this.target && this.isTargetValid()) {
+        this.targetLocked = true;
+        this.lockTimer += dt;
+        
+        // Update damage stages based on time
+        this.stageTimer += dt;
+        
+        // Stage progression: 0->1 after 2 seconds, 1->2 after 1.5 seconds, 2->3 after 1 second
+        if (this.damageStage === 0 && this.stageTimer >= this.stageDurations[0]) {
+          this.damageStage = 1;
+          this.stageTimer = 0;
+          this.damage = 0.5;
+          
+          // Visual effect when damage increases to stage 1
+          spawnParticles(this.x, this.y, 'rgba(255, 150, 0, 0.9)', 20, Math.PI*2, 120);
+          this.createPowerSurge('#ffaa00');
+          
+        } else if (this.damageStage === 1 && this.stageTimer >= this.stageDurations[1]) {
+          this.damageStage = 2;
+          this.stageTimer = 0;
+          this.damage = 2.5;
+          
+          // Visual effect when damage increases to stage 2
+          spawnParticles(this.x, this.y, 'rgba(255, 80, 0, 0.9)', 25, Math.PI*2, 150);
+          this.createPowerSurge('#ff5500');
+          
+        } else if (this.damageStage === 2 && this.stageTimer >= this.stageDurations[2]) {
+          this.damageStage = 3;
+          this.stageTimer = 0;
+          this.damage = 12.5;
+          
+          // Epic visual effect when damage reaches max stage
+          spawnParticles(this.x, this.y, 'rgba(255, 30, 0, 0.9)', 30, Math.PI*2, 180);
+          spawnParticles(this.x, this.y, 'rgba(255, 255, 255, 0.8)', 20, Math.PI*2, 200);
+          this.createPowerSurge('#ff0000');
+          
+          // Screen flash for max power
+          createScreenFlash('rgba(255, 0, 0, 0.2)', 0.3);
+        }
+        
+        // Apply damage to target twice per second
+        this.damageTimer += dt;
+        if (this.damageTimer >= 0.25) {
+          this.damageTimer = 0;
+          
+          // SAFETY CHECK: Make sure target still exists before applying damage
+          if (this.target && echoes.includes(this.target)) {
+            // Apply damage based on current stage
+            if (this.target.takeDamage(this.damage)) {
+              // Target died - remove from echoes array
+              const index = echoes.indexOf(this.target);
+              if (index > -1) {
+                echoes.splice(index, 1);
+                echoCountEl.textContent = echoes.length;
+              }
+              
+              echoesKilled++;
+              playerXP += 15;
+              checkLevelUp();
+              
+              // Reset and find new target
+              this.resetDamage();
+              this.findTarget();
+            } else {
+              // Damage effect - more intense at higher stages
+              const particleCount = 5 + this.damageStage * 3;
+              const particleColor = this.damageStage === 0 ? 'rgba(255, 200, 0, 0.8)' :
+                                  this.damageStage === 1 ? 'rgba(255, 150, 0, 0.9)' :
+                                  this.damageStage === 2 ? 'rgba(255, 80, 0, 1)' :
+                                  'rgba(255, 30, 0, 1)';
+              spawnParticles(this.target.x, this.target.y, particleColor, particleCount, Math.PI/2, 40 + this.damageStage * 20);
+            }
+          } else {
+            // Target no longer exists, find a new one
+            this.findTarget();
+          }
+        }        
+        
+        // Add beam particles - only if target exists
+        if (this.target && Math.random() < 0.2 + this.damageStage * 0.1) {
+          const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+          const distance = Math.random() * this.getDistanceToTarget();
+          this.particles.push({
+            x: this.x + Math.cos(angle) * distance,
+            y: this.y + Math.sin(angle) * distance,
+            life: 0.5 + Math.random() * 0.3,
+            size: 2 + Math.random() * (2 + this.damageStage)
+          });
+        }
+      } else {
+        this.targetLocked = false;
+        this.lockTimer = 0;
+        // Reset damage when no target
+        this.resetDamage();
+      }
+      
+      // Update particles
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        this.particles[i].life -= dt * 2;
+        if (this.particles[i].life <= 0) {
+          this.particles.splice(i, 1);
+        }
+      }
+      
+      return this.active;
+    }
+
+
+    createPowerSurge(color) {
+      // Create an expanding ring effect for power increases
+      for (let i = 0; i < 36; i++) {
+        const angle = (i / 36) * Math.PI * 2;
+        setTimeout(() => {
+          spawnParticles(
+            this.x + Math.cos(angle) * 50,
+            this.y + Math.sin(angle) * 50,
+            color,
+            2,
+            Math.PI/8,
+            100
+          );
+        }, i * 20);
+      }
+    }
+    
+    isTargetValid() {
+      if (!this.target) return false;
+      if (this.target.health <= 0) return false;
+      // Check if target still exists in echoes array
+      if (typeof echoes !== 'undefined' && !echoes.includes(this.target)) return false;
+      
+      // Check if target is too far
+      const distance = Math.hypot(this.x - this.target.x, this.y - this.target.y);
+      if (distance > this.maxRange) return false;
+      
+      return true;
+    }
+    
+    getDistanceToTarget() {
+      if (!this.target) return 0;
+      return Math.hypot(this.x - this.target.x, this.y - this.target.y);
+    }
+    
+    findTarget() {
+      // Find nearest enemy within range
+      let nearest = null;
+      let nearestDist = Infinity;
+      
+      if (typeof echoes !== 'undefined') {
+        for (const e of echoes) {
+          const d = Math.hypot(this.x - e.x, this.y - e.y);
+          if (d < this.range && d < nearestDist) {
+            nearest = e;
+            nearestDist = d;
+          }
+        }
+      }
+      
+      if (nearest) {
+        this.target = nearest;
+        this.resetDamage();
+        
+        // Visual effect for new target
+        spawnParticles(nearest.x, nearest.y, 'rgba(255, 100, 0, 0.9)', 10, Math.PI*2, 80);
+      } else {
+        this.target = null;
+      }
+    }
+    
+    resetDamage() {
+      this.damageStage = 0;
+      this.stageTimer = 0;
+      this.damageTimer = 0;
+      this.damage = 0.2;
+    }
+    
+    draw(ctx) {
+      if (!this.targetLocked || !this.target) return;
+      
+      // Calculate beam direction
+      const dx = this.target.x - this.x;
+      const dy = this.target.y - this.y;
+      const distance = Math.hypot(dx, dy);
+      
+      if (distance > this.maxRange) return;
+      
+      const angle = Math.atan2(dy, dx);
+      
+      // Color and effects based on damage stage - MUCH COOLER!
+      let beamColor, coreColor, glowColor, outerGlowColor;
+      let beamWidth, coreWidth, glowWidth;
+      let particleIntensity;
+      
+      switch(this.damageStage) {
+        case 0: // Stage 1 - Yellow (warming up)
+          beamColor = 'rgba(255, 200, 50, 0.8)';
+          coreColor = 'rgba(255, 255, 150, 1)';
+          glowColor = 'rgba(255, 200, 50, 0.4)';
+          outerGlowColor = 'rgba(255, 150, 0, 0.2)';
+          beamWidth = 12;
+          coreWidth = 5;
+          glowWidth = 25;
+          particleIntensity = 0.5;
+          break;
+        case 1: // Stage 2 - Orange (heating up)
+          beamColor = 'rgba(255, 120, 0, 0.9)';
+          coreColor = 'rgba(255, 220, 100, 1)';
+          glowColor = 'rgba(255, 120, 0, 0.5)';
+          outerGlowColor = 'rgba(255, 80, 0, 0.3)';
+          beamWidth = 16;
+          coreWidth = 7;
+          glowWidth = 30;
+          particleIntensity = 0.7;
+          break;
+        case 2: // Stage 3 - Red-Orange (hot)
+          beamColor = 'rgba(255, 50, 0, 1)';
+          coreColor = 'rgba(255, 200, 50, 1)';
+          glowColor = 'rgba(255, 50, 0, 0.6)';
+          outerGlowColor = 'rgba(255, 0, 0, 0.4)';
+          beamWidth = 20;
+          coreWidth = 9;
+          glowWidth = 35;
+          particleIntensity = 0.9;
+          break;
+        case 3: // Stage 4 - WHITE HOT (MAX POWER)
+          beamColor = 'rgba(255, 100, 100, 1)';
+          coreColor = 'rgba(255, 255, 255, 1)';
+          glowColor = 'rgba(255, 200, 200, 0.8)';
+          outerGlowColor = 'rgba(255, 0, 0, 0.6)';
+          beamWidth = 25;
+          coreWidth = 12;
+          glowWidth = 45;
+          particleIntensity = 1.2;
+          break;
+      }
+      
+      // Apply pulsing to widths
+      beamWidth *= this.beamLength;
+      coreWidth *= this.beamLength;
+      glowWidth *= this.beamLength;
+      
+      ctx.save();
+      
+      // ===== MULTI-LAYERED BEAM EFFECT =====
+      
+      // 1. Outer glow (widest, most transparent)
+      ctx.beginPath();
+      ctx.strokeStyle = outerGlowColor;
+      ctx.lineWidth = glowWidth * 1.5;
+      ctx.globalAlpha = 0.3;
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.target.x, this.target.y);
+      ctx.stroke();
+      
+      // 2. Main glow layer
+      ctx.beginPath();
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = glowWidth;
+      ctx.globalAlpha = 0.5;
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.target.x, this.target.y);
+      ctx.stroke();
+      
+      // 3. Main beam
+      ctx.beginPath();
+      ctx.strokeStyle = beamColor;
+      ctx.lineWidth = beamWidth;
+      ctx.globalAlpha = 0.9;
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.target.x, this.target.y);
+      ctx.stroke();
+      
+      // 4. Core beam (brightest)
+      ctx.beginPath();
+      ctx.strokeStyle = coreColor;
+      ctx.lineWidth = coreWidth;
+      ctx.globalAlpha = 1;
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.target.x, this.target.y);
+      ctx.stroke();
+      
+      // ===== ENERGY ORBS ALONG THE BEAM =====
+      const numOrbs = 5 + this.damageStage * 2;
+      for (let i = 1; i <= numOrbs; i++) {
+        const t = i / (numOrbs + 1);
+        const orbX = this.x + dx * t;
+        const orbY = this.y + dy * t;
+        const orbSize = (4 + this.damageStage * 2) * (0.7 + Math.sin(this.pulse * 2 + i) * 0.3);
+        
+        // Orb glow
+        const orbGradient = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, orbSize * 2);
+        orbGradient.addColorStop(0, coreColor);
+        orbGradient.addColorStop(0.5, beamColor);
+        orbGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+        
+        ctx.beginPath();
+        ctx.fillStyle = orbGradient;
+        ctx.arc(orbX, orbY, orbSize * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Orb core
+        ctx.beginPath();
+        ctx.fillStyle = coreColor;
+        ctx.arc(orbX, orbY, orbSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // ===== SOURCE POINT (PLAYER) =====
+      const sourceGradient = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, 30);
+      sourceGradient.addColorStop(0, coreColor);
+      sourceGradient.addColorStop(0.5, beamColor);
+      sourceGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+      
+      ctx.beginPath();
+      ctx.fillStyle = sourceGradient;
+      ctx.arc(this.x, this.y, 18 + Math.sin(this.pulse) * 4 + this.damageStage * 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // ===== TARGET POINT =====
+      const targetGradient = ctx.createRadialGradient(this.target.x, this.target.y, 1, this.target.x, this.target.y, 25);
+      targetGradient.addColorStop(0, coreColor);
+      targetGradient.addColorStop(0.7, beamColor);
+      targetGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+      
+      ctx.beginPath();
+      ctx.fillStyle = targetGradient;
+      ctx.arc(this.target.x, this.target.y, 15 + Math.cos(this.pulse * 2) * 5 + this.damageStage, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // ===== ENERGY PARTICLES =====
+      for (const p of this.particles) {
+        const alpha = p.life;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, ${150 + Math.random()*50}, 0, ${alpha})`;
+        ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // ===== ADD SPARKLES AROUND TARGET AT HIGH STAGES =====
+      if (this.damageStage >= 2) {
+        for (let i = 0; i < 3 + this.damageStage; i++) {
+          const sparkleAngle = Math.random() * Math.PI * 2;
+          const sparkleDist = 20 + Math.random() * 30;
+          const sparkleX = this.target.x + Math.cos(sparkleAngle) * sparkleDist;
+          const sparkleY = this.target.y + Math.sin(sparkleAngle) * sparkleDist;
+          
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, ${200 - this.damageStage * 30}, 0, ${0.5 + Math.random() * 0.3})`;
+          ctx.arc(sparkleX, sparkleY, 2 + Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      // ===== ENERGY RINGS AROUND TARGET AT MAX STAGE =====
+      if (this.damageStage === 3) {
+        const ringPulse = Math.sin(this.pulse * 3) * 0.3 + 0.7;
+        ctx.strokeStyle = `rgba(255, 200, 200, ${ringPulse * 0.5})`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.arc(this.target.x, this.target.y, 25 + Math.sin(this.pulse * 2) * 5, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        ctx.strokeStyle = `rgba(255, 100, 100, ${ringPulse * 0.3})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.target.x, this.target.y, 35 + Math.cos(this.pulse * 3) * 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+  }
+  
+  
+  // LightningStrike class
     class LightningStrike {
       constructor(x, y, damage) {
         this.x = x;
@@ -4901,7 +5369,7 @@ function setHardcoreStartingStats() {
       this.angle = angle;
       this.speed = 900; // Increased from 800
       this.life = 1; // Increased from 0.4
-      this.damage = 0.6; // Originally 0.5
+      this.damage = 0.2; // Originally 0.5
       this.width = player.stats.fire.level === 1 ? 40 : 50; // Increased from 30/40
       this.duration = player.stats.fire.level === 1 ? 0.15 : 0.15; // Increased from 2/3
       this.trail = [];
@@ -5179,9 +5647,13 @@ function setHardcoreStartingStats() {
         
         const d = dist({x: this.x, y: this.y}, this.target);
         if (d < this.r + this.target.r) {
-          this.target.takeDamage(this.damage);
+          if (this.target.takeDamage(this.damage)) {
+            // Target died
+            handleEnemyDeath(this.target, 'rocket');
+          }
+          
           if (player.stats.rocket.level >= 2) {
-            this.target.rocketDamage = (this.target.rocketDamage || 0) + 0.25; // INCREASED: From 2 to 3
+            this.target.rocketDamage = (this.target.rocketDamage || 0) + 0.25;
           }
           spawnParticles(this.x, this.y, 'rgba(255,100,100,0.9)', 15, Math.PI*2, 100);
           return false;
@@ -8673,6 +9145,45 @@ function setHardcoreStartingStats() {
       
       this.target = nearestEnemy;
       
+      // ===== GHOST-TO-GHOST COLLISION =====
+      // Check collision with other ghosts
+      for (const otherGhost of ghosts) {
+        if (otherGhost === this) continue; // Skip self
+        
+        const dx = this.x - otherGhost.x;
+        const dy = this.y - otherGhost.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = this.r + otherGhost.r;
+        
+        if (distance < minDistance) {
+          // Push ghosts apart
+          const angle = Math.atan2(dy, dx);
+          const force = (minDistance - distance) * 0.3; // Push force
+          
+          // Push this ghost away
+          this.x += Math.cos(angle) * force;
+          this.y += Math.sin(angle) * force;
+          
+          // Push the other ghost away in opposite direction
+          otherGhost.x -= Math.cos(angle) * force;
+          otherGhost.y -= Math.sin(angle) * force;
+          
+          // Optional: Add a small visual effect when ghosts collide
+          if (Math.random() < 0.1) {
+            particles.push({
+              x: (this.x + otherGhost.x) / 2,
+              y: (this.y + otherGhost.y) / 2,
+              vx: (Math.random() - 0.5) * 20,
+              vy: (Math.random() - 0.5) * 20,
+              life: 0.2,
+              col: 'rgba(167,139,250,0.3)',
+              r: 2
+            });
+          }
+        }
+      }
+      // ===== END GHOST COLLISION =====
+
       if (this.target) {
         // Always move toward target
         const aim = vecTo(this.x, this.y, this.target.x, this.target.y);
@@ -8682,10 +9193,16 @@ function setHardcoreStartingStats() {
         // Deal damage when close to any enemy (not just target)
         if (this.damageTimer >= 1.0) {
           this.damageTimer = 0;
-          for (const e of echoes) {
+          for (let j = echoes.length - 1; j >= 0; j--) {
+            const e = echoes[j];
             if (dist({x: this.x, y: this.y}, e) < this.r + e.r) {
-              e.takeDamage(this.damage);
-              spawnParticles(e.x, e.y, 'rgba(167,139,250,0.7)', 3, Math.PI, 20);
+              if (e.takeDamage(this.damage)) {
+                // Enemy died - remove it
+                handleEnemyDeath(e, 'ghost');
+                break;
+              } else {
+                spawnParticles(e.x, e.y, 'rgba(167,139,250,0.7)', 3, Math.PI, 20);
+              }
             }
           }
         }
@@ -9549,7 +10066,7 @@ function setHardcoreStartingStats() {
       this.r = 100;
       this.health = 1000; 
       this.maxHealth = 1000;
-      this.speed = 20; // Slow but deliberate
+      this.speed = 12; // Slow but deliberate
       
       // DARK PURPLE COLOR SCHEME
       this.coreColor = '#2c003e'; // Darkest purple
@@ -9559,12 +10076,12 @@ function setHardcoreStartingStats() {
       
       // BOSS STATE
       this.attackTimer = 0;
-      this.attackRate = 1.5;
+      this.attackRate = 2;
       this.pulse = 0;
       this.phase = 1;
       this.bulletAngle = 0;
       this.specialAttackTimer = 0;
-      this.specialAttackCooldown = 7;
+      this.specialAttackCooldown = 8;
       this.frozen = false;
 
       this.burning = false;
@@ -9592,9 +10109,9 @@ function setHardcoreStartingStats() {
       // BLACK HOLE CORE
       this.blackHole = {
         active: true,
-        pullStrength: 80,
+        pullStrength: 200,
         damageRadius: this.r * 1,
-        damage: 1
+        damage: 0
       };
       
       // VOID SHARDS (floating around boss)
@@ -9652,7 +10169,7 @@ function setHardcoreStartingStats() {
           }
           
           // Screen distortion effect
-          shake = 60;
+          shake = 20;
           
           // Deep, ominous sound
           sfx(40, 2, 0.3, 'sawtooth');
@@ -9977,23 +10494,23 @@ function setHardcoreStartingStats() {
       
       switch(this.phase) {
         case 1:
-          patternCount = 3;
-          bulletCount = 4;
+          patternCount = 2;        // Reduced from 3
+          bulletCount = 3;         // Reduced from 4
           speed = 100;
           break;
         case 2:
-          patternCount = 4;
-          bulletCount = 5;
+          patternCount = 3;        // Reduced from 4
+          bulletCount = 4;         // Reduced from 5
           speed = 130;
           break;
         case 3:
-          patternCount = 5;
-          bulletCount = 6;
+          patternCount = 4;        // Reduced from 5
+          bulletCount = 5;         // Reduced from 6
           speed = 160;
           break;
         case 4:
-          patternCount = 7;
-          bulletCount = 8;
+          patternCount = 5;        // Reduced from 7
+          bulletCount = 6;         // Reduced from 8
           speed = 200;
           break;
       }
@@ -11175,7 +11692,8 @@ class MegaCreeperBoss {
         cooldownRefresh: '#00ffaa', // Bright Cyan-Green
         reflectiveMirror: '#aaffff', // Pale Cyan
         lightningStrike: '#636bff', // Indigo Blue
-        fireBullet: '#ff6b00' // Add this missing color
+        fireBullet: '#ff6b00', // Add this missing color
+        inferno: '#ff4500' // 🔥 Red-Orange for Inferno
       };
       // Level 1: Orbs last 5 seconds longer
       this.life = player.stats.xpBoost.level === 1 ? 20 : 15;
@@ -11637,7 +12155,7 @@ class MegaCreeperBoss {
     echoCountEl.textContent = echoes.length;
   }
 
-    function spawnRandomEnemy() {
+function spawnRandomEnemy() {
     // Spawn bosses as regular enemies in endless mode after certain times
     if (endlessMode) {
       if (timeAlive > 600 && Math.random() < 0.015) {
@@ -11653,18 +12171,6 @@ class MegaCreeperBoss {
         echoes.push(new EasyBoss());
         return;
       }
-      
-      // In endless mode (after final boss), spawn witches more frequently
-      if (Math.random() < 0.16) { // 16% chance to spawn witch in endless mode
-        spawnWitchFromOutside();
-        return;
-      }
-      
-      // Spawn armored slims after final Boss
-      if (bossesKilled >= 3 && Math.random() < 0.05) {
-        spawnArmoredSlimFromOutside();
-        return;
-      }
     }
     
     if (timeAlive < 10 && Math.random() < 0.3) {
@@ -11674,29 +12180,32 @@ class MegaCreeperBoss {
     
     const randVal = Math.random();
     
-
     // spawn enemies
     // spawn mobs
     // enemy spawn
 
-    if (timeAlive > 120 && randVal < 0.05) { //sniper - 5%
+    // FIXED: Moved Witch, Heavy Echo, and Dark Echo outside endless mode check
+    // so they spawn during normal gameplay too
+    
+    if (timeAlive > 300 && randVal < 0.05) { // Dark Echo - 5% (spawns after 250 seconds)
+      spawnDarkEchoFromOutside();
+    } else if (timeAlive > 120 && randVal < 0.05) { // Heavy Echo - 5% (spawns after 100 seconds)
+      spawnHeavyEchoFromOutside();
+    } else if (timeAlive > 180 && randVal < 0.05) { // Witch - 5% (spawns after 50 seconds)
+      spawnWitchFromOutside();
+    } else if (timeAlive > 120 && randVal < 0.05) { // sniper - 5%
       spawnsniperFromOutside();
     } else if (timeAlive > 50 && randVal < 0.2) { // bomber - 20%
       spawnBomberFromOutside();
-    } else if (timeAlive > 120 && randVal < 0.05) { // Witch - 5%
-      spawnWitchFromOutside();
     } else if (timeAlive > 20 && randVal < 0.05) { // Tank - 5%
       spawnTankFromOutside();
     } else if (timeAlive > 20 && randVal < 0.2) { // Bow - 20%
       spawnBowFromOutside();
-    } else if (timeAlive > 100 && randVal < 0.05) { // Heavy Echo - 5%
-      spawnHeavyEchoFromOutside();
-    } else if (timeAlive > 250 && randVal < 0.05) { // Heavy Echo - 5%
-      spawnDarkEchoFromOutside();
     } else {
       spawnEchoFromOutside();
     }
-  }
+}
+
 
   function spawnSlimFromOutside() {
     const side = Math.floor(Math.random() * 4);
@@ -12034,6 +12543,8 @@ class MegaCreeperBoss {
     maxLevelReached = false;
     refreshUsed = false;
     damageZoneActive = false;
+    infernoActive = false;
+    infernoBeam = null;
     damageZoneTimer = 0;
     damageZoneAngle = 0;
     minigunActive = false;
@@ -12284,6 +12795,7 @@ class MegaCreeperBoss {
       playSound('shockwave');
       spawnParticles(player.x, player.y, 'rgba(255,255,200,0.9)', 20, Math.PI*2, 150);
     }
+
 
     const fireLevel = player.stats.fire.level;
     let isFire = false;
@@ -12911,6 +13423,7 @@ function selectBonusUpgrade(type) {
       reflectiveMirror: 'Mirror Shield',
       lightningStrike: 'Lightning Strike',
       fireBullet: 'Burning bullet',
+      inferno: 'Inferno Beam',
     };
     return titles[type];
   }
@@ -13001,6 +13514,7 @@ function selectBonusUpgrade(type) {
         fireBullet: player.stats.fireBullet.level === 0 ? 'Bullets inflict burning damage over time for 3 seconds' :
                   player.stats.fireBullet.level === 1 ? 'Burning duration increased to 6 seconds' :
                   'Burning duration increased to 10 seconds',
+        inferno: 'Replace emergency ability with Inferno Beam: Fires a laser at the nearest enemy that deals increasing damage (0.5 → 1 → 2 → 4) every second, resets when switching targets',
     };
     return descs[type];
   }
@@ -13187,6 +13701,8 @@ function selectBonusUpgrade(type) {
         }
         break;
       case 'lightningStrike':
+        break;
+      case 'inferno':
         break;
       case 'fireBullet':
         break;
@@ -14088,8 +14604,12 @@ if (b.enemy) {
         continue;
       }
       
-      e.update(dt);
-      
+      if (!e.update(dt)) {
+        echoes.splice(i, 1);
+        echoCountEl.textContent = echoes.length;
+        continue; // skip further processing for this dead enemy
+      }    
+
       for (const p of paints){
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d < p.r + e.r){
@@ -14409,6 +14929,11 @@ if (b.enemy) {
     // Draw lightning strikes
     for (const lightning of lightningStrikes) {
       lightning.draw(ctx);
+    }
+ 
+    // Draw inferno beam
+    if (infernoActive && infernoBeam) {
+      infernoBeam.draw(ctx);
     }
     
     for (let i=0;i<80;i++){
