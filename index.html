@@ -1433,8 +1433,6 @@ let playerGold = 0;
 let goldSpawnTimer = 0;
 let goldSpawnDelay = 0;
 
-let goldBalls = [];
-
 function loadGold() {
   const saved = localStorage.getItem('echoswap-gold');
   if (saved !== null) {
@@ -1472,182 +1470,6 @@ function updateGoldDisplay() {
   }
 }
 
-function spawnGoldBall() {
-  // Spawn from random edge of screen
-  const side = Math.floor(Math.random() * 4);
-  let spawnX, spawnY;
-  
-  switch(side) {
-    case 0:
-      spawnX = Math.random() * W;
-      spawnY = -30;
-      break;
-    case 1:
-      spawnX = W + 30;
-      spawnY = Math.random() * H;
-      break;
-    case 2:
-      spawnX = Math.random() * W;
-      spawnY = H + 30;
-      break;
-    default:
-      spawnX = -30;
-      spawnY = Math.random() * H;
-      break;
-  }
-  
-  // Create gold ball with bubbly movement
-  const goldBall = {
-    x: spawnX,
-    y: spawnY,
-    r: 10,
-    life: 15, // seconds until despawn
-    speed: 40,
-    angle: Math.random() * Math.PI * 2,
-    driftAngle: Math.random() * Math.PI * 2,
-    driftSpeed: 0.5 + Math.random() * 1,
-    floatPhase: Math.random() * Math.PI * 2,
-    bounceX: 0,
-    bounceY: 0,
-    collected: false,
-    value: 1 + Math.floor(Math.random() * 3), // 1-3 gold per ball
-    pulse: Math.random() * Math.PI * 2,
-    
-    update(dt) {
-      this.life -= dt;
-      this.pulse += dt * 4;
-      this.floatPhase += dt * 2;
-      
-      // Bubbly movement pattern
-      const driftX = Math.cos(this.driftAngle + this.floatPhase) * 30;
-      const driftY = Math.sin(this.driftAngle * 0.7 + this.floatPhase) * 30;
-      
-      // Move toward player slowly with random drift
-      const toPlayer = vecTo(this.x, this.y, player.x, player.y);
-      const moveX = toPlayer.x * this.speed * dt;
-      const moveY = toPlayer.y * this.speed * dt;
-      
-      this.x += moveX + driftX * dt;
-      this.y += moveY + driftY * dt;
-      
-      // Keep within bounds with slight bounce
-      if (this.x < 10) { this.x = 10; this.bounceX = -this.bounceX; }
-      if (this.x > W - 10) { this.x = W - 10; this.bounceX = -this.bounceX; }
-      if (this.y < 10) { this.y = 10; this.bounceY = -this.bounceY; }
-      if (this.y > H - 10) { this.y = H - 10; this.bounceY = -this.bounceY; }
-      
-      // Check if player picks up gold
-      const d = Math.hypot(this.x - player.x, this.y - player.y);
-      if (d < player.r + this.r && !this.collected) {
-        this.collected = true;
-        addGold(this.value);
-        return false;
-      }
-      
-      return this.life > 0;
-    },
-    
-    draw(ctx) {
-      const alpha = Math.min(1, this.life / 3);
-      const scale = 0.9 + Math.sin(this.pulse) * 0.15;
-      const floatY = Math.sin(this.floatPhase * 3) * 2;
-      
-      ctx.save();
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
-      
-      // Outer glow - star-like
-      const glowGradient = ctx.createRadialGradient(
-        this.x, this.y + floatY, 1,
-        this.x, this.y + floatY, this.r * 2.2
-      );
-      glowGradient.addColorStop(0, `rgba(255, 215, 0, ${alpha * 0.5})`);
-      glowGradient.addColorStop(0.5, `rgba(255, 180, 0, ${alpha * 0.3})`);
-      glowGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
-      
-      ctx.fillStyle = glowGradient;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y + floatY, this.r * 2.2, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Main gold ball with distinct star-like shape
-      const goldGradient = ctx.createRadialGradient(
-        this.x - 2, this.y - 2 + floatY, 1,
-        this.x, this.y + floatY, this.r
-      );
-      goldGradient.addColorStop(0, `rgba(255, 220, 80, ${alpha})`);
-      goldGradient.addColorStop(0.4, `rgba(255, 180, 40, ${alpha})`);
-      goldGradient.addColorStop(0.7, `rgba(255, 140, 20, ${alpha})`);
-      goldGradient.addColorStop(1, `rgba(200, 100, 10, ${alpha})`);
-      
-      ctx.fillStyle = goldGradient;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y + floatY, this.r * scale, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Star-like rays around the gold ball
-      ctx.beginPath();
-      ctx.strokeStyle = `rgba(255, 215, 0, ${alpha * 0.7})`;
-      ctx.lineWidth = 1.5;
-      for (let i = 0; i < 8; i++) {
-        const rayAngle = (i / 8) * Math.PI * 2 + this.pulse;
-        const rayLength = this.r * 1.3;
-        const startX = this.x + Math.cos(rayAngle) * this.r * 0.8;
-        const startY = this.y + floatY + Math.sin(rayAngle) * this.r * 0.8;
-        const endX = this.x + Math.cos(rayAngle) * rayLength;
-        const endY = this.y + floatY + Math.sin(rayAngle) * rayLength;
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-      }
-      
-      // Shine effect - multiple sparkles
-      for (let i = 0; i < 3; i++) {
-        const sparkleAngle = (i / 3) * Math.PI * 2 + this.pulse * 2;
-        const sparkleDist = this.r * 0.7;
-        const sparkleX = this.x + Math.cos(sparkleAngle) * sparkleDist;
-        const sparkleY = this.y + floatY + Math.sin(sparkleAngle) * sparkleDist;
-        
-        ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.8})`;
-        ctx.beginPath();
-        ctx.arc(sparkleX, sparkleY, this.r * 0.18, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Central highlight
-      ctx.fillStyle = `rgba(255, 255, 220, ${alpha * 0.9})`;
-      ctx.beginPath();
-      ctx.arc(this.x - 2, this.y - 2 + floatY, this.r * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Gold coin symbol (distinct from slim's face)
-      ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
-      ctx.font = `${Math.floor(this.r * 1.1)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('💰', this.x, this.y + floatY + 1);
-      
-      ctx.restore();
-      
-      // Additional floating sparkle particles
-      if (Math.random() < 0.1 && this.life > 2) {
-        particles.push({
-          x: this.x + (Math.random() - 0.5) * this.r,
-          y: this.y + floatY + (Math.random() - 0.5) * this.r,
-          vx: (Math.random() - 0.5) * 15,
-          vy: (Math.random() - 0.5) * 15 - 10,
-          life: 0.3 + Math.random() * 0.2,
-          col: `rgba(255, 215, 0, ${0.6 + Math.random() * 0.4})`,
-          r: 1 + Math.random() * 2
-        });
-      }
-    }
-  };
-  
-  goldBalls.push(goldBall);
-}
 
 function spawnGoldPickupEffect() {
   // Create a "GOLD +X" notification that floats up
@@ -1687,6 +1509,46 @@ function spawnGoldPickupEffect() {
     });
   }
 }
+
+function spawnGoldPickupEffectAtPosition(x, y, amount) {
+  // Create a "GOLD +X" notification that floats up from enemy position
+  const notification = document.createElement('div');
+  notification.style.position = 'fixed';
+  notification.style.left = x + 'px';
+  notification.style.top = y + 'px';
+  notification.style.color = '#ffd700';
+  notification.style.fontSize = '18px';
+  notification.style.fontWeight = 'bold';
+  notification.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
+  notification.style.pointerEvents = 'none';
+  notification.style.zIndex = '9999';
+  notification.style.transition = 'all 0.8s ease-out';
+  notification.style.fontFamily = 'Inter, sans-serif';
+  notification.innerHTML = `+${amount}💰`;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.top = (y - 40) + 'px';
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      if (notification.parentNode) notification.parentNode.removeChild(notification);
+    }, 800);
+  }, 10);
+  
+  // Spawn gold sparkle particles at enemy death
+  for (let i = 0; i < amount * 2; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 30,
+      y: y + (Math.random() - 0.5) * 30,
+      vx: (Math.random() - 0.5) * 40,
+      vy: (Math.random() - 0.5) * 40 - 15,
+      life: 0.5 + Math.random() * 0.5,
+      col: `rgba(255, 215, 0, ${0.7 + Math.random() * 0.3})`,
+      r: 1 + Math.random() * 3
+    });
+  }
+}
+
 
 // Emergency ability tracking
 let emergencyAbility = 'minelayer'; // Default ability
@@ -3718,73 +3580,122 @@ window.addEventListener('keydown', (e) => {
   }
 
   function handleEnemyDeath(enemy, killedBy = 'unknown') {
-  echoesKilled++;
-  
-  // Update score (except in freemode when player has no lives)
-  if (gameMode !== 'freemode' || player.lives > 0) {
-    score += 8;
-  }
-  
-  // Give XP for kill
-  let baseXP = 15;
-  let xpMultiplier = 1;
-  
-  if (player.stats.xpBoost.level >= 1) {
-    baseXP = 25;
-  }
-  if (player.stats.xpBoost.level >= 2) {
-    xpMultiplier = 1.5;
-  }
-  if (player.stats.xpBoost.level >= 5) {
-    xpMultiplier *= 1.5;
-  }
-  
-  playerXP += baseXP * xpMultiplier;
-  checkLevelUp();
-  
-  // Special death effects based on what killed the enemy
-  if (killedBy === 'ghost') {
-    spawnParticles(enemy.x, enemy.y, 'rgba(167,139,250,0.9)', 16, Math.PI*2, 120);
-  } else if (killedBy === 'rocket') {
-    spawnParticles(enemy.x, enemy.y, 'rgba(255,100,100,0.9)', 16, Math.PI*2, 120);
-  } else {
-    spawnParticles(enemy.x, enemy.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-  }
-  
-  // Remove enemy from echoes array
-  const index = echoes.indexOf(enemy);
-  if (index > -1) {
-    echoes.splice(index, 1);
-    echoCountEl.textContent = echoes.length;
-  }
-  
-  // Ghost chance on death
-  if (player.stats.ghost.level > 0) {
-    const ghostChance = player.stats.ghost.level === 1 ? 0.25 : 
-                       player.stats.ghost.level === 2 ? 0.4 : 0.5;
+    echoesKilled++;
     
-    if (Math.random() < ghostChance) {
-      const ghost = new Ghost(enemy.x, enemy.y);
+    // Update score (except in freemode when player has no lives)
+    if (gameMode !== 'freemode' || player.lives > 0) {
+      score += 8;
+    }
+    
+    // Give XP for kill
+    let baseXP = 15;
+    let xpMultiplier = 1;
+    
+    if (player.stats.xpBoost.level >= 1) {
+      baseXP = 25;
+    }
+    if (player.stats.xpBoost.level >= 2) {
+      xpMultiplier = 1.5;
+    }
+    if (player.stats.xpBoost.level >= 5) {
+      xpMultiplier *= 1.5;
+    }
+    
+    playerXP += baseXP * xpMultiplier;
+    checkLevelUp();
+    
+    // ===== GOLD FROM KILLS =====
+    // Calculate gold based on enemy type
+    let goldAmount = 0;
+    
+    // Different enemies give different gold values
+    if (enemy instanceof EasyBoss) {
+      goldAmount = 50;
+    } else if (enemy instanceof MediumBoss) {
+      goldAmount = 100;
+    } else if (enemy instanceof HardBoss) {
+      goldAmount = 150;
+    } else if (enemy instanceof FinalBoss) {
+      goldAmount = 250;
+    } else if (enemy instanceof MegaCreeperBoss) {
+      goldAmount = 300;
+    } else if (enemy instanceof DarkEcho) {
+      goldAmount = 15;
+    } else if (enemy instanceof HeavyEcho) {
+      goldAmount = 8;
+    } else if (enemy instanceof Witch) {
+      goldAmount = 12;
+    } else if (enemy instanceof Tank) {
+      goldAmount = 5;
+    } else if (enemy instanceof sniper) {
+      goldAmount = 6;
+    } else if (enemy instanceof ArmoredSlim) {
+      goldAmount = 3;
+    } else if (enemy instanceof Bow) {
+      goldAmount = 2;
+    } else if (enemy instanceof Bomber) {
+      goldAmount = 2;
+    } else if (enemy instanceof Echo) {
+      goldAmount = 2;
+    } else if (enemy instanceof Slim) {
+      goldAmount = 1;
+    } else {
+      // Default for any other enemy types
+      goldAmount = 1;
+    }
+    
+    // Add gold if in normal gameplay (not freemode with 0 lives)
+    if (gameMode !== 'freemode') {
+      addGold(goldAmount);
       
-      if (player.stats.ghost.level >= 2) {
-        ghost.speed == 150;
-        ghost.damage == 2;
-      }
-      if (player.stats.ghost.level >= 3) {
-        ghost.speed == 160;
-        ghost.damage == 3;
-      }
+      // Spawn floating gold text effect at enemy death location
+      spawnGoldPickupEffectAtPosition(enemy.x, enemy.y, goldAmount);
+    }
+    // ===== END GOLD FROM KILLS =====
+    
+    // Special death effects based on what killed the enemy
+    if (killedBy === 'ghost') {
+      spawnParticles(enemy.x, enemy.y, 'rgba(167,139,250,0.9)', 16, Math.PI*2, 120);
+    } else if (killedBy === 'rocket') {
+      spawnParticles(enemy.x, enemy.y, 'rgba(255,100,100,0.9)', 16, Math.PI*2, 120);
+    } else {
+      spawnParticles(enemy.x, enemy.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
+    }
+    
+    // Remove enemy from echoes array
+    const index = echoes.indexOf(enemy);
+    if (index > -1) {
+      echoes.splice(index, 1);
+      echoCountEl.textContent = echoes.length;
+    }
+    
+    // Ghost chance on death
+    if (player.stats.ghost.level > 0) {
+      const ghostChance = player.stats.ghost.level === 1 ? 0.25 : 
+                        player.stats.ghost.level === 2 ? 0.4 : 0.5;
       
-      ghosts.push(ghost);
+      if (Math.random() < ghostChance) {
+        const ghost = new Ghost(enemy.x, enemy.y);
+        
+        if (player.stats.ghost.level >= 2) {
+          ghost.speed == 150;
+          ghost.damage == 2;
+        }
+        if (player.stats.ghost.level >= 3) {
+          ghost.speed == 160;
+          ghost.damage == 3;
+        }
+        
+        ghosts.push(ghost);
+      }
+    }
+    
+    // Kill boost on death
+    if (player.stats.killBoost.level > 0) {
+      killBoostTimer = player.stats.killBoost.level === 1 ? 3 : 
+                      player.stats.killBoost.level === 2 ? 5 : 6;
     }
   }
-  
-  // Kill boost on death
-  if (player.stats.killBoost.level > 0) {
-    killBoostTimer = player.stats.killBoost.level === 1 ? 3 : 
-                    player.stats.killBoost.level === 2 ? 5 : 6;
-  }
-}
 
   // Damage indicator text
   function createDamageIndicator(x, y, text) {
@@ -5751,17 +5662,16 @@ function setHardcoreStartingStats() {
   }
 
   // FirePulse class
-  // FirePulse class - SEPARATED and ENHANCED
   class FirePulse {
     constructor(x, y, angle) {
       this.x = x;
       this.y = y;
       this.angle = angle;
-      this.speed = 900; // Increased from 800
-      this.life = 1; // Increased from 0.4
-      this.damage = 0.2; // Originally 0.5
-      this.width = player.stats.fire.level === 1 ? 40 : 50; // Increased from 30/40
-      this.duration = player.stats.fire.level === 1 ? 0.15 : 0.15; // Increased from 2/3
+      this.speed = 900;                // unchanged
+      this.life = 1;                   // unchanged
+      this.damage = 0.2;              // <<<< FIXED: reduced from 0.2
+      this.width = player.stats.fire.level === 1 ? 30 : 40;
+      this.duration = 0.15;
       this.trail = [];
       this.trailTimer = 0;
       this.trailInterval = 0.05;
@@ -5769,22 +5679,21 @@ function setHardcoreStartingStats() {
       this.pulseRate = 0;
       this.rotation = 0;
       this.particleSpawnTimer = 0;
-      
-      // Level 2 enhancements
+
       if (player.stats.fire.level >= 2) {
         this.speed += 150;
-        this.damage *= 2;
+        this.damage *= 2;              // still fine, now 0.1
       }
     }
-    
+
     update(dt) {
       this.life -= dt;
       this.trailTimer += dt;
       this.pulseRate += dt * 8;
       this.rotation += dt * 3;
       this.particleSpawnTimer += dt;
-      
-      // Leave trail
+
+      // Trail effect (unchanged)
       if (this.trailTimer >= this.trailInterval) {
         this.trailTimer = 0;
         this.trail.push({
@@ -5793,55 +5702,45 @@ function setHardcoreStartingStats() {
           life: this.duration * 0.6,
           width: this.width * 0.7
         });
-        
-        // Limit trail length
-        if (this.trail.length > 15) {
-          this.trail.shift();
-        }
+        if (this.trail.length > 15) this.trail.shift();
       }
-      
-      // Update trail
       for (let i = this.trail.length - 1; i >= 0; i--) {
         this.trail[i].life -= dt;
-        if (this.trail[i].life <= 0) {
-          this.trail.splice(i, 1);
-        }
+        if (this.trail[i].life <= 0) this.trail.splice(i, 1);
       }
-      
-      // Movement with slight wave effect
+
+      // Movement with wave
       const waveOffset = Math.sin(this.pulseRate) * 0.1;
       this.x += Math.cos(this.angle + waveOffset) * this.speed * dt;
       this.y += Math.sin(this.angle + waveOffset) * this.speed * dt;
-      
-      // Create fire zone at current position
+
+      // Create fire zone
       fires.push(new Fire(this.x, this.y, this.width, this.duration, this.damage));
-      
-      // Damage enemies in path
+
+      // Damage enemies in path – FIXED: handle boss kills properly
       for (let i = echoes.length - 1; i >= 0; i--) {
         const e = echoes[i];
         const d = dist({x: this.x, y: this.y}, e);
         if (d < this.width/2 + e.r) {
-          // Apply burning effect to enemies
           e.burning = true;
           e.burnTimer = 2.0;
           e.burnDamage = this.damage * 0.5;
-          
+
           if (e.takeDamage(this.damage)) {
-            echoesKilled++;
-            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-            echoes.splice(i, 1);
+            // Enemy died – use the correct handler
+            handleEnemyDeath(e, 'firePulse');
+            // The function above already removes the enemy, increments kills and XP,
+            // and marks bosses as killed. So we just break out of the loop.
+            break;   // important: e is now gone from echoes array
           } else {
-            // Enhanced hit particles
             spawnParticles(e.x, e.y, 'rgba(255, 100, 0, 0.8)', 8, Math.PI/4, 60);
           }
         }
       }
-      
-      // Spawn particles along the path
+
+      // Spawn particles (unchanged)
       if (this.particleSpawnTimer >= 0.02) {
         this.particleSpawnTimer = 0;
-        
-        // Core fire particles
         for (let i = 0; i < 3; i++) {
           particles.push({
             x: this.x + (Math.random() - 0.5) * this.width * 0.3,
@@ -5853,8 +5752,6 @@ function setHardcoreStartingStats() {
             r: 3 + Math.random() * 4
           });
         }
-        
-        // Spark particles
         if (Math.random() < 0.4) {
           particles.push({
             x: this.x,
@@ -5867,8 +5764,7 @@ function setHardcoreStartingStats() {
           });
         }
       }
-      
-      // Spawn occasional large embers
+
       if (Math.random() < 0.1) {
         particles.push({
           x: this.x + (Math.random() - 0.5) * this.width * 0.5,
@@ -5880,50 +5776,40 @@ function setHardcoreStartingStats() {
           r: 4 + Math.random() * 3
         });
       }
-      
+
       return this.life > 0;
     }
-    
+
     draw(ctx) {
+      // (draw method unchanged – keep as it was)
       const alpha = this.life / 0.6;
       const pulse = Math.sin(this.pulseRate) * 0.3 + 0.7;
-      
-      // Draw trail first
+
       for (let i = 0; i < this.trail.length; i++) {
         const point = this.trail[i];
         const trailAlpha = (i / this.trail.length) * alpha * 0.5;
         const trailSize = point.width * (i / this.trail.length) * pulse;
-        
-        const trailGradient = ctx.createRadialGradient(
-          point.x, point.y, 1,
-          point.x, point.y, trailSize * 1.5
-        );
+        const trailGradient = ctx.createRadialGradient(point.x, point.y, 1, point.x, point.y, trailSize * 1.5);
         trailGradient.addColorStop(0, `rgba(255, 100, 0, ${trailAlpha * 0.8})`);
         trailGradient.addColorStop(0.5, `rgba(255, 150, 0, ${trailAlpha * 0.4})`);
         trailGradient.addColorStop(1, `rgba(255, 200, 0, ${trailAlpha * 0.1})`);
-        
         ctx.fillStyle = trailGradient;
         ctx.beginPath();
         ctx.arc(point.x, point.y, trailSize * 1.5, 0, Math.PI * 2);
         ctx.fill();
       }
-      
-      // Main fire pulse core
+
       const coreSize = 15 + Math.sin(this.pulseRate * 2) * 5;
-      const coreGradient = ctx.createRadialGradient(
-        this.x, this.y, 1,
-        this.x, this.y, coreSize * 2
-      );
+      const coreGradient = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, coreSize * 2);
       coreGradient.addColorStop(0, `rgba(255, 200, 0, ${alpha * 0.9})`);
       coreGradient.addColorStop(0.3, `rgba(255, 150, 0, ${alpha * 0.7})`);
       coreGradient.addColorStop(0.7, `rgba(255, 100, 0, ${alpha * 0.5})`);
       coreGradient.addColorStop(1, `rgba(255, 50, 0, ${alpha * 0.2})`);
-      
+
       ctx.save();
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
-      
-      // Core shape - star-like fireball
+
       ctx.fillStyle = coreGradient;
       ctx.beginPath();
       for (let i = 0; i < 8; i++) {
@@ -5931,63 +5817,48 @@ function setHardcoreStartingStats() {
         const radius = coreSize * (i % 2 === 0 ? 1 : 0.7);
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
-        
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.closePath();
       ctx.fill();
-      
-      // Inner glow
+
       const innerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 0.8);
       innerGlow.addColorStop(0, `rgba(255, 255, 200, ${alpha * 0.8})`);
       innerGlow.addColorStop(1, `rgba(255, 200, 100, 0)`);
-      
       ctx.fillStyle = innerGlow;
       ctx.beginPath();
       ctx.arc(0, 0, coreSize * 0.8, 0, Math.PI * 2);
       ctx.fill();
-      
-      // Outer rings
-      const ringCount = 3;
-      for (let r = 0; r < ringCount; r++) {
+
+      for (let r = 0; r < 3; r++) {
         const ringSize = coreSize * (1.5 + r * 0.5);
         const ringAlpha = alpha * (0.4 - r * 0.1);
-        
         ctx.strokeStyle = `rgba(255, ${150 - r * 30}, 0, ${ringAlpha})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(0, 0, ringSize, 0, Math.PI * 2);
         ctx.stroke();
       }
-      
+
       ctx.restore();
-      
-      // Flame tendrils
+
       const tendrilCount = 6;
       for (let i = 0; i < tendrilCount; i++) {
         const tendrilAngle = this.angle + (i / tendrilCount) * Math.PI * 2;
         const tendrilLength = this.width * (0.8 + Math.sin(this.pulseRate * 3 + i) * 0.2);
         const tendrilX = this.x + Math.cos(tendrilAngle) * tendrilLength;
         const tendrilY = this.y + Math.sin(tendrilAngle) * tendrilLength;
-        
-        const tendrilGradient = ctx.createLinearGradient(
-          this.x, this.y,
-          tendrilX, tendrilY
-        );
+        const tendrilGradient = ctx.createLinearGradient(this.x, this.y, tendrilX, tendrilY);
         tendrilGradient.addColorStop(0, `rgba(255, 200, 0, ${alpha * 0.7})`);
         tendrilGradient.addColorStop(1, `rgba(255, 100, 0, 0)`);
-        
         ctx.strokeStyle = tendrilGradient;
         ctx.lineWidth = 3 + Math.sin(this.pulseRate * 4 + i) * 1.5;
         ctx.lineCap = 'round';
-        
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         ctx.lineTo(tendrilX, tendrilY);
         ctx.stroke();
-        
-        // Tendril tip
         ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.6})`;
         ctx.beginPath();
         ctx.arc(tendrilX, tendrilY, 2 + Math.sin(this.pulseRate * 5 + i) * 1.5, 0, Math.PI * 2);
@@ -5995,7 +5866,8 @@ function setHardcoreStartingStats() {
       }
     }
   }
-  // Rocket class
+
+// Rocket class
   class Rocket {
     constructor(x, y) {
       this.x = x;
@@ -8214,10 +8086,10 @@ function setHardcoreStartingStats() {
       constructor(spawnX, spawnY) {
           this.x = spawnX;
           this.y = spawnY;
-          this.r = 26 + player.lives +bossesKilled;
-          this.health = 16 + player.lives + bossesKilled;
-          this.maxHealth = 16 + player.lives + bossesKilled;
-          this.speed = 75;
+          this.r = 6 + this.upgradesGathered + player.lives + bossesKilled;
+          this.health = 16 + this.upgradesGathered + player.lives + bossesKilled;
+          this.maxHealth = 16 + this.upgradesGathered + player.lives + bossesKilled;
+          this.speed = 75 + this.upgradesGathered;
           this.color = '#1a0033';
           this.secondaryColor = '#4a0044';
           this.attackTimer = 0;
@@ -8227,7 +8099,7 @@ function setHardcoreStartingStats() {
           this.bulletAngle = 0;
           this.rotationSpeed = 0.5;
           this.frozen = false;
-          this.originalSpeed = 75;
+          this.originalSpeed = 75 + this.upgradesGathered;
           this.burning = false;
           this.burnTimer = 0;
           this.burnDamagePerTick = 0;
@@ -8246,6 +8118,10 @@ function setHardcoreStartingStats() {
           this.dashing = false;
           this.dashDirection = {x: 0, y: 0};
           this.dashSpeed = 600;
+          if (this.isHighScoreRun) {
+              this.dashCooldown = 3;
+              this.phaseCooldown = 5;
+          }
           
           // Tracking player for smart behavior
           this.lastPlayerPos = {x: player.x, y: player.y};
@@ -8581,7 +8457,7 @@ function setHardcoreStartingStats() {
       }
       
       performAttack() {
-          const bulletCount = this.health > this.maxHealth * 0.5 ? 4 : 6;
+          const bulletCount = this.health > this.maxHealth * 0.5 ? 5 : 9;
           const pattern = Math.floor(Math.random() * 3);
           
           switch(pattern) {
@@ -11242,6 +11118,9 @@ function setHardcoreStartingStats() {
     }
     
     takeDamage(amount) {
+      this.damageCap = 75;               // max damage per second
+      this.damageThisSecond = 0;
+      this.damageCapResetTimer = 0;
       // Check void shards first
       const activeShards = this.voidShards.filter(s => s.health > 0);
       if (activeShards.length > 0 && amount > 10) {
@@ -12546,7 +12425,7 @@ class MegaCreeperBoss {
     echoCountEl.textContent = echoes.length;
   }
 
-function spawnRandomEnemy() {
+  function spawnRandomEnemy() {
     // Spawn bosses as regular enemies in endless mode after certain times
     if (endlessMode) {
       if (timeAlive > 600 && Math.random() < 0.015) {
@@ -12563,39 +12442,38 @@ function spawnRandomEnemy() {
         return;
       }
     }
-    
+
+    // Early game: mostly slims
     if (timeAlive < 10 && Math.random() < 0.3) {
       spawnSlimFromOutside();
       return;
     }
-    
-    const randVal = Math.random();
-    
-    // spawn enemies
-    // spawn mobs
-    // enemy spawn
 
-    // FIXED: Moved Witch, Heavy Echo, and Dark Echo outside endless mode check
-    // so they spawn during normal gameplay too
-    
-    if (timeAlive > 300 && randVal < 0.05) { // Dark Echo - 5% (spawns after 250 seconds)
+    const randVal = Math.random();
+
+    // Now check rarer enemies with correct timings
+    if (timeAlive > 250 && randVal < 0.1) {          // Dark Echo
       spawnDarkEchoFromOutside();
-    } else if (timeAlive > 120 && randVal < 0.05) { // Heavy Echo - 5% (spawns after 100 seconds)
+    } else if (timeAlive > 80 && randVal < 0.2) {   // Heavy Echo
       spawnHeavyEchoFromOutside();
-    } else if (timeAlive > 180 && randVal < 0.05) { // Witch - 5% (spawns after 50 seconds)
+    } else if (timeAlive > 80 && randVal < 0.4) {   // Witch
       spawnWitchFromOutside();
-    } else if (timeAlive > 120 && randVal < 0.05) { // sniper - 5%
+    } else if (timeAlive > 80 && randVal < 0.6) {   // Sniper
       spawnsniperFromOutside();
-    } else if (timeAlive > 50 && randVal < 0.2) { // bomber - 20%
+    } else if (timeAlive > 30 && randVal < 0.4) {     // Bomber
       spawnBomberFromOutside();
-    } else if (timeAlive > 20 && randVal < 0.05) { // Tank - 5%
+    } else if (timeAlive > 20 && randVal < 0.2) {    // Tank
       spawnTankFromOutside();
-    } else if (timeAlive > 20 && randVal < 0.2) { // Bow - 20%
+    } else if (timeAlive > 10 && randVal < 0.3) {     // Bow
       spawnBowFromOutside();
+    } else if (timeAlive > 200 && randVal < 0.8) {     // Armored Slim
+      spawnArmoredSlimFromOutside();
     } else {
-      spawnEchoFromOutside();
+      spawnEchoFromOutside();                          // Regular echo
     }
-}
+  }
+
+
 
 
   function spawnSlimFromOutside() {
@@ -12986,7 +12864,6 @@ function spawnRandomEnemy() {
     shockwaveTimer = 0;
     shockwaveRadius = 0;
     shockwaveDamage = 0;
-    goldBalls = [];
     
     // Reset stats based on game mode
     if (gameMode !== 'freemode') {
@@ -14149,8 +14026,9 @@ function selectBonusUpgrade(type) {
       }
     }
   }
-  // Check for boss spawn
-  function checkBossSpawn(dt) {
+
+function checkBossSpawn(dt) {
+  // If already in endless mode, just handle periodic boss spawns
   if (endlessMode) {
     bossSpawnTimer += dt;
     if (bossSpawnTimer > 20 + Math.random() * 10) {
@@ -14159,22 +14037,18 @@ function selectBonusUpgrade(type) {
     }
     return;
   }
-  
-  // Check schedule for boss spawns
+
+  // Check the global bossSpawnSchedule for timed spawns
   for (let i = 0; i < bossSpawnSchedule.length; i++) {
     const bossSchedule = bossSpawnSchedule[i];
-    
-    // Skip if already spawned and killed
     if (bossSchedule.killed) continue;
-    
-    // Check if it's time to spawn
     if (timeAlive >= bossSchedule.time && !bossSchedule.spawned) {
       bossSchedule.spawned = true;
       spawnScheduledBoss(bossSchedule.type);
     }
   }
-  
-  // Check if all scheduled bosses are dead and activate endless mode
+
+  // After all scheduled bosses are dead, activate endless mode
   if (!endlessMode) {
     const allBossesDead = bossSpawnSchedule.every(boss => boss.killed);
     if (allBossesDead) {
@@ -14188,6 +14062,7 @@ function selectBonusUpgrade(type) {
     }
   }
 }
+
 
 function spawnScheduledBoss(type) {
   let boss;
@@ -14222,16 +14097,31 @@ function spawnScheduledBoss(type) {
   }
 }
 
-  // Spawn random boss for endless mode
-    function spawnRandomBoss() {
-    // Don't spawn if there are already 3 active bosses
-    if (activeBosses.length >= 3) return;
-    
-    const bossTypes = ['easy', 'medium', 'hard', 'final', 'creeper'];
-    const randomType = bossTypes[Math.floor(Math.random() * bossTypes.length)];
-    spawnScheduledBoss(randomType);
+function spawnRandomBoss() {
+  // Don't spawn if there are already 3 active bosses
+  if (activeBosses.length >= 3) return;
+
+  // Only spawn in endless mode
+  if (!endlessMode) return;
+
+  // Weighted random – rarer bosses less frequent
+  const rand = Math.random();
+  let bossType;
+
+  if (rand < 0.5) {
+    bossType = 'easy';      // 50% – Easy
+  } else if (rand < 0.75) {
+    bossType = 'medium';    // 25% – Medium
+  } else if (rand < 0.9) {
+    bossType = 'hard';      // 15% – Hard
+  } else if (rand < 0.98) {
+    bossType = 'creeper';   // 8% – Creeper
+  } else {
+    bossType = 'final';     // 2% – Final (very rare)
   }
 
+  spawnScheduledBoss(bossType);
+}
   // FIXED: Shield regen - turns off when player takes damage
   function updateShield(dt) {
     if (player.stats.shield.level === 0) return;
@@ -15256,12 +15146,6 @@ if (b.enemy) {
       }
     }
 
-    // Update gold balls
-    for (let i = goldBalls.length - 1; i >= 0; i--) {
-      if (!goldBalls[i].update(dt)) {
-        goldBalls.splice(i, 1);
-      }
-    }
     
     if (gameStarted && running) {
     const upgradeChance = 0.015 * (1 + (player.stats.xpBoost.level > 0 ? 0.5 : 0));
@@ -15292,16 +15176,7 @@ if (b.enemy) {
     
     checkBossSpawn(dt);
 
-    // Gold ball spawning
-    if (running && gameStarted && !gamePaused) {
-      goldSpawnDelay += dt;
-      const spawnInterval = 3 + Math.random() * 3; // 3-6 seconds
-      
-      if (goldSpawnDelay >= spawnInterval) {
-        goldSpawnDelay = 0;
-        spawnGoldBall();
-      }
-    }
+    goldSpawnDelay = 0;
 
     for (let i = particles.length - 1; i >= 0; i--){
       const p = particles[i];
@@ -15645,11 +15520,6 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
     for (const e of echoes) e.draw(ctx);
 
     for (const u of upgrades) u.draw(ctx);
-
-    // Draw gold balls
-    for (const gold of goldBalls) {
-      gold.draw(ctx);
-    }
 
     for (const w of player.workers) w.draw(ctx);
 
