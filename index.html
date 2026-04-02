@@ -1067,16 +1067,17 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
     <div class="control-group">
       <div class="control-title">Control</div>
       <div class="control-item"><span>Move</span><span class="control-key">WASD / Arrows</span></div>
+      <div class="control-item"><span>Select building</span><span class="control-key">Key 1-5</span></div>      
+      <div class="control-item"><span>Place building</span><span class="control-key">K</span></div>      
       <div class="control-item"><span>Upgrade Menu</span><span class="control-key">TAB</span></div>
-      <div class="control-item"><span>Emergency Ability</span><span class="control-key">L</span></div>
       <div class="control-item"><span>Pause</span><span class="control-key">P</span></div>
     </div>
     <div class="control-group">
       <div class="control-title">Combat</div>
-      <div class="control-item"><span>Aim</span><span class="control-key">MOUSE</span></div>
-      <div class="control-item"><span>Fire</span><span class="control-key">MOUSE CLICK/HOLD</span></div>
-      <div class="control-item"><span>Auto Aim</span><span class="control-key">N</span></div>
+      <div class="control-item"><span>Manual fire</span><span class="control-key">LEFT MOUSE BUTTON</span></div>
       <div class="control-item"><span>Auto Fire</span><span class="control-key">M</span></div>
+      <div class="control-item"><span>Auto Aim</span><span class="control-key">N</span></div>
+      <div class="control-item"><span>Emergency Ability</span><span class="control-key">L</span></div>
     </div>
   </div>
 
@@ -1145,10 +1146,41 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 </div>
 
 
+
 <div id="updateLogPanel" class="upgrade-menu" style="display: none;">
   <h2 style="text-align:center;margin-bottom:20px">UPDATE LOG</h2>
-  <div class="update-log-title">Updated version - V.23</div>
+  <div class="update-log-title">Updated version - V.24</div>
   <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+
+
+
+      <div class="update-log-entry">
+      <div class="update-log-title">The BUILDING Update</div>
+      <div class="update-log-date">02.04.2026</div>
+      <div class="update-log-content">
+        <ul>
+          <p><strong>NEW & ADDED!</strong></p>
+          <li><strong>New ⊙ Building system</strong></li>
+          <li>Wall - select with keyboard button 1</li>
+          <li>turret - select with keyboard button 2</li>
+          <li>healing mortar - select with keyboard button 3</li>
+          <li>shockwave emitter - select with keyboard button 4</li>
+          <li>gold mine - select with keyboard button 5</li>
+          <li>Place down building wiht keyboard button "K"</li>
+          <li>Buildings cost gold wich you collect by killing enemies</li>
+
+
+          <p><strong>Balance changes</strong></p>
+          <li><strong>Nerfed</strong></li>
+          <li>Fire pulse</li>
+          <li><strong>Buffed</strong></li>
+          <li>Burning Bullets</li>
+
+        </ul>
+      </div>
+    </div>
+
+
 
       <div class="update-log-entry">
       <div class="update-log-title">New Balance changes</div>
@@ -1175,7 +1207,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 
       <div class="update-log-entry">
-      <div class="update-log-title">Changes</div>
+      <div class="update-log-title">New Balance changes</div>
       <div class="update-log-date">09.02.2026</div>
       <div class="update-log-content">
         <ul>
@@ -1339,6 +1371,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   const startScreen = document.getElementById('startScreen');
   const deathScreen = document.getElementById('deathScreen');
   const upgradeMenu = document.getElementById('upgradeMenu');
+  const MAX_WALL_CONNECTIONS = 3;   // maximum number of connections per wall
+  let nextWallId = 0;               // unique ID for each wall
   const upgradeOptions = document.getElementById('upgradeOptions');
   const pauseMenu = document.getElementById('pauseMenu');
   const upgradesList = document.getElementById('upgradesList');
@@ -1430,27 +1464,32 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
   // Gold Currency System
 let playerGold = 0;
+let sessionGold = 0;
 let goldSpawnTimer = 0;
 let goldSpawnDelay = 0;
 
 function loadGold() {
   const saved = localStorage.getItem('echoswap-gold');
   if (saved !== null) {
-    playerGold = parseInt(saved);
+    totalGold = parseInt(saved);
   } else {
-    playerGold = 0;
+    totalGold = 0;
   }
-  updateGoldDisplay();
+  updateGoldDisplays();
 }
 
 function saveGold() {
-  localStorage.setItem('echoswap-gold', playerGold);
+  localStorage.setItem('echoswap-gold', totalGold);
 }
 
 function addGold(amount) {
-  playerGold += amount;
-  saveGold();
-  updateGoldDisplay();
+  sessionGold += amount;
+  // In freemode, do NOT add to permanent totalGold or save
+  if (gameMode !== 'freemode') {
+    totalGold += amount;
+    saveGold();
+  }
+  updateGoldDisplays();
   
   // Gold pickup animation
   spawnGoldPickupEffect();
@@ -1459,14 +1498,14 @@ function addGold(amount) {
   sfx(1200, 0.15, 0.03, 'sine');
 }
 
-function updateGoldDisplay() {
+function updateGoldDisplays() {
   const goldAmountEl = document.getElementById('goldAmount');
   const ingameGoldEl = document.getElementById('ingameGold');
   if (goldAmountEl) {
-    goldAmountEl.textContent = playerGold;
+    goldAmountEl.textContent = totalGold;
   }
   if (ingameGoldEl) {
-    ingameGoldEl.textContent = playerGold;
+    ingameGoldEl.textContent = sessionGold;
   }
 }
 
@@ -3444,6 +3483,64 @@ window.addEventListener('keydown', (e) => {
             }
         }
     }
+
+    // Building selection (number keys 1-9)
+    if (e.key >= '1' && e.key <= '9') {
+        selectedBuilding = parseInt(e.key);
+        console.log(`Building ${selectedBuilding} selected`);
+    }
+    // Pressing '0' selects building type 0
+    if (e.key === '0') {
+        selectedBuilding = 0;
+        console.log('Building 0 selected');
+    }
+
+    // Place building with K key
+    if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        if (!gameStarted || !running || gamePaused) return;
+        if (selectedBuilding === 0) {
+            console.log('No building selected');
+            return;
+        }
+        if (buildingCooldown > 0) {
+            console.log(`Building on cooldown (${buildingCooldown.toFixed(1)}s)`);
+            return;
+        }
+        const cost = buildingCosts[selectedBuilding];
+        if (cost === undefined) return;
+        if (sessionGold < cost) {
+            console.log('Not enough gold');
+            return;
+        }
+        // Create building based on type
+        const building = createBuilding(selectedBuilding, player.x, player.y);
+        // Resolve collision by sliding away from existing buildings
+        const resolved = resolveBuildingCollision(building, buildings);
+        if (!resolved) {
+            console.log('Cannot place building: no space');
+            return; // placement fails
+        }
+
+        // Placement successful
+        buildings.push(resolved);
+
+        rebuildWallConnections();  // update wall connections
+
+        // Deduct gold and update display
+        sessionGold -= cost;
+        updateGoldDisplays();
+
+        // Start cooldown (1 second)
+        buildingCooldown = 1.0;
+
+        // Optional: sound effect for placement
+        sfx(800, 0.1, 0.03, 'sine');
+        // Optional: particle effect
+        spawnParticles(resolved.x, resolved.y, 'rgba(170,255,170,0.9)', 15, Math.PI*2, 80);
+    }
+
+
     audioResume();
   });
   window.addEventListener('keyup', e => {
@@ -3538,9 +3635,268 @@ window.addEventListener('keydown', (e) => {
   }
 
   // world & gameplay
-  const echoes = [], bullets = [], paints = [], particles = [], records = [], upgrades = [], ghosts = [], bombs = [], fires = [], rockets = [];
-  const spawnIndicators = [];
-  let recordTimer = 0, echoSpawnTimer = 0, difficulty = 1;
+  const echoes = [], bullets = [], paints = [], particles = [], records = [], upgrades = [], ghosts = [], bombs = [], fires = [], rockets = [], buildings = [], spawnIndicators = [], healingOrbs = [];
+  // Building creation helper
+  function createBuilding(type, x, y) {
+      let width, height;
+      let building;
+      switch(type) {
+          case 1: // wall – improved theme (dark stone with neon edge)
+              width = 16;
+              height = 16;
+              building = { x, y, type, width, height, color: '#1a1a2e', health: 1000, maxHealth: 1000, blocksMovement: true };
+              break;
+          case 2: // healing orb cannon – better visuals
+              width = 36;
+              height = 36;
+              building = { x, y, type, width, height, color: '#aa8866', health: 20, maxHealth: 20, cooldown: 0, fireRate: 15.0, angle: 0 };
+              break;
+          case 3: // cannon turret – bigger barrel
+              width = 40;
+              height = 40;
+              building = { x, y, type, width, height, color: '#2c3e50', health: 140, maxHealth: 140, cooldown: 0, fireRate: 1.2, damage: 1, bulletSpeed: 500, bulletSize: 10, bulletColor: '#e67e22', angle: 0 };
+              break;
+          case 4: // NEW: Shockwave Emitter
+              width = 34;
+              height = 34;
+              building = { x, y, type, width, height, color: '#9b59b6', health: 500, maxHealth: 500, cooldown: 0, fireRate: 3.0, damage: 8 };
+              break;
+          case 5: // NEW: Gold Mine
+              width = 38;
+              height = 38;
+              building = { x, y, type, width, height, color: '#f39c12', health: 300, maxHealth: 300, goldTimer: 0, goldInterval: 10, goldAmount: 10 };
+              break;
+          default:
+              width = 30;
+              height = 30;
+              building = { x, y, type, width, height, color: '#aaffaa', health: 20, maxHealth: 20 };
+              break;
+      }
+      // Add unique ID and connections array for walls
+      if (type === 1) {
+          building.id = nextWallId++;
+          building.connections = [];
+      }
+      return building;
+  }
+
+
+// ========== BUILDING COLLISION RESOLUTION ==========
+function isBuildingColliding(b1, b2) {
+    const left1 = b1.x - b1.width/2;
+    const right1 = b1.x + b1.width/2;
+    const top1 = b1.y - b1.height/2;
+    const bottom1 = b1.y + b1.height/2;
+    const left2 = b2.x - b2.width/2;
+    const right2 = b2.x + b2.width/2;
+    const top2 = b2.y - b2.height/2;
+    const bottom2 = b2.y + b2.height/2;
+    return !(right1 <= left2 || left1 >= right2 || bottom1 <= top2 || top1 >= bottom2);
+}
+
+function resolveBuildingCollision(newBuilding, existingBuildings) {
+    const maxIterations = 10;
+    for (let iter = 0; iter < maxIterations; iter++) {
+        let colliding = false;
+        for (const existing of existingBuildings) {
+            if (isBuildingColliding(newBuilding, existing)) {
+                colliding = true;
+                // Calculate push direction away from existing building's center
+                const dx = newBuilding.x - existing.x;
+                const dy = newBuilding.y - existing.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 0.001) {
+                    // Centers overlap exactly – push in random direction
+                    const angle = Math.random() * Math.PI * 2;
+                    newBuilding.x += Math.cos(angle) * 10;
+                    newBuilding.y += Math.sin(angle) * 10;
+                } else {
+                    // Calculate overlap amounts
+                    const overlapX = (newBuilding.width/2 + existing.width/2) - Math.abs(dx);
+                    const overlapY = (newBuilding.height/2 + existing.height/2) - Math.abs(dy);
+                    if (overlapX > 0 && overlapY > 0) {
+                        // Push along the smaller overlap axis
+                        if (overlapX < overlapY) {
+                            const pushX = (dx > 0 ? overlapX : -overlapX);
+                            newBuilding.x += pushX;
+                        } else {
+                            const pushY = (dy > 0 ? overlapY : -overlapY);
+                            newBuilding.y += pushY;
+                        }
+                    }
+                }
+                // Keep building inside canvas
+                newBuilding.x = clamp(newBuilding.x, newBuilding.width/2, W - newBuilding.width/2);
+                newBuilding.y = clamp(newBuilding.y, newBuilding.height/2, H - newBuilding.height/2);
+                break; // restart loop after this adjustment
+            }
+        }
+        if (!colliding) break;
+    }
+    // After max iterations, check if still colliding → placement failed
+    for (const existing of existingBuildings) {
+        if (isBuildingColliding(newBuilding, existing)) {
+            return null;
+        }
+    }
+    return newBuilding;
+}
+  
+window.visualEffects = [];
+
+  // Healing orb projectile
+class HealingOrb {
+    constructor(x, y, angle) {
+        this.startX = x;
+        this.startY = y;
+        this.x = x;
+        this.y = y;
+        this.r = 10;                     // base radius increased (was 8)
+        // Horizontal velocity – increased range
+        const speed = 160;               // was 80
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        // Vertical motion – kept similar
+        this.vz = 250;
+        this.z = 0;
+        this.gravity = 550;
+        this.state = 'air';
+        this.landedTimer = 0;
+        this.landedDuration = 3;
+        this.healAmount = 1;
+        this.color = '#88ff88';
+        this.shadowSize = 14;            // slightly larger shadow
+        this.trailParticles = [];
+    }
+
+    update(dt) {
+        if (this.state === 'air') {
+            // Update horizontal position
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            // Update height
+            this.z += this.vz * dt;
+            this.vz -= this.gravity * dt;
+
+            // Check landing
+            if (this.z <= 0) {
+                this.z = 0;
+                this.state = 'landed';
+                this.vx = 0;
+                this.vy = 0;
+                this.vz = 0;
+                // Landing effect – slightly more particles
+                spawnParticles(this.x, this.y, '#88ff88', 12, Math.PI*2, 60);
+                sfx(500, 0.08, 0.015, 'sine');
+            }
+
+            // Dust particles while in air
+            if (Math.random() < 0.15) {
+                this.trailParticles.push({
+                    x: this.x,
+                    y: this.y,
+                    life: 0.4,
+                    size: 1 + Math.random() * 1.5
+                });
+            }
+        } else { // landed state
+            this.landedTimer += dt;
+            if (this.landedTimer >= this.landedDuration) {
+                return false;
+            }
+        }
+
+        // Update trail particles
+        for (let i = this.trailParticles.length - 1; i >= 0; i--) {
+            this.trailParticles[i].life -= dt;
+            if (this.trailParticles[i].life <= 0) {
+                this.trailParticles.splice(i, 1);
+            }
+        }
+
+        // Only collect when landed and player touches it
+        if (this.state === 'landed') {
+            const d = Math.hypot(this.x - player.x, this.y - player.y);
+            if (d < this.r + player.r) {
+                player.lives += this.healAmount;
+                livesEl.textContent = player.lives;
+                spawnParticles(player.x, player.y, '#88ff88', 15, Math.PI*2, 80);
+                sfx(1000, 0.2, 0.03, 'sine');
+                return false; // remove orb
+            }
+        }
+
+        // Remove if out of bounds
+        if (this.state === 'air' && (this.x < -200 || this.x > W+200 || this.y < -200 || this.y > H+200)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        // Ground shadow
+        const shadowAlpha = (this.state === 'air') ? 0.35 : 0.6;
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, this.shadowSize, this.shadowSize * 0.6, 0, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+        ctx.fill();
+
+        // Orb position with height offset
+        const yOffset = -this.z * 0.25;
+        const orbX = this.x;
+        const orbY = this.y + yOffset;
+        // Size – only very slight growth with height (max ~15% larger)
+        const orbSize = this.r * (1 + Math.min(0.15, this.z * 0.008));
+
+        // Glow
+        const glow = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, orbSize * 2.5);
+        glow.addColorStop(0, '#88ff88');
+        glow.addColorStop(1, '#88ff8800');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(orbX, orbY, orbSize * 1.5, 0, Math.PI*2);
+        ctx.fill();
+
+        // Main orb
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(orbX, orbY, orbSize, 0, Math.PI*2);
+        ctx.fill();
+
+        // Trail particles (air only)
+        for (const p of this.trailParticles) {
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(136,255,136,${p.life * 0.7})`;
+            ctx.arc(p.x, p.y - this.z * 0.25, p.size * p.life, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // Landed pulse
+        if (this.state === 'landed') {
+            const pulse = 0.8 + Math.sin(this.landedTimer * 8) * 0.2;
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(136,255,136,${pulse * 0.4})`;
+            ctx.arc(orbX, orbY, orbSize * 1.3, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+
+  // prices buildings prices building prices gold prices building costs building
+  let selectedBuilding = 0;         // 0 = none, 1 = first building
+  let buildingCooldown = 0;         // seconds until next placement allowed
+  let buildingFireRateMod = 1;   // used by strength zone
+  const buildingCosts = {
+    1: 10,   // wall
+    2: 100,   // healing orb cannon
+    3: 25,    // cannon turret
+    4: 75,  // shockwave emitter
+    5: 85   // gold mine
+  };  let recordTimer = 0, echoSpawnTimer = 0, difficulty = 1;
   let fireTimer = 0, autoFireTimer = 0, workerFireTimer = 0;
   let shake = 0;
   let upgradeAvailable = false;
@@ -3990,10 +4346,7 @@ function setHardcoreStartingStats() {
         const d = dist({x: player.x, y: player.y}, e);
         if (d < player.r * 6 * areaMultiplier) { // 6x player radius area
           if (e.takeDamage(baseDamage * damageMultiplier * dt)) {
-            echoesKilled++;
-            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-            echoes.splice(i, 1);
-            echoCountEl.textContent = echoes.length;
+            handleEnemyDeath(e, 'damageZone');
           }
         }
       }
@@ -4061,10 +4414,7 @@ function setHardcoreStartingStats() {
               const explosionDist = Math.hypot(mine.x - enemy.x, mine.y - enemy.y);
               if (explosionDist < mine.explosionRadius + enemy.r) {
                 if (enemy.takeDamage(mine.damage)) {
-                  echoesKilled++;
-                  spawnParticles(enemy.x, enemy.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-                  echoes.splice(k, 1);
-                  echoCountEl.textContent = echoes.length;
+                  handleEnemyDeath(enemy, 'mine');
                 } else {
                   spawnParticles(enemy.x, enemy.y, 'rgba(255,100,0,0.7)', 5, Math.PI/4, 40);
                 }
@@ -5079,13 +5429,12 @@ function setHardcoreStartingStats() {
           }
         }
 
-          if (e.takeDamage(b.damage)) {
-            trackHit();
-            echoesKilled++;
-            spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-            echoes.splice(j, 1);
-          }
-          
+        if (e.takeDamage(b.damage)) {
+          handleEnemyDeath(e, 'minigun');
+          minigunBullets.splice(i, 1);
+          break;
+        }
+
           // Apply knockback to minigun bullets (1/4 of regular knockback)
           if (player.stats.knockbackBullets.level > 0 && b.minigun) {
             const knockbackForce = (player.stats.knockbackBullets.level === 1 ? 30 : 
@@ -5104,13 +5453,13 @@ function setHardcoreStartingStats() {
     }
   }
 
-  // Shockwave class
+  // Shockwave class – with customisable radius
   class Shockwave {
-    constructor(x, y, damage) {
+    constructor(x, y, damage, maxRadius = player.r * 30) {
       this.x = x;
       this.y = y;
       this.radius = 0;
-      this.maxRadius = player.r * 30;
+      this.maxRadius = maxRadius;    // now uses the provided value or the default
       this.duration = 1;
       this.timer = 0;
       this.damage = damage;
@@ -5138,12 +5487,7 @@ function setHardcoreStartingStats() {
             }
             
             if (e.takeDamage(this.damage)) {
-              echoesKilled++;
-              spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-              const index = echoes.indexOf(e);
-              if (index > -1) {
-                echoes.splice(index, 1);
-              }
+              handleEnemyDeath(e, 'shockwave');
             }
           }
         }
@@ -5168,7 +5512,7 @@ function setHardcoreStartingStats() {
       
       return this.timer < this.duration;
     }
-    
+        
     draw(ctx) {
         // Performance optimization - skip if invisible
         const alpha = Math.max(0, 1 - (this.timer / this.duration));
@@ -12743,9 +13087,49 @@ class MegaCreeperBoss {
     }
   }
 
+  function rebuildWallConnections() {
+    // Clear all existing connections
+    for (const b of buildings) {
+      if (b.type === 1) b.connections = [];
+    }
+
+    const walls = buildings.filter(b => b.type === 1);
+    if (walls.length < 2) return;
+
+    // Build list of candidate pairs (within 120 units)
+    const candidates = [];
+    for (let i = 0; i < walls.length; i++) {
+      for (let j = i + 1; j < walls.length; j++) {
+        const dist = Math.hypot(walls[i].x - walls[j].x, walls[i].y - walls[j].y);
+        if (dist < 120) {
+          candidates.push({ w1: walls[i], w2: walls[j], dist });
+        }
+      }
+    }
+
+    // Sort by distance (closest first)
+    candidates.sort((a, b) => a.dist - b.dist);
+
+    // Add connections greedily, respecting the per‑wall limit
+    for (const c of candidates) {
+      if (c.w1.connections.length < MAX_WALL_CONNECTIONS &&
+          c.w2.connections.length < MAX_WALL_CONNECTIONS) {
+        c.w1.connections.push(c.w2);
+        c.w2.connections.push(c.w1);
+      }
+    }
+  }
+
   // Reset
   function resetGame(){
-    loadGold(); // Add this after resetGame opening
+    loadGold(); 
+  // Set starting gold based on game mode // ====== start gold startgold gold start
+  if (gameMode === 'freemode') {
+    sessionGold = 10000;
+  } else {
+    sessionGold = 15;
+  }
+    updateGoldDisplays();
     player.x = W/2; player.y = H/2; player.vx = player.vy = 0; player.invul = 0;
     player.trail = [];
     player.workers = [];
@@ -12788,6 +13172,9 @@ class MegaCreeperBoss {
     playerXP = 0;
     xpToNextLevel = 100;
     records.length = echoes.length = bullets.length = paints.length = particles.length = upgrades.length = ghosts.length = bombs.length = fires.length = rockets.length = spawnIndicators.length = shockwaves.length = guards.length = minigunBullets.length = 0;
+    buildings.length = 0;
+    selectedBuilding = 0;
+    buildingCooldown = 0;
     timeAlive = 0; score = 0; difficulty = 1; shake = 0;
     echoesKilled = 0; upgradesGathered = 0; bossesKilled = 0; megaBossActive = false;
     recordTimer = 0; echoSpawnTimer = 0; fireTimer = 0; autoFireTimer = 0; workerFireTimer = 0; bossSpawnTimer = 0;
@@ -14208,6 +14595,7 @@ function spawnRandomBoss() {
     }
     
     updateShield(dt);
+    if (buildingCooldown > 0) buildingCooldown -= dt;
     updateSprint(dt);
     updateUI();
     
@@ -14250,18 +14638,18 @@ function spawnRandomBoss() {
     }
 
     fireTimer += dt;
-    if (!player.autoFireToggle && (input.mouseClicked || (input.mouseDown && fireTimer >= player.fireRate)) && fireTimer >= 1) {
+    if (!player.autoFireToggle && (input.mouseClicked || (input.mouseDown && fireTimer >= player.fireRate * buildingFireRateMod)) && fireTimer >= 1) {
       fireTimer = 0;
       fireShot();
     }
     input.mouseClicked = false;
     
     if (player.autoFireToggle) {
-      autoFireTimer += dt;
-      if (autoFireTimer >= player.fireRate) {
-        autoFireTimer = 0;
-        fireShot();
-      }
+        autoFireTimer += dt;
+        if (autoFireTimer >= player.fireRate * buildingFireRateMod) {
+            autoFireTimer = 0;
+            fireShot();
+        }
     }
 
     for (let i = spawnIndicators.length - 1; i >= 0; i--) {
@@ -14481,77 +14869,11 @@ function spawnRandomBoss() {
   (player.stats.xpBoost.level > 3 ? 0.2 : 0) +
   (player.stats.xpBoost.level > 4 ? 0.1 : 0);
       
-      if (e.takeDamage(b.damage)) {
-        trackHit();
-        if (gameMode !== 'freemode' || player.lives > 0) {
-            score += 8;
-        }
-        echoesKilled++;
-        
-        let xpAmount = 15;
-        let xpMultiplier = 1;
-        
-        // Level 4: Increase all XP received by 50%
-        if (player.stats.xpBoost.level === 4) {
-            xpMultiplier = 1.5;
-        }
-        
-        playerXP += xpAmount * xpMultiplier;
-
-        // Level 4: 50% chance for XP orb to spawn when enemy dies
-        const xpDropChance = player.stats.xpBoost.level === 4 ? 0.5 : 0;
-        
-        if (xpDropChance > 0 && Math.random() < xpDropChance) {
-            upgrades.push(new Upgrade('xpBoost'));
-        }
-        
-        checkLevelUp();
-        spawnParticles(e.x, e.y, 'rgba(255,180,120,0.9)', 16, Math.PI*2, 120);
-        
-        if (e instanceof EasyBoss || e instanceof MediumBoss || e instanceof HardBoss || e instanceof FinalBoss || e instanceof MegaCreeperBoss) {
-          bossesKilled++;
-          
-          // Mark boss as killed in schedule
-          const bossType = getBossType(e);
-          const scheduleIndex = bossSpawnSchedule.findIndex(b => b.type === bossType && !b.killed);
-          if (scheduleIndex !== -1) {
-            bossSpawnSchedule[scheduleIndex].killed = true;
-          }
-          
-          // Remove from active bosses
-          const bossIndex = activeBosses.indexOf(e);
-          if (bossIndex !== -1) {
-            activeBosses.splice(bossIndex, 1);
-            
-            // Remove corresponding health bar and adjust offsets
-            bossHealthBars.splice(bossIndex, 1);
-            
-            // Recalculate y offsets for remaining health bars
-            bossHealthBars.forEach((bar, index) => {
-              bar.yOffset = (index * 30) + 20;
-            });
-          }
-          
-          levelUpNotification.style.display = 'block';
-          levelUpNotification.querySelector('.level-up-text').textContent = 'Continue surviving!';
-          levelUpNotification.querySelector('.level-up-hint').textContent = 'Continue surviving!';
-          setTimeout(() => {
-            levelUpNotification.style.display = 'none';
-          }, 3000);
-        }
-
-        function getBossType(boss) {
-          if (boss instanceof EasyBoss) return 'easy';
-          if (boss instanceof MediumBoss) return 'medium';
-          if (boss instanceof HardBoss) return 'hard';
-          if (boss instanceof FinalBoss) return 'final';
-          if (boss instanceof MegaCreeperBoss) return 'creeper';
-          return 'unknown';
-        }              
-        echoes.splice(j,1);
-        echoCountEl.textContent = echoes.length;
-      }
-      
+if (e.takeDamage(b.damage)) {
+  handleEnemyDeath(e, 'bullet');
+  bullets.splice(i, 1);
+  break;
+}      
       // FIXED: For mythical heavy caliber - bullets don't break but mark enemy as hit
       if (b.persistent) {
         b.hitEnemies.push(e);
@@ -14901,7 +15223,16 @@ if (b.enemy) {
         echoes.splice(i, 1);
         echoCountEl.textContent = echoes.length;
         continue; // skip further processing for this dead enemy
-      }    
+      } 
+      
+      e.prevX = e.x;
+      e.prevY = e.y;
+
+      // after the update, decrement wall collision cooldown if it exists
+      if (e.wallCollisionCooldown !== undefined) {
+          e.wallCollisionCooldown -= dt;
+          if (e.wallCollisionCooldown < 0) e.wallCollisionCooldown = 0;
+      }
 
       for (const p of paints){
         const d = Math.hypot(e.x - p.x, e.y - p.y);
@@ -15058,7 +15389,184 @@ if (b.enemy) {
         }
       }
     }
-    
+
+// Enemy collisions with buildings (damage + wall blocking)
+for (const e of echoes) {
+  // Reset temporary speed modifier
+  e.tempSpeedMod = 1;
+
+  // ----- Damage from overlapping a building rectangle -----
+  for (let i = 0; i < buildings.length; i++) {
+    const b = buildings[i];
+    if (b.health <= 0) continue;
+
+    // Wall collision (type 1) – block movement with smooth push and cooldown
+    if (b.type === 1 && b.health > 0) {
+      const left = b.x - b.width/2;
+      const right = b.x + b.width/2;
+      const top = b.y - b.height/2;
+      const bottom = b.y + b.height/2;
+
+      // Check if enemy overlaps the wall rectangle
+      if (e.x + e.r > left && e.x - e.r < right &&
+          e.y + e.r > top && e.y - e.r < bottom) {
+
+        // Calculate overlap amounts
+        const overlapLeft = (e.x + e.r) - left;
+        const overlapRight = right - (e.x - e.r);
+        const overlapTop = (e.y + e.r) - top;
+        const overlapBottom = bottom - (e.y - e.r);
+
+        // Find the smallest overlap direction (the one to push out)
+        let dx = 0, dy = 0;
+        if (overlapLeft < overlapRight && overlapLeft < overlapTop && overlapLeft < overlapBottom) {
+          dx = -overlapLeft;
+        } else if (overlapRight < overlapLeft && overlapRight < overlapTop && overlapRight < overlapBottom) {
+          dx = overlapRight;
+        } else if (overlapTop < overlapLeft && overlapTop < overlapRight && overlapTop < overlapBottom) {
+          dy = -overlapTop;
+        } else {
+          dy = overlapBottom;
+        }
+
+        // Apply push (but only if the enemy isn't already being pushed this frame)
+        if (!e.wallCollisionCooldown || e.wallCollisionCooldown <= 0) {
+          e.x += dx;
+          e.y += dy;
+
+          // Also cancel velocity in the push direction to stop jitter
+          if (dx !== 0) e.vx = 0;
+          if (dy !== 0) e.vy = 0;
+
+          // Set a short cooldown (0.1 seconds) to avoid multiple pushes per frame
+          e.wallCollisionCooldown = 0.1;
+        }
+      }
+    }
+
+    // Apply damage if the enemy touches the building's rectangle
+    if (e.x + e.r > b.x - b.width/2 && e.x - e.r < b.x + b.width/2 &&
+        e.y + e.r > b.y - b.height/2 && e.y - e.r < b.y + b.height/2) {
+
+      // Damage this wall
+      b.health -= 1;
+      if (b.health <= 0) {
+        // Remove this wall
+        buildings.splice(i, 1);
+        i--; // adjust index because array changed
+        continue; // skip push for destroyed wall
+      }
+
+      // Push enemy away (only for non‑boss enemies)
+      const isBoss = e instanceof EasyBoss || e instanceof MediumBoss ||
+                     e instanceof HardBoss || e instanceof FinalBoss ||
+                     e instanceof MegaCreeperBoss;
+      if (!isBoss && (!e.wallCollisionCooldown || e.wallCollisionCooldown <= 0)) {
+        const angle = Math.atan2(e.y - b.y, e.x - b.x);
+        const pushForce = 8;
+        e.x += Math.cos(angle) * pushForce;
+        e.y += Math.sin(angle) * pushForce;
+        e.wallCollisionCooldown = 0.15;
+      } else if (isBoss) {
+        const angle = Math.atan2(e.y - b.y, e.x - b.x);
+        const nudge = 2;
+        e.x += Math.cos(angle) * nudge;
+        e.y += Math.sin(angle) * nudge;
+      }
+    }
+  }
+
+
+
+// ----- Collision with brick bands (drawn connections between walls) -----
+for (const b1 of buildings) {
+  if (b1.type !== 1 || !b1.connections) continue;
+  for (const b2 of b1.connections) {
+    // Process each connection once (using unique IDs)
+    if (b2.id > b1.id) {
+      const dx = b2.x - b1.x;
+      const dy = b2.y - b1.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 120 && dist > 0) {
+        const lineDirX = dx / dist;
+        const lineDirY = dy / dist;
+        const perpX = -lineDirY;
+        const perpY = lineDirX;
+
+        // Swept test: check if enemy crossed the segment between frames
+        const tPrev = ((e.prevX - b1.x) * dx + (e.prevY - b1.y) * dy) / (dist * dist);
+        const tCurr = ((e.x - b1.x) * dx + (e.y - b1.y) * dy) / (dist * dist);
+        let tMin = Math.min(tPrev, tCurr);
+        let tMax = Math.max(tPrev, tCurr);
+        if (tMax >= 0 && tMin <= 1) {
+          const tClamped = Math.max(0, Math.min(1, tCurr));
+          const closestX = b1.x + dx * tClamped;
+          const closestY = b1.y + dy * tClamped;
+
+          const d = Math.hypot(e.x - closestX, e.y - closestY);
+          const bandHalfThick = 6;
+          const minDist = e.r + bandHalfThick;
+
+          if (d < minDist) {
+            // Damage the walls (same logic as before)
+            const wallToDamage = b1;
+            if (wallToDamage.wallGroup) {
+              wallToDamage.wallGroup.totalHealth -= 1;
+              if (wallToDamage.wallGroup.totalHealth <= 0) {
+                for (const w of wallToDamage.wallGroup.walls) {
+                  const idx = buildings.indexOf(w);
+                  if (idx !== -1) buildings.splice(idx, 1);
+                }
+                rebuildWallConnections(); // <-- rebuild after destruction
+                break;
+              }
+              for (const w of wallToDamage.wallGroup.walls) {
+                w.health = wallToDamage.wallGroup.totalHealth;
+                w.maxHealth = wallToDamage.wallGroup.maxHealth;
+              }
+            } else {
+              b1.health -= 1;
+              if (b1.health <= 0) {
+                const idx = buildings.indexOf(b1);
+                if (idx !== -1) buildings.splice(idx, 1);
+                rebuildWallConnections();
+                break;
+              }
+              b2.health -= 1;
+              if (b2.health <= 0) {
+                const idx = buildings.indexOf(b2);
+                if (idx !== -1) buildings.splice(idx, 1);
+                rebuildWallConnections();
+                break;
+              }
+            }
+
+            // Push enemy away
+            const toEnemyX = e.x - closestX;
+            const toEnemyY = e.y - closestY;
+            const side = toEnemyX * perpX + toEnemyY * perpY;
+            const pushDirX = (side > 0 ? perpX : -perpX);
+            const pushDirY = (side > 0 ? perpY : -perpY);
+            const overlap = minDist - d;
+            if (overlap > 0) {
+              e.x += pushDirX * (overlap + 0.1);
+              e.y += pushDirY * (overlap + 0.1);
+              const velPerp = e.vx * pushDirX + e.vy * pushDirY;
+              if (velPerp < 0) {
+                e.vx -= velPerp * pushDirX;
+                e.vy -= velPerp * pushDirY;
+              }
+            }
+            e.wallCollisionCooldown = 0.1;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+    }
     if (player.invul > 0) {
       player.invul -= dt;
     }
@@ -15173,7 +15681,104 @@ if (b.enemy) {
       }
     }
   }
-    
+
+  // ========== BUILDING UPDATE ==========
+  buildingFireRateMod = 1;
+
+  // Update healing orbs
+  for (let i = healingOrbs.length - 1; i >= 0; i--) {
+      if (!healingOrbs[i].update(dt)) {
+          healingOrbs.splice(i, 1);
+      }
+  }
+
+
+
+  // Process building updates
+  for (let i = 0; i < buildings.length; i++) {
+      const b = buildings[i];
+
+      switch(b.type) {
+          case 2: // healing orb cannon
+              b.cooldown -= dt;
+              if (b.cooldown <= 0) {
+                  b.cooldown = b.fireRate;
+                  const angle = Math.random() * Math.PI * 2;
+                  healingOrbs.push(new HealingOrb(b.x, b.y, angle));
+                  spawnParticles(b.x, b.y, '#88ff88', 10, Math.PI*2, 60);
+              }
+              break;
+          case 3: // cannon turret
+              b.cooldown -= dt;
+              if (b.cooldown <= 0) {
+                  let nearest = null;
+                  let minDist = Infinity;
+                  for (const e of echoes) {
+                      const d2 = Math.hypot(b.x - e.x, b.y - e.y);
+                      if (d2 < minDist) {
+                          minDist = d2;
+                          nearest = e;
+                      }
+                  }
+                  if (nearest) {
+                      const aim = vecTo(b.x, b.y, nearest.x, nearest.y);
+                      bullets.push({
+                          x: b.x,
+                          y: b.y,
+                          dx: aim.x,
+                          dy: aim.y,
+                          t: 0,
+                          life: 2.0,
+                          speed: b.bulletSpeed,
+                          size: b.bulletSize,
+                          color: b.bulletColor || '#ffaa66',
+                          enemy: false,
+                          damage: b.damage,
+                          building: true
+                      });
+                      b.cooldown = b.fireRate;
+                      spawnParticles(b.x, b.y, b.bulletColor || '#ffaa66', 5, Math.PI/6, 80);
+                      sfx(600, 0.05, 0.02, 'sine');
+                  }
+              }
+              break;
+
+        case 4: // Shockwave Emitter
+          b.cooldown -= dt;
+          if (b.cooldown <= 0) {
+              b.cooldown = b.fireRate;   // default fireRate = 5.0 seconds
+              // Create a smaller shockwave (radius = 150)
+              const newShockwave = new Shockwave(b.x, b.y, b.damage, 100);
+              shockwaves.push(newShockwave);
+              // Visual and sound feedback
+              spawnParticles(b.x, b.y, '#9b59b6', 20, Math.PI*2, 120);
+              sfx(400, 0.15, 0.05, 'sawtooth');
+          }
+          break;
+            case 5: // Gold Mine
+            if (!b.goldTimer) b.goldTimer = 0;
+            b.goldTimer += dt;
+            if (b.goldTimer >= b.goldInterval) {
+                b.goldTimer = 0;
+                // Add gold to the player
+                addGold(b.goldAmount);
+                // Show gold pickup effect at mine position
+                spawnGoldPickupEffectAtPosition(b.x, b.y, b.goldAmount);
+                // Sparkle particles
+                spawnParticles(b.x, b.y, '#ffd700', 15, Math.PI*2, 80);
+                sfx(800, 0.1, 0.02, 'sine');
+            }
+            break;
+            }
+
+          // Non‑wall buildings die when health reaches zero
+          if (b.type !== 1 && b.health <= 0) {
+              buildings.splice(i,1);
+              i--;
+              rebuildWallConnections();
+          }
+      }
+
     checkBossSpawn(dt);
 
     goldSpawnDelay = 0;
@@ -15518,6 +16123,365 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
     }
 
     for (const e of echoes) e.draw(ctx);
+
+// Draw buildings – Enhanced with heavy detailing, animations, and thematic power
+  for (const b of buildings) {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+
+    // Simple health bar (robust, no gradient errors)
+    function drawHealthBar(health, maxHealth, width, yOffset) {
+        if (maxHealth <= 0) return;
+        const percent = Math.min(1, Math.max(0, health / maxHealth));
+        const barWidth = width;
+        const barHeight = 5;
+        const barX = -barWidth/2;
+        const barY = yOffset;
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(barX-2, barY-2, barWidth+4, barHeight+4);
+        ctx.fillStyle = '#2a2a2a';
+        ctx.fillRect(barX-1, barY-1, barWidth+2, barHeight+2);
+        ctx.fillStyle = percent > 0.6 ? '#ff6b6b' : (percent > 0.3 ? '#ff8c42' : '#dc143c');
+        ctx.fillRect(barX, barY, barWidth * percent, barHeight);
+    }
+
+    // Helper to spawn particles (fire, sparks, smoke) around buildings
+    function addEffect(x, y, color, count = 3, spread = Math.PI*2, speed = 50) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * spread;
+            const vel = (Math.random() - 0.5) * speed;
+            particles.push({
+                x: x, y: y,
+                vx: Math.cos(angle) * vel,
+                vy: Math.sin(angle) * vel,
+                life: 0.4 + Math.random() * 0.6,
+                col: color,
+                r: 1 + Math.random() * 3
+            });
+        }
+    }
+
+    // === BUILDING TYPES ===
+    switch(b.type) {
+        // ==================== WALL – Reinforced armor with neon edge ====================
+        case 1: {
+            const w = b.width, h = b.height;
+            ctx.fillStyle = '#1e1e28';
+            ctx.fillRect(-w/2, -h/2, w, h);
+            ctx.fillStyle = '#3a3a48';
+            for (let i = -w/2+6; i < w/2; i+=10) {
+                for (let j = -h/2+6; j < h/2; j+=10) {
+                    ctx.beginPath();
+                    ctx.arc(i, j, 2, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+            // Glowing red seam
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-w/2, -h/2, w, h);
+            // Angled corner reinforcements
+            ctx.fillStyle = '#5a2a2a';
+            ctx.beginPath();
+            ctx.moveTo(-w/2, -h/2);
+            ctx.lineTo(-w/2+12, -h/2);
+            ctx.lineTo(-w/2, -h/2+12);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(w/2, -h/2);
+            ctx.lineTo(w/2-12, -h/2);
+            ctx.lineTo(w/2, -h/2+12);
+            ctx.fill();
+            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            break;
+        }
+
+        // ==================== HEALING MORTAR – Demonic forge ====================
+        case 2: {
+            const w = b.width, h = b.height;
+            const now = Date.now() * 0.003;
+            const pulse = 0.5 + Math.sin(now * 2) * 0.3;
+
+            // --- Base: cracked stone platform ---
+            ctx.fillStyle = '#4a3a2a';
+            ctx.fillRect(-w/2, -h/2+6, w, 12);
+            ctx.fillStyle = '#2a1e12';
+            for (let i = -w/2+4; i < w/2; i+=8) {
+                ctx.fillRect(i, -h/2+4, 2, 8);
+            }
+            // Main body: forged iron with spikes
+            const bodyGrad = ctx.createLinearGradient(-w/3, -h/3, w/3, h/3);
+            bodyGrad.addColorStop(0, '#5a4a3a');
+            bodyGrad.addColorStop(1, '#2a1a0a');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.5, h/2.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Spikes around the rim
+            ctx.fillStyle = '#aa5533';
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const spikeX = Math.cos(angle) * (w/2.5 + 2);
+                const spikeY = Math.sin(angle) * (h/2.5 + 2);
+                ctx.beginPath();
+                ctx.moveTo(spikeX, spikeY);
+                ctx.lineTo(spikeX + Math.cos(angle)*8, spikeY + Math.sin(angle)*8);
+                ctx.lineTo(spikeX + Math.cos(angle+0.5)*5, spikeY + Math.sin(angle+0.5)*5);
+                ctx.fill();
+            }
+            // Rotating energy ring (sinister)
+            ctx.save();
+            ctx.rotate(now * 0.8);
+            ctx.strokeStyle = `rgba(200,80,80,0.8)`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.restore();
+            // Central orb: pulsing blood-red
+            const orbGrad = ctx.createRadialGradient(0, -3, 2, 0, -3, w/3.5);
+            orbGrad.addColorStop(0, `rgba(255,100,100,${0.7+pulse*0.3})`);
+            orbGrad.addColorStop(0.7, `rgba(180,40,40,0.9)`);
+            orbGrad.addColorStop(1, '#8a2a2a');
+            ctx.fillStyle = orbGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, -3, w/4.5, w/4.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Floating particles around orb
+            if (Math.random() < 0.1) {
+                addEffect(0, -5, `rgba(255,80,80,0.9)`, 2, Math.PI*2, 30);
+            }
+            // Metal bands
+            ctx.fillStyle = '#886644';
+            for (let i = -w/2+10; i < w/2; i+=14) {
+                ctx.fillRect(i, -h/2+8, 4, 6);
+            }
+            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            break;
+        }
+
+        // ==================== CANNON – Heavy artillery with rotating turret ====================
+        case 3: {
+            const w = b.width, h = b.height;
+            const now = Date.now() * 0.005;
+
+            // Heavy base (rotating platform)
+            ctx.fillStyle = '#5a4a3a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#2a1a0a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.6, h/2.6, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Gear teeth around base
+            ctx.fillStyle = '#aa8866';
+            for (let i = 0; i < 16; i++) {
+                const angle = (i / 16) * Math.PI * 2;
+                const x = Math.cos(angle) * (w/2.2 + 2);
+                const y = Math.sin(angle) * (h/2.2 + 2);
+                ctx.fillRect(x-2, y-2, 4, 4);
+            }
+            // Find nearest enemy for turret aiming
+            let targetAngle = 0;
+            let nearest = null;
+            let minDist = Infinity;
+            for (const e of echoes) {
+                const d = Math.hypot(e.x - b.x, e.y - b.y);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = e;
+                }
+            }
+            if (nearest) targetAngle = Math.atan2(nearest.y - b.y, nearest.x - b.x);
+            b.angle = targetAngle;
+            ctx.save();
+            ctx.rotate(b.angle);
+            // Main turret body
+            ctx.fillStyle = '#886644';
+            ctx.fillRect(-w/4, -h/4, w/2, h/2);
+            ctx.fillStyle = '#aa8866';
+            ctx.fillRect(-w/4+2, -h/4+2, w/2-4, h/2-4);
+            // Thick barrel with rifling
+            const barrelLen = w/1.8;
+            const barrelW = h/4;
+            ctx.fillStyle = '#aa8866';
+            ctx.fillRect(w/4, -barrelW/2, barrelLen, barrelW);
+            ctx.fillStyle = '#ccaa88';
+            ctx.fillRect(w/4+2, -barrelW/2+2, barrelLen-4, barrelW-4);
+            // Muzzle brake
+            ctx.fillStyle = '#664422';
+            ctx.fillRect(w/4 + barrelLen - 6, -barrelW/2 - 2, 8, barrelW+4);
+            ctx.fillStyle = '#ccaa88';
+            ctx.fillRect(w/4 + barrelLen - 4, -barrelW/2, 4, barrelW);
+            // Muzzle flash (when firing)
+            if (b.cooldown > 0.85 && b.cooldown < 1.0) {
+                const flash = 1 - (b.cooldown - 0.85)/0.15;
+                ctx.fillStyle = `rgba(255,150,50,${flash*0.9})`;
+                ctx.beginPath();
+                ctx.ellipse(w/4 + barrelLen + 2, 0, 12, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+                addEffect(w/4 + barrelLen + 2, 0, `rgba(255,100,0,0.9)`, 8, Math.PI/2, 100);
+            }
+            // Overheat glow
+            if (b.cooldown < 0.5) {
+                const heat = 1 - b.cooldown / 0.5;
+                ctx.fillStyle = `rgba(255,80,0,${heat*0.5})`;
+                ctx.beginPath();
+                ctx.ellipse(w/4 + barrelLen - 2, 0, 10, 12, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+            // Recoil animation (slight shift when firing)
+            if (b.cooldown > 0.9) {
+                ctx.translate(-2, 0);
+            }
+            ctx.restore();
+            // Smoke vent holes
+            ctx.fillStyle = '#332211';
+            for (let i = -w/3; i <= w/3; i+=12) {
+                ctx.fillRect(i, h/3, 3, 5);
+            }
+            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            break;
+        }
+
+        // ==================== SHOCKWAVE EMITTER – Chaotic reactor ====================
+        case 4: {
+            const w = b.width, h = b.height;
+            const pulse = 0.4 + Math.sin(Date.now() * 0.01) * 0.2;
+            // Outer shell
+            ctx.fillStyle = '#2a2a3a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Inner core
+            const coreGrad = ctx.createRadialGradient(0,0,0, 0,0,w/3);
+            coreGrad.addColorStop(0, `rgba(180,80,220,${0.6+pulse})`);
+            coreGrad.addColorStop(1, '#1a1a2a');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, w/3, 0, Math.PI*2);
+            ctx.fill();
+            // Energy rings
+            ctx.strokeStyle = `rgba(200,100,240,0.7)`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
+            ctx.stroke();
+            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            break;
+        }
+
+        // ==================== GOLD MINE – Ore crusher ====================
+        case 5: {
+            const w = b.width, h = b.height;
+            // Rusted frame
+            ctx.fillStyle = '#5a4a2a';
+            ctx.fillRect(-w/2, -h/2, w, h);
+            ctx.fillStyle = '#3a2a1a';
+            ctx.fillRect(-w/2+3, -h/2+3, w-6, h-6);
+            // Gold veins
+            ctx.fillStyle = '#ffcc66';
+            for (let i = -w/3; i <= w/3; i+=12) {
+                ctx.fillRect(i, -h/4, 4, 6);
+                ctx.fillRect(i, h/4, 4, 6);
+            }
+            // Spinning gear
+            ctx.save();
+            ctx.rotate(Date.now() * 0.006);
+            ctx.fillStyle = '#aa8855';
+            ctx.beginPath();
+            ctx.ellipse(0, -h/3, 8, 8, 0, 0, Math.PI*2);
+            ctx.fill();
+            for (let i=0;i<6;i++) {
+                const angle = (i/6)*Math.PI*2;
+                ctx.fillRect(Math.cos(angle)*10-2, Math.sin(angle)*10-2, 4, 4);
+            }
+            ctx.restore();
+            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            break;
+        }
+    }
+/*
+    // Draw connections between walls (metal bands)
+    if (b.type === 1 && b.connections) {
+      for (const other of b.connections) {
+        // Only draw each connection once (using unique IDs)
+        if (other.id > b.id) {
+          const dx = other.x - b.x;
+          const dy = other.y - b.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 0 && dist < 100) {
+            const angle = Math.atan2(dy, dx);
+            const midX = dx / 2;
+            const midY = dy / 2;
+            ctx.save();
+            ctx.translate(b.x + midX, b.y + midY);
+            ctx.rotate(angle);
+            const bandLength = dist;
+            const bandWidth = 10;
+            // Base band
+            ctx.fillStyle = '#4a3a2a';
+            ctx.fillRect(-bandLength/2, -bandWidth/2, bandLength, bandWidth);
+            ctx.fillStyle = '#2a1a0a';
+            ctx.fillRect(-bandLength/2+2, -bandWidth/2+2, bandLength-4, bandWidth-4);
+            // Bolt heads
+            ctx.fillStyle = '#aa8866';
+            for (let x = -bandLength/2+8; x < bandLength/2; x+=14) {
+              ctx.beginPath();
+              ctx.arc(x, 0, 2, 0, Math.PI*2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+        }
+      }
+    }*/
+    ctx.restore();
+}
+
+// World‑space wall connections with original visual style
+for (const b of buildings) {
+  if (b.type !== 1 || !b.connections) continue;
+  for (const other of b.connections) {
+    if (other.id > b.id) { // draw each pair once
+      const dx = other.x - b.x;
+      const dy = other.y - b.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0 && dist < 120) {
+        const angle = Math.atan2(dy, dx);
+        const midX = b.x + dx/2;
+        const midY = b.y + dy/2;
+        const bandLength = dist;
+        const bandWidth = 10;
+
+        ctx.save();
+        ctx.translate(midX, midY);
+        ctx.rotate(angle);
+
+        // Base band (dark brown)
+        ctx.fillStyle = '#4a3a2a';
+        ctx.fillRect(-bandLength/2, -bandWidth/2, bandLength, bandWidth);
+        // Inner band (lighter brown)
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(-bandLength/2 + 2, -bandWidth/2 + 2, bandLength - 4, bandWidth - 4);
+        // Bolt heads (metallic)
+        ctx.fillStyle = '#aa8866';
+        for (let x = -bandLength/2 + 8; x < bandLength/2; x += 14) {
+          ctx.beginPath();
+          ctx.arc(x, 0, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+  }
+}
+
+  // Draw healing orbs
+  for (const orb of healingOrbs) {
+      orb.draw(ctx);
+  }
 
     for (const u of upgrades) u.draw(ctx);
 
