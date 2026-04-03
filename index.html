@@ -1174,7 +1174,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li><strong>Nerfed</strong></li>
           <li>Fire pulse</li>
           <li><strong>Buffed</strong></li>
-          <li>Burning Bullets</li>
+          <li>Green boss</li>
+          <li>Dark echo</li>
+          <li>Heavy echo</li>
 
         </ul>
       </div>
@@ -3634,7 +3636,7 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  // world & gameplay
+  // world & gameplay - buildings health building health buildings stats building stats
   const echoes = [], bullets = [], paints = [], particles = [], records = [], upgrades = [], ghosts = [], bombs = [], fires = [], rockets = [], buildings = [], spawnIndicators = [], healingOrbs = [];
   // Building creation helper
   function createBuilding(type, x, y) {
@@ -3649,22 +3651,22 @@ window.addEventListener('keydown', (e) => {
           case 2: // healing orb cannon – better visuals
               width = 36;
               height = 36;
-              building = { x, y, type, width, height, color: '#aa8866', health: 20, maxHealth: 20, cooldown: 0, fireRate: 15.0, angle: 0 };
+              building = { x, y, type, width, height, color: '#aa8866', health: 10, maxHealth: 10, cooldown: 0, fireRate: 15.0, angle: 0 };
               break;
           case 3: // cannon turret – bigger barrel
               width = 40;
               height = 40;
-              building = { x, y, type, width, height, color: '#2c3e50', health: 140, maxHealth: 140, cooldown: 0, fireRate: 1.2, damage: 1, bulletSpeed: 500, bulletSize: 10, bulletColor: '#e67e22', angle: 0 };
+              building = { x, y, type, width, height, color: '#2c3e50', health: 70, maxHealth: 70, cooldown: 0, fireRate: 1.2, damage: 1, bulletSpeed: 500, bulletSize: 10, bulletColor: '#e67e22', angle: 0 };
               break;
           case 4: // NEW: Shockwave Emitter
               width = 34;
               height = 34;
-              building = { x, y, type, width, height, color: '#9b59b6', health: 500, maxHealth: 500, cooldown: 0, fireRate: 3.0, damage: 8 };
+              building = { x, y, type, width, height, color: '#9b59b6', health: 100, maxHealth: 100, cooldown: 0, fireRate: 3.0, damage: 8 };
               break;
           case 5: // NEW: Gold Mine
               width = 38;
               height = 38;
-              building = { x, y, type, width, height, color: '#f39c12', health: 300, maxHealth: 300, goldTimer: 0, goldInterval: 10, goldAmount: 10 };
+              building = { x, y, type, width, height, color: '#f39c12', health: 200, maxHealth: 200, goldTimer: 0, goldInterval: 10, goldAmount: 10 };
               break;
           default:
               width = 30;
@@ -3751,86 +3753,89 @@ class HealingOrb {
         this.startY = y;
         this.x = x;
         this.y = y;
-        this.r = 10;                     // base radius increased (was 8)
-        // Horizontal velocity – increased range
-        const speed = 160;               // was 80
+        this.r = 10;
+        const speed = 180; // slightly faster
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
-        // Vertical motion – kept similar
-        this.vz = 250;
+        this.vz = 280;
         this.z = 0;
-        this.gravity = 550;
+        this.gravity = 600;
         this.state = 'air';
         this.landedTimer = 0;
         this.landedDuration = 3;
         this.healAmount = 1;
-        this.color = '#88ff88';
-        this.shadowSize = 14;            // slightly larger shadow
+        this.color = '#ff4444'; // red base
+        this.shadowSize = 14;
         this.trailParticles = [];
+        this.electricSparks = [];
     }
 
     update(dt) {
         if (this.state === 'air') {
-            // Update horizontal position
             this.x += this.vx * dt;
             this.y += this.vy * dt;
-            // Update height
             this.z += this.vz * dt;
             this.vz -= this.gravity * dt;
 
-            // Check landing
             if (this.z <= 0) {
                 this.z = 0;
                 this.state = 'landed';
                 this.vx = 0;
                 this.vy = 0;
                 this.vz = 0;
-                // Landing effect – slightly more particles
-                spawnParticles(this.x, this.y, '#88ff88', 12, Math.PI*2, 60);
+                spawnParticles(this.x, this.y, '#ff4444', 15, Math.PI*2, 70);
                 sfx(500, 0.08, 0.015, 'sine');
             }
 
-            // Dust particles while in air
-            if (Math.random() < 0.15) {
-                this.trailParticles.push({
+            // Electric sparks during flight
+            if (Math.random() < 0.2) {
+                this.electricSparks.push({
                     x: this.x,
                     y: this.y,
-                    life: 0.4,
-                    size: 1 + Math.random() * 1.5
+                    life: 0.2,
+                    size: 2
                 });
             }
-        } else { // landed state
+        } else {
             this.landedTimer += dt;
             if (this.landedTimer >= this.landedDuration) {
                 return false;
             }
         }
 
-        // Update trail particles
+        // Update trail particles (red)
+        if (Math.random() < 0.15) {
+            this.trailParticles.push({
+                x: this.x,
+                y: this.y,
+                life: 0.4,
+                size: 1.5
+            });
+        }
         for (let i = this.trailParticles.length - 1; i >= 0; i--) {
             this.trailParticles[i].life -= dt;
-            if (this.trailParticles[i].life <= 0) {
-                this.trailParticles.splice(i, 1);
-            }
+            if (this.trailParticles[i].life <= 0) this.trailParticles.splice(i, 1);
+        }
+        for (let i = this.electricSparks.length - 1; i >= 0; i--) {
+            this.electricSparks[i].life -= dt;
+            if (this.electricSparks[i].life <= 0) this.electricSparks.splice(i, 1);
         }
 
-        // Only collect when landed and player touches it
+        // Collection when landed
         if (this.state === 'landed') {
             const d = Math.hypot(this.x - player.x, this.y - player.y);
             if (d < this.r + player.r) {
                 player.lives += this.healAmount;
                 livesEl.textContent = player.lives;
-                spawnParticles(player.x, player.y, '#88ff88', 15, Math.PI*2, 80);
+                spawnParticles(player.x, player.y, '#ff8888', 20, Math.PI*2, 100);
                 sfx(1000, 0.2, 0.03, 'sine');
-                return false; // remove orb
+                return false;
             }
         }
 
-        // Remove if out of bounds
         if (this.state === 'air' && (this.x < -200 || this.x > W+200 || this.y < -200 || this.y > H+200)) {
             return false;
         }
-
         return true;
     }
 
@@ -3843,33 +3848,57 @@ class HealingOrb {
         ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
         ctx.fill();
 
-        // Orb position with height offset
         const yOffset = -this.z * 0.25;
         const orbX = this.x;
         const orbY = this.y + yOffset;
-        // Size – only very slight growth with height (max ~15% larger)
         const orbSize = this.r * (1 + Math.min(0.15, this.z * 0.008));
 
-        // Glow
+        // Red glow
         const glow = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, orbSize * 2.5);
-        glow.addColorStop(0, '#88ff88');
-        glow.addColorStop(1, '#88ff8800');
+        glow.addColorStop(0, '#ff6666');
+        glow.addColorStop(1, '#ff000000');
         ctx.fillStyle = glow;
         ctx.beginPath();
         ctx.arc(orbX, orbY, orbSize * 1.5, 0, Math.PI*2);
         ctx.fill();
 
-        // Main orb
+        // Electric core
+        const coreGrad = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, orbSize);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.4, '#ff4444');
+        coreGrad.addColorStop(1, '#cc0000');
+        ctx.fillStyle = coreGrad;
         ctx.beginPath();
-        ctx.fillStyle = this.color;
         ctx.arc(orbX, orbY, orbSize, 0, Math.PI*2);
         ctx.fill();
 
-        // Trail particles (air only)
+        // Electric arcs (lightning bolts)
+        for (let i = 0; i < 3; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const length = orbSize * 0.8;
+            const endX = orbX + Math.cos(angle) * length;
+            const endY = orbY + Math.sin(angle) * length;
+            ctx.beginPath();
+            ctx.moveTo(orbX, orbY);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = `rgba(255, 200, 200, 0.8)`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Trail particles
         for (const p of this.trailParticles) {
             ctx.beginPath();
-            ctx.fillStyle = `rgba(136,255,136,${p.life * 0.7})`;
+            ctx.fillStyle = `rgba(255, 100, 100, ${p.life * 0.7})`;
             ctx.arc(p.x, p.y - this.z * 0.25, p.size * p.life, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // Electric sparks
+        for (const s of this.electricSparks) {
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255, 255, 200, ${s.life})`;
+            ctx.arc(s.x, s.y - this.z * 0.25, s.size, 0, Math.PI*2);
             ctx.fill();
         }
 
@@ -3877,14 +3906,13 @@ class HealingOrb {
         if (this.state === 'landed') {
             const pulse = 0.8 + Math.sin(this.landedTimer * 8) * 0.2;
             ctx.beginPath();
-            ctx.fillStyle = `rgba(136,255,136,${pulse * 0.4})`;
+            ctx.fillStyle = `rgba(255, 100, 100, ${pulse * 0.4})`;
             ctx.arc(orbX, orbY, orbSize * 1.3, 0, Math.PI*2);
             ctx.fill();
         }
         ctx.restore();
     }
 }
-
 
   // prices buildings prices building prices gold prices building costs building
   let selectedBuilding = 0;         // 0 = none, 1 = first building
@@ -8430,10 +8458,16 @@ function setHardcoreStartingStats() {
       constructor(spawnX, spawnY) {
           this.x = spawnX;
           this.y = spawnY;
-          this.r = 6 + this.upgradesGathered + player.lives + bossesKilled;
-          this.health = 16 + this.upgradesGathered + player.lives + bossesKilled;
-          this.maxHealth = 16 + this.upgradesGathered + player.lives + bossesKilled;
-          this.speed = 75 + this.upgradesGathered;
+          const gathered = (typeof upgradesGathered !== 'undefined') ? upgradesGathered : 0;
+          const livesBonus = (typeof player !== 'undefined' && player.lives) ? player.lives : 0;
+          const bossBonus = (typeof bossesKilled !== 'undefined') ? bossesKilled : 0;
+
+          let rawRadius = 6 + gathered + livesBonus + bossBonus;
+          this.r = Math.min(120, rawRadius);
+          
+          this.health = 20 + gathered + livesBonus + bossBonus;
+          this.maxHealth = 20 + gathered + livesBonus + bossBonus;
+          this.speed = 75 + gathered;
           this.color = '#1a0033';
           this.secondaryColor = '#4a0044';
           this.attackTimer = 0;
@@ -8443,7 +8477,7 @@ function setHardcoreStartingStats() {
           this.bulletAngle = 0;
           this.rotationSpeed = 0.5;
           this.frozen = false;
-          this.originalSpeed = 75 + this.upgradesGathered;
+          this.originalSpeed = 75 + gathered;
           this.burning = false;
           this.burnTimer = 0;
           this.burnDamagePerTick = 0;
@@ -8805,81 +8839,87 @@ function setHardcoreStartingStats() {
           const pattern = Math.floor(Math.random() * 3);
           
           switch(pattern) {
-              case 0: // Blood circle
-                  for (let i = 0; i < bulletCount; i++) {
-                      const angle = (i / bulletCount) * Math.PI * 2 + this.bulletAngle;
-                      this.createHorrorBullet(angle);
-                  }
-                  break;
-                  
-              case 1: // Spiral of thorns
-                  for (let i = 0; i < bulletCount; i++) {
-                      const angle = (i / bulletCount) * Math.PI * 2 + this.bulletAngle * 2;
-                      this.createHorrorBullet(angle, 120, 14);
-                  }
-                  break;
-                  
-              case 2: // Targeted blood spray
-                  const playerAngle = Math.atan2(player.y - this.y, player.x - this.x);
-                  for (let i = 0; i < bulletCount; i++) {
-                      const angle = playerAngle - Math.PI/6 + (i / (bulletCount-1)) * Math.PI/3;
-                      this.createHorrorBullet(angle, 140, 12);
-                  }
-                  break;
+            case 0: // Blood circle
+              for (let i = 0; i < bulletCount; i++) {
+                const angle = (i / bulletCount) * Math.PI * 2 + this.bulletAngle;
+                this.createHorrorBullet(angle);   // size auto-calculated
+              }
+              break;
+            case 1: // Spiral of thorns
+              let circleBulletCount = 8; // or whatever number you want
+              for (let i = 0; i < circleBulletCount; i++) {
+                  const angle = (i / circleBulletCount) * Math.PI * 2 + this.bulletAngle;
+                  this.createHorrorBullet(angle);
+              }
+              break;
+            case 2: // Targeted blood spray
+              const playerAngle = Math.atan2(player.y - this.y, player.x - this.x);
+              for (let i = 0; i < bulletCount; i++) {
+                const angle = playerAngle - Math.PI/6 + (i / (bulletCount-1)) * Math.PI/3;
+                this.createHorrorBullet(angle, 140);   // size auto-calculated
+              }
+              break;
           }
           
           sfx(240, 0.1, 0.05, 'sawtooth');
           spawnParticles(this.x, this.y, 'rgba(139, 0, 0, 0.9)', 15, Math.PI*2, 80);
       }
       
-      createHorrorBullet(angle, speed = 110, size = 10) {
-          bullets.push({
-              x: this.x,
-              y: this.y,
-              dx: Math.cos(angle),
-              dy: Math.sin(angle),
-              t: 0,
-              life: 3.5,
-              speed: speed,
-              size: size,
-              color: this.phaseShifted ? '#ff0000' : '#8b0000',
-              trailColor: this.phaseShifted ? 'rgba(255, 0, 0, 0.4)' : 'rgba(139, 0, 0, 0.4)',
-              spikes: Math.floor(Math.random() * 4) + 3,
-              rotation: Math.random() * Math.PI * 2,
-              enemy: true,
-              phasePiercing: this.phaseShifted,
-              update: function(dt) {
-                  this.t += dt;
-                  this.x += this.dx * this.speed * dt;
-                  this.y += this.dy * this.speed * dt;
-                  this.rotation += dt * 2;
-                  
-                  // Blood trail effect
-                  if (Math.random() > 0.7 && window.visualEffects) {
-                      visualEffects.push({
-                          x: this.x,
-                          y: this.y,
-                          r: this.size * 0.6,
-                          alpha: 0.7,
-                          life: 0.3,
-                          update: function(dt) {
-                              this.life -= dt;
-                              this.alpha -= dt * 3;
-                              return this.life > 0;
-                          },
-                          draw: function(ctx) {
-                              ctx.save();
-                              ctx.globalAlpha = this.alpha;
-                              ctx.fillStyle = '#8b0000';
-                              ctx.beginPath();
-                              ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-                              ctx.fill();
-                              ctx.restore();
-                          }
-                      });
-                  }
-                  return this.t < this.life;
-              },
+      createHorrorBullet(angle, speed = 110, size = null) {
+              if (size === null) {
+                size = Math.min(20, Math.max(8, Math.floor(this.r * 0.7)));
+              }
+              bullets.push({
+                x: this.x,
+                y: this.y,
+                dx: Math.cos(angle),
+                dy: Math.sin(angle),
+                t: 0,
+                life: 3.5,
+                speed: speed,
+                size: size,
+                color: this.phaseShifted ? '#ff0000' : '#8b0000',
+                trailColor: this.phaseShifted ? 'rgba(255, 0, 0, 0.4)' : 'rgba(139, 0, 0, 0.4)',
+                spikes: Math.floor(Math.random() * 4) + 3,
+                rotation: Math.random() * Math.PI * 2,
+                enemy: true,
+                phasePiercing: this.phaseShifted,
+                update: function(dt) {
+                    this.t += dt;
+                    this.x += this.dx * this.speed * dt;
+                    this.y += this.dy * this.speed * dt;
+                    this.rotation += dt * 2;
+                    
+                    // Blood trail effect
+                    if (Math.random() > 0.7 && window.visualEffects) {
+                        visualEffects.push({
+                            x: this.x,
+                            y: this.y,
+                            r: this.size * 0.6,
+                            alpha: 0.7,
+                            life: 0.3,
+                            update: function(dt) {
+                                this.life -= dt;
+                                this.alpha -= dt * 3;
+                                return this.life > 0;
+                            },
+                            draw: function(ctx) {
+                                ctx.save();
+                                ctx.globalAlpha = this.alpha;
+                                ctx.fillStyle = '#8b0000';
+                                ctx.beginPath();
+                                ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                                ctx.fill();
+                                ctx.restore();
+                            }
+                        });
+                    }
+                    return this.t < this.life;
+                },
+
+
+
+              
               draw: function(ctx) {
                   ctx.save();
                   ctx.translate(this.x, this.y);
@@ -8997,6 +9037,11 @@ function setHardcoreStartingStats() {
       }
       
       draw(ctx) {
+          // Safety: prevent NaN crashes
+          if (isNaN(this.x) || isNaN(this.y) || isNaN(this.r) || !isFinite(this.r) || this.r <= 0) {
+          return;
+        }
+
           ctx.save();
           
           // Creeping shadow aura
@@ -9549,7 +9594,10 @@ function setHardcoreStartingStats() {
       constructor(spawnX, spawnY) {
         this.x = spawnX;
         this.y = spawnY;
-        this.r = 19 + player.lives; // Smaller than easy boss (30)
+
+        let rawRadius = 19 + player.lives;
+        this.r = Math.min(80, rawRadius);  // Smaller than easy boss (30)
+
         this.health = 3 + player.lives; // Scales with player lives
         this.maxHealth = 3 + player.lives;
         this.speed = 40; // Same as EasyBoss
@@ -11529,12 +11577,12 @@ class MegaCreeperBoss {
       this.y = clamp(this.y, 250, H-250);
       
       this.r = 100;
-      this.health = 1000 + bossesKilled * 500;
-      this.maxHealth = 1000 + bossesKilled * 500;
+      this.health = 2000 + bossesKilled * 500;
+      this.maxHealth = 2000 + bossesKilled * 500;
       this.speed = 2;
       this.color = '#006400';
       this.attackTimer = 0;
-      this.attackRate = 1.5;
+      this.attackRate = 1.4;
       this.pulse = 0;
       this.phase = 1;
       this.bulletAngle = 0;
@@ -12039,7 +12087,7 @@ class MegaCreeperBoss {
         });
         
         // Spawn enemies on death
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * 200 + 50;
             const spawnX = this.x + Math.cos(angle) * distance;
@@ -12047,7 +12095,7 @@ class MegaCreeperBoss {
             echoes.push(new Slim(spawnX, spawnY));
         }
         
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 15; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * 150 + 30;
             const spawnX = this.x + Math.cos(angle) * distance;
@@ -12055,14 +12103,22 @@ class MegaCreeperBoss {
             echoes.push(new ArmoredSlim(spawnX, spawnY));
         }
         
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 10; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * 100 + 20;
             const spawnX = this.x + Math.cos(angle) * distance;
             const spawnY = this.y + Math.sin(angle) * distance;
             echoes.push(new Tank(spawnX, spawnY));
         }
-        
+
+        for (let i = 0; i < 10; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 150 + 30;
+            const spawnX = this.x + Math.cos(angle) * distance;
+            const spawnY = this.y + Math.sin(angle) * distance;
+            echoes.push(new Bomber(spawnX, spawnY));
+        }
+
         // Screen shake and sound
         shake = 50;
         sfx(60, 0.8, 0.2, 'sawtooth');
@@ -13522,10 +13578,10 @@ class MegaCreeperBoss {
           flankerLevel === 1 ? 1 :
           flankerLevel === 2 ? 3 :
           flankerLevel === 3 ? 5 :
-          flankerLevel === 4 ? 8 :
+          flankerLevel === 4 ? 7 :
           flankerLevel === 5 ? 10 :
-          flankerLevel === 6 ? 12 :
-          flankerLevel === 7 ? 12 : 0;
+          flankerLevel === 6 ? 13 :
+          flankerLevel === 7 ? 13 : 0;
         
         // FIXED: Proper spread angle based on level
         flankerAngle = 
@@ -15699,13 +15755,40 @@ for (const b1 of buildings) {
       const b = buildings[i];
 
       switch(b.type) {
-          case 2: // healing orb cannon
+          case 2: // healing orb cannon – with smoke on fire
               b.cooldown -= dt;
               if (b.cooldown <= 0) {
                   b.cooldown = b.fireRate;
                   const angle = Math.random() * Math.PI * 2;
                   healingOrbs.push(new HealingOrb(b.x, b.y, angle));
+                  
+                  // === SMOKE EFFECT (instead of red glitter) ===
+                  for (let s = 0; s < 12; s++) {
+                      const smokeAngle = angle + (Math.random() - 0.5) * Math.PI / 2;
+                      const speed = 40 + Math.random() * 30;
+                      particles.push({
+                          x: b.x,
+                          y: b.y,
+                          vx: Math.cos(smokeAngle) * speed,
+                          vy: Math.sin(smokeAngle) * speed - 20,
+                          life: 1.0 + Math.random() * 0.5,
+                          col: `rgba(80, 80, 80, ${0.4 + Math.random() * 0.3})`,
+                          r: 3 + Math.random() * 5
+                      });
+                  }
+                  // Also a puff of white/grey smoke
+                  particles.push({
+                      x: b.x,
+                      y: b.y,
+                      vx: (Math.random() - 0.5) * 30,
+                      vy: -40 - Math.random() * 20,
+                      life: 1.2,
+                      col: `rgba(150, 150, 150, 0.6)`,
+                      r: 6
+                  });
+                  
                   spawnParticles(b.x, b.y, '#88ff88', 10, Math.PI*2, 60);
+                  sfx(600, 0.1, 0.02, 'sine');
               }
               break;
           case 3: // cannon turret
@@ -16195,68 +16278,103 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
             drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
             break;
         }
-
         // ==================== HEALING MORTAR – Demonic forge ====================
         case 2: {
             const w = b.width, h = b.height;
-            const now = Date.now() * 0.003;
-            const pulse = 0.5 + Math.sin(now * 2) * 0.3;
+            const now = Date.now() * 0.004;
+            const chargePercent = 1 - (b.cooldown / b.fireRate);
 
-            // --- Base: cracked stone platform ---
-            ctx.fillStyle = '#4a3a2a';
-            ctx.fillRect(-w/2, -h/2+6, w, 12);
-            ctx.fillStyle = '#2a1e12';
-            for (let i = -w/2+4; i < w/2; i+=8) {
-                ctx.fillRect(i, -h/2+4, 2, 8);
-            }
-            // Main body: forged iron with spikes
-            const bodyGrad = ctx.createLinearGradient(-w/3, -h/3, w/3, h/3);
-            bodyGrad.addColorStop(0, '#5a4a3a');
-            bodyGrad.addColorStop(1, '#2a1a0a');
-            ctx.fillStyle = bodyGrad;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, w/2.5, h/2.5, 0, 0, Math.PI*2);
-            ctx.fill();
-            // Spikes around the rim
-            ctx.fillStyle = '#aa5533';
-            for (let i = 0; i < 12; i++) {
-                const angle = (i / 12) * Math.PI * 2;
-                const spikeX = Math.cos(angle) * (w/2.5 + 2);
-                const spikeY = Math.sin(angle) * (h/2.5 + 2);
-                ctx.beginPath();
-                ctx.moveTo(spikeX, spikeY);
-                ctx.lineTo(spikeX + Math.cos(angle)*8, spikeY + Math.sin(angle)*8);
-                ctx.lineTo(spikeX + Math.cos(angle+0.5)*5, spikeY + Math.sin(angle+0.5)*5);
-                ctx.fill();
-            }
-            // Rotating energy ring (sinister)
-            ctx.save();
-            ctx.rotate(now * 0.8);
-            ctx.strokeStyle = `rgba(200,80,80,0.8)`;
-            ctx.lineWidth = 3;
+            // ========== TURRET BASE ==========
+            ctx.fillStyle = '#5a4a3a';
             ctx.beginPath();
             ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
-            ctx.stroke();
-            ctx.restore();
-            // Central orb: pulsing blood-red
-            const orbGrad = ctx.createRadialGradient(0, -3, 2, 0, -3, w/3.5);
-            orbGrad.addColorStop(0, `rgba(255,100,100,${0.7+pulse*0.3})`);
-            orbGrad.addColorStop(0.7, `rgba(180,40,40,0.9)`);
-            orbGrad.addColorStop(1, '#8a2a2a');
-            ctx.fillStyle = orbGrad;
-            ctx.beginPath();
-            ctx.ellipse(0, -3, w/4.5, w/4.5, 0, 0, Math.PI*2);
             ctx.fill();
-            // Floating particles around orb
-            if (Math.random() < 0.1) {
-                addEffect(0, -5, `rgba(255,80,80,0.9)`, 2, Math.PI*2, 30);
+
+            ctx.fillStyle = '#2a1a0a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.6, h/2.6, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Gear teeth
+            ctx.fillStyle = '#ba7463';
+            for (let i = 0; i < 16; i++) {
+                const angle = (i / 16) * Math.PI * 2;
+                const x = Math.cos(angle) * (w/2.2 + 2);
+                const y = Math.sin(angle) * (h/2.2 + 2);
+                ctx.fillRect(x-2, y-2, 4, 4);
             }
-            // Metal bands
-            ctx.fillStyle = '#886644';
-            for (let i = -w/2+10; i < w/2; i+=14) {
-                ctx.fillRect(i, -h/2+8, 4, 6);
+
+            // ========== CHARGING PROGRESS RING ==========
+            if (chargePercent < 0.95) {
+                const startAngle = -Math.PI/2;
+                const endAngle = startAngle + (chargePercent * Math.PI * 2);
+
+                ctx.beginPath();
+                ctx.ellipse(0, 0, w/2.4, h/2.4, 0, startAngle, endAngle);
+                ctx.strokeStyle = `rgba(255, 140, 50, ${0.8 + Math.sin(now*8)*0.2})`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
             }
+
+            // ========== MUZZLE POSITION (KEY FIX) ==========
+            const muzzleX = 0;
+            const muzzleY = -h * 0.22 +8; // juster denne hvis needed
+
+            // ========== CHARGING MUZZLE GLOW ==========
+            if (chargePercent > 0.05) {
+
+                const t = Math.min(chargePercent, 1);
+                const smooth = t * t * (3 - 2 * t);
+                const pulse = Math.sin(performance.now() * 0.01) * 0.15 + 0.85;
+
+                const radius = (w / 3.5) * (0.7 + smooth * 0.6);
+
+                // === OUTER AURA ===
+                const outerGrad = ctx.createRadialGradient(
+                    muzzleX, muzzleY, 0,
+                    muzzleX, muzzleY, radius * 1.8
+                );
+                outerGrad.addColorStop(0, `rgba(255, 80, 80, ${0.15 * smooth})`);
+                outerGrad.addColorStop(1, `rgba(255, 0, 0, 0)`);
+
+                ctx.fillStyle = outerGrad;
+                ctx.beginPath();
+                ctx.arc(muzzleX, muzzleY, radius * 1.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // === MAIN GLOW ===
+                const grad = ctx.createRadialGradient(
+                    muzzleX, muzzleY, 0,
+                    muzzleX, muzzleY, radius
+                );
+                grad.addColorStop(0, `rgba(255, 255, 255, ${0.9 * smooth * pulse})`);
+                grad.addColorStop(0.3, `rgba(255, 120, 120, ${0.8 * smooth})`);
+                grad.addColorStop(0.7, `rgba(255, 60, 60, ${0.5 * smooth})`);
+                grad.addColorStop(1, `rgba(255, 0, 0, 0)`);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(muzzleX, muzzleY, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // === CHARGING RING ===
+                ctx.strokeStyle = `rgba(255, 150, 150, ${0.6 * smooth})`;
+                ctx.lineWidth = 2 + 3 * smooth;
+
+                ctx.beginPath();
+                ctx.arc(muzzleX, muzzleY, radius * (1.2 + 0.1 * pulse), 0, Math.PI * 2);
+                ctx.stroke();
+
+                // === INNER CORE ===
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * smooth})`;
+                ctx.beginPath();
+                ctx.arc(muzzleX, muzzleY, radius * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ========== HEALTH BAR ==========
             drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+
             break;
         }
 
@@ -16346,59 +16464,222 @@ if (damageZoneActive && player.stats.damageZone.level > 0) {
         }
 
         // ==================== SHOCKWAVE EMITTER – Chaotic reactor ====================
-        case 4: {
+        case 4: { // Shockwave Emitter – Dark Energy Core
             const w = b.width, h = b.height;
-            const pulse = 0.4 + Math.sin(Date.now() * 0.01) * 0.2;
-            // Outer shell
-            ctx.fillStyle = '#2a2a3a';
+            const now = Date.now() * 0.004;
+            const pulse = 0.5 + Math.sin(now * 3) * 0.3;
+            const glowPulse = 0.4 + Math.sin(now * 5) * 0.2;
+            
+            // ---- Outer metallic casing (heavy, industrial) ----
+            ctx.fillStyle = '#1e1e28';
             ctx.beginPath();
             ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2);
             ctx.fill();
-            // Inner core
-            const coreGrad = ctx.createRadialGradient(0,0,0, 0,0,w/3);
-            coreGrad.addColorStop(0, `rgba(180,80,220,${0.6+pulse})`);
+            ctx.fillStyle = '#2a2a38';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Rivets / bolts around the rim
+            ctx.fillStyle = '#5a5a6e';
+            const boltCount = 8;
+            for (let i = 0; i < boltCount; i++) {
+                const angle = (i / boltCount) * Math.PI * 2;
+                const boltX = Math.cos(angle) * (w/2.2 - 4);
+                const boltY = Math.sin(angle) * (h/2.2 - 4);
+                ctx.beginPath();
+                ctx.arc(boltX, boltY, 2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#8a8aa0';
+                ctx.beginPath();
+                ctx.arc(boltX, boltY, 1, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#5a5a6e';
+            }
+            
+            // ---- Rotating energy rings (outer) ----
+            ctx.save();
+            ctx.rotate(now * 0.7);
+            ctx.strokeStyle = `rgba(160, 100, 220, ${0.5 + glowPulse * 0.3})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.4, h/2.4, 0, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.restore();
+            
+            ctx.save();
+            ctx.rotate(-now * 0.5);
+            ctx.strokeStyle = `rgba(200, 120, 255, ${0.4 + glowPulse * 0.2})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, w/2.8, h/2.8, 0, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.restore();
+            
+            // ---- Inner energy core (pulsing) ----
+            const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w/2.5);
+            coreGrad.addColorStop(0, `rgba(180, 80, 220, ${0.8 + pulse * 0.2})`);
+            coreGrad.addColorStop(0.4, `rgba(120, 40, 180, ${0.6 + pulse * 0.2})`);
             coreGrad.addColorStop(1, '#1a1a2a');
             ctx.fillStyle = coreGrad;
             ctx.beginPath();
-            ctx.arc(0, 0, w/3, 0, Math.PI*2);
+            ctx.arc(0, 0, w/2.8, 0, Math.PI*2);
             ctx.fill();
-            // Energy rings
-            ctx.strokeStyle = `rgba(200,100,240,0.7)`;
-            ctx.lineWidth = 2;
+            
+            // Central bright spot
+            const coreSpot = ctx.createRadialGradient(0, 0, 0, 0, 0, w/4);
+            coreSpot.addColorStop(0, `rgba(255, 200, 255, ${0.9 + pulse * 0.1})`);
+            coreSpot.addColorStop(0.6, `rgba(180, 80, 220, ${0.7 + pulse * 0.2})`);
+            coreSpot.addColorStop(1, 'rgba(100, 30, 150, 0)');
+            ctx.fillStyle = coreSpot;
             ctx.beginPath();
-            ctx.ellipse(0, 0, w/2.2, h/2.2, 0, 0, Math.PI*2);
-            ctx.stroke();
+            ctx.arc(0, 0, w/3.5, 0, Math.PI*2);
+            ctx.fill();
+            
+            // ---- Energy arcs (sparks) ----
+            for (let i = 0; i < 6; i++) {
+                const angle = now * 2 + (i / 6) * Math.PI * 2;
+                const radius = w/2.5;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = `rgba(255, 180, 255, ${0.4 + Math.sin(now*8 + i)*0.2})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Small orb at tip
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 200, 255, 0.7)`;
+                ctx.arc(x, y, 2, 0, Math.PI*2);
+                ctx.fill();
+            }
+            
+            // ---- Pulsing outer glow ----
+            const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+            glowGrad.addColorStop(0, `rgba(160, 100, 220, ${0.1 * pulse})`);
+            glowGrad.addColorStop(1, 'rgba(80, 40, 120, 0)');
+            ctx.fillStyle = glowGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, w, 0, Math.PI*2);
+            ctx.fill();
+            
+            // ---- Health bar ----
             drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
             break;
         }
 
         // ==================== GOLD MINE – Ore crusher ====================
-        case 5: {
+        case 5: { // GOLD MINE – Dark Gothic Gear Cluster (static)
             const w = b.width, h = b.height;
-            // Rusted frame
-            ctx.fillStyle = '#5a4a2a';
+            
+            // ---- Dark, ominous base ----
+            ctx.fillStyle = '#0f0f12';
             ctx.fillRect(-w/2, -h/2, w, h);
-            ctx.fillStyle = '#3a2a1a';
-            ctx.fillRect(-w/2+3, -h/2+3, w-6, h-6);
-            // Gold veins
-            ctx.fillStyle = '#ffcc66';
-            for (let i = -w/3; i <= w/3; i+=12) {
-                ctx.fillRect(i, -h/4, 4, 6);
-                ctx.fillRect(i, h/4, 4, 6);
+            ctx.fillStyle = '#1a1a22';
+            ctx.fillRect(-w/2+2, -h/2+2, w-4, h-4);
+            
+            // Gear radii (touching)
+            const rTop = 12;      // top gear
+            const rLeft = 10;     // bottom-left
+            const rRight = 11;    // bottom-right
+            
+            // Triangle positions (centered at 0,0) – all touch each other
+            const dAB = rTop + rLeft;
+            const dAC = rTop + rRight;
+            const dBC = rLeft + rRight;
+            
+            const xC_temp = (dAB*dAB + dAC*dAC - dBC*dBC) / (2 * dAB);
+            const yC_temp = Math.sqrt(dAC*dAC - xC_temp*xC_temp);
+            const centroidX = (0 + dAB + xC_temp) / 3;
+            const centroidY = (0 + 0 + yC_temp) / 3;
+            
+            const gears = [
+                { x: -centroidX, y: -centroidY, r: rTop, teeth: 12, inner: 5 },
+                { x: dAB - centroidX, y: -centroidY, r: rLeft, teeth: 10, inner: 4 },
+                { x: xC_temp - centroidX, y: yC_temp - centroidY, r: rRight, teeth: 11, inner: 4 }
+            ];
+            
+            for (const g of gears) {
+                ctx.save();
+                ctx.translate(g.x, g.y);
+                // No rotation – completely static
+                
+                // Outer gear ring – dark brass / corrupted gold
+                ctx.fillStyle = '#8B7332';
+                ctx.beginPath();
+                ctx.arc(0, 0, g.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#C9A84C';
+                ctx.beginPath();
+                ctx.arc(0, 0, g.r - 3, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Teeth – rusted edges
+                ctx.fillStyle = '#6B4E1A';
+                for (let i = 0; i < g.teeth; i++) {
+                    const angle = (i / g.teeth) * Math.PI * 2;
+                    const tx = Math.cos(angle) * (g.r + 1);
+                    const ty = Math.sin(angle) * (g.r + 1);
+                    ctx.fillRect(tx - 2, ty - 2, 4, 4);
+                }
+                
+                // Inner cutout – dark void
+                ctx.fillStyle = '#0a0a0f';
+                ctx.beginPath();
+                ctx.arc(0, 0, g.inner, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Spokes – thin, corroded (no lines extending outward)
+                ctx.strokeStyle = '#5C431C';
+                ctx.lineWidth = 2;
+                for (let s = 0; s < 4; s++) {
+                    const angle = (s / 4) * Math.PI * 2;
+                    const dx = Math.cos(angle);
+                    const dy = Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(dx * (g.inner + 1), dy * (g.inner + 1));
+                    ctx.lineTo(dx * (g.r - 4), dy * (g.r - 4));
+                    ctx.stroke();
+                }
+                
+                // Center hub – glowing ember (static glow)
+                ctx.fillStyle = '#C9A84C';
+                ctx.beginPath();
+                ctx.arc(0, 0, 3, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#1a0a00';
+                ctx.beginPath();
+                ctx.arc(0, 0, 1.5, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.restore();
             }
-            // Spinning gear
-            ctx.save();
-            ctx.rotate(Date.now() * 0.006);
-            ctx.fillStyle = '#aa8855';
-            ctx.beginPath();
-            ctx.ellipse(0, -h/3, 8, 8, 0, 0, Math.PI*2);
-            ctx.fill();
-            for (let i=0;i<6;i++) {
-                const angle = (i/6)*Math.PI*2;
-                ctx.fillRect(Math.cos(angle)*10-2, Math.sin(angle)*10-2, 4, 4);
+            
+            // ---- Cursed gold particles (static sparkles) ----
+            for (let i = 0; i < 6; i++) {
+                const angle = i * Math.PI * 2 / 6;
+                const x = Math.cos(angle) * 15;
+                const y = Math.sin(angle) * 10;
+                ctx.fillStyle = `rgba(255, 140, 20, 0.6)`;
+                ctx.beginPath();
+                ctx.arc(x, y, 1.5, 0, Math.PI*2);
+                ctx.fill();
             }
-            ctx.restore();
-            drawHealthBar(b.health, b.maxHealth, w, -h/2 - 10);
+            
+            // ---- Health bar (no extra lines, just the bar) ----
+            const barWidth = w;
+            const barHeight = 4;
+            const barX = -barWidth/2;
+            const barY = -h/2 - 8;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(barX-1, barY-1, barWidth+2, barHeight+2);
+            ctx.fillStyle = '#2a1e0a';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+            const percent = Math.min(1, Math.max(0, b.health / b.maxHealth));
+            ctx.fillStyle = percent > 0.6 ? '#C9A84C' : (percent > 0.3 ? '#B87C2E' : '#8B3A1A');
+            ctx.fillRect(barX, barY, barWidth * percent, barHeight);
             break;
         }
     }
