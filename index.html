@@ -996,6 +996,20 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   }
 }
 
+
+
+.buildings-info-panel::-webkit-scrollbar {
+  width: 10px;
+}
+.buildings-info-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+.buildings-info-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7ee787, #4dabf7);
+  border-radius: 10px;
+}
+
 </style>
 </head>
 <body>
@@ -1149,11 +1163,12 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 
 <div id="updateLogPanel" class="upgrade-menu" style="display: none;">
-  <h2 style="text-align:center;margin-bottom:20px">UPDATE LOG</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <h2 style="margin:0; text-align:center; flex:1;">UPDATE LOG</h2>
+    <button id="closeUpdateLogTop" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; line-height:1; padding:0 8px;">&times;</button>
+  </div>
   <div class="update-log-title">Updated version - V.24</div>
   <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-
-
 
       <div class="update-log-entry">
       <div class="update-log-title">The BUILDING Update</div>
@@ -1170,7 +1185,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
           <li>Place down building wiht keyboard button "K"</li>
           <li>Buildings cost gold wich you collect by killing enemies</li>
 
-
           <p><strong>Balance changes</strong></p>
           <li><strong>Nerfed</strong></li>
           <li>Fire pulse</li>
@@ -1182,8 +1196,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         </ul>
       </div>
     </div>
-
-
 
       <div class="update-log-entry">
       <div class="update-log-title">New Balance changes</div>
@@ -1207,7 +1219,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
         </ul>
       </div>
     </div>
-
 
       <div class="update-log-entry">
       <div class="update-log-title">New Balance changes</div>
@@ -1248,7 +1259,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       </div>
     </div>
 
-    <!-- Copy pase update log -->
     <div class="update-log-entry">
       <div class="update-log-title">Changes</div>
       <div class="update-log-date">11.01.2026</div>
@@ -1303,7 +1313,6 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       </div>
     </div>
 
-
     <div class="update-log-entry">
       <div class="update-log-title">Old Balance changes</div>
       <div class="update-log-date">30.12.2025</div>
@@ -1337,23 +1346,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
       </div>
     </div>
 
+  </div>
   <div style="text-align:center;margin-top:20px;">
-    <button id="closeUpdateLog" class="btn" style="
-      background: linear-gradient(135deg, #0f4c75, #3282b8);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(15, 76, 117, 0.3);
-    ">
-      Close
-    </button>
+    <button id="closeUpdateLog" class="btn" style="background: linear-gradient(135deg, #0f4c75, #3282b8); color: white; border: none; border-radius: 12px; padding: 16px 24px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(15, 76, 117, 0.4); letter-spacing: 0.5px; text-transform: uppercase;">CLOSE</button>
   </div>
 </div>
-
 
 <script>
 // EchoSwap — Amplified Edition
@@ -1470,6 +1467,99 @@ let playerGold = 0;
 let sessionGold = 0;
 let goldSpawnTimer = 0;
 let goldSpawnDelay = 0;
+
+
+// ==================== BUILDING UNLOCK SYSTEM ====================
+// Each building type (1-5) has a one-time unlock cost
+const BUILDING_UNLOCK_COSTS = {
+  1: 50,   // Wall
+  2: 500,  // Healing Mortar
+  3: 100,  // Cannon Turret
+  4: 500,  // Shockwave Emitter
+  5: 250   // Gold Mine
+};
+
+// Default unlocked buildings (type 1 = Wall is unlocked by default, others locked)
+const DEFAULT_UNLOCKED = {
+  1: true,
+  2: false,
+  3: false,
+  4: false,
+  5: false
+};
+
+let unlockedBuildings = { ...DEFAULT_UNLOCKED };
+
+function loadUnlockedBuildings() {
+  const saved = localStorage.getItem('echoswap-unlocked-buildings');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      // Merge with defaults (in case new buildings are added later)
+      unlockedBuildings = { ...DEFAULT_UNLOCKED, ...parsed };
+    } catch(e) {
+      console.log('Failed to load unlocked buildings');
+    }
+  } else {
+    unlockedBuildings = { ...DEFAULT_UNLOCKED };
+  }
+}
+
+function saveUnlockedBuildings() {
+  localStorage.setItem('echoswap-unlocked-buildings', JSON.stringify(unlockedBuildings));
+}
+
+function isBuildingUnlocked(type) {
+  return unlockedBuildings[type] === true;
+}
+
+function unlockBuilding(type) {
+  const cost = BUILDING_UNLOCK_COSTS[type];
+  if (cost === undefined) return false;
+  if (totalGold < cost) {
+    console.log(`Not enough gold to unlock building ${type} (need ${cost}, have ${totalGold})`);
+    return false;
+  }
+  if (isBuildingUnlocked(type)) return true; // already unlocked
+  
+  // Deduct from permanent total gold
+  totalGold -= cost;
+  saveGold();  // save immediately
+  updateGoldDisplays();
+  
+  // Mark as unlocked and save
+  unlockedBuildings[type] = true;
+  saveUnlockedBuildings();
+  
+  // Visual feedback
+  if (player && player.x) {
+    spawnParticles(player.x, player.y, 'rgba(255,215,0,0.9)', 30, Math.PI*2, 150);
+  }
+  sfx(1000, 0.2, 0.04, 'sine');
+  
+  // Show notification
+  const notif = document.createElement('div');
+  notif.textContent = `🔓 Building UNLOCKED!`;
+  notif.style.cssText = `
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: #ffd700;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 10000;
+    font-family: 'Inter', sans-serif;
+    pointer-events: none;
+    animation: fadeOut 2s forwards;
+  `;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 2000);
+  
+  return true;
+}
 
 function loadGold() {
   const saved = localStorage.getItem('echoswap-gold');
@@ -3084,13 +3174,249 @@ function initAudio() {
 
 
 
+  // ==================== BUILDINGS INFO PANEL ====================
+  function showBuildingsInfoPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'buildings-info-panel';
+    panel.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px rgba(126,231,135,0.3);position:relative;padding-bottom:15px;">● STRUCTURES ●</h2>
+      <div class="buildings-grid"></div>
+      <div style="display:flex;gap:10px;margin-top:25px;">
+        <button id="closeBuildings" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px 24px;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s ease;box-shadow:0 4px 15px rgba(15,76,117,0.4);letter-spacing:0.5px;text-transform:uppercase;">CLOSE</button>
+      </div>
+    `;
+
+    panel.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(5, 15, 25, 0.98), rgba(10, 25, 47, 0.98));
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(126, 231, 135, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(126, 231, 135, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      z-index: 10002;
+      width: 850px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      backdrop-filter: blur(20px);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+    `;
+
+    const grid = panel.querySelector('.buildings-grid');
+    grid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 5px;
+    `;
+
+    // Building data – more engaging descriptions
+    const buildingsData = [
+      {
+        id: 1,
+        name: 'THE BULWARK - WALL',
+        tagline: 'powerfull defense',
+        description: 'lol mur',
+        price: 10,
+        health: 1000,
+        special: 'Forms indestructible chains when placed close together.',
+        unlockCost: BUILDING_UNLOCK_COSTS[1]
+      },
+      {
+        id: 2,
+        name: 'VITALIS MORTAR',
+        tagline: 'Life from above',
+        description: 'Fires healing shells that flies up in the air and lands close by. Each impact mends your wounds',
+        price: 100,
+        health: 10,
+        special: 'Orbs restore 1 life on contact.',
+        unlockCost: BUILDING_UNLOCK_COSTS[2]
+      },
+      {
+        id: 3,
+        name: 'AUTOCANNON',
+        tagline: 'Relentless suppression',
+        description: 'A turret that tracks the nearest threat and unleashes a storm of high‑velocity rounds. Never stops firing.',
+        price: 25,
+        health: 70,
+        special: 'Damage 1 · Fire rate 1.2s',
+        unlockCost: BUILDING_UNLOCK_COSTS[3]
+      },
+      {
+        id: 4,
+        name: 'SHOCKWAVE GENERATOR',
+        tagline: 'Blast Energy',
+        description: 'Charges the air until reality fractures, releasing a devastating pulse that freezes enemies solid and shatters their defences.',
+        price: 75,
+        health: 100,
+        special: 'Damage 8 · 3s cooldown · Area damage and stun',
+        unlockCost: BUILDING_UNLOCK_COSTS[4]
+      },
+      {
+        id: 5,
+        name: 'THE GREED ENGINE',
+        tagline: 'Wealth from carnage',
+        description: 'A thaumaturgic siphon that extracts raw gold from the ambient death energy. Passive income while you fight.',
+        price: 85,
+        health: 200,
+        special: 'Generates 10 gold every 10 seconds.',
+        unlockCost: BUILDING_UNLOCK_COSTS[5]
+      }
+    ];
+
+    for (const b of buildingsData) {
+      const isUnlocked = isBuildingUnlocked(b.id);
+      const card = document.createElement('div');
+      card.className = 'building-card';
+      card.style.cssText = `
+        background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,0,0,0.3));
+        border-radius: 20px;
+        padding: 20px;
+        border: 1px solid ${isUnlocked ? 'rgba(126,231,135,0.4)' : 'rgba(255,107,107,0.3)'};
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        backdrop-filter: blur(4px);
+      `;
+
+      // Price badge in top‑right corner (only if locked)
+      let priceBadge = '';
+      if (!isUnlocked) {
+        priceBadge = `
+          <div style="position:absolute; top:12px; right:16px; background:linear-gradient(135deg,#ffd700,#ff8c00); padding:4px 12px; border-radius:30px; font-weight:800; font-size:14px; color:#0a0a0a; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            ${b.unlockCost}💰
+          </div>
+        `;
+      }
+
+      // Stats section – only visible when unlocked
+      let statsHTML = '';
+      if (isUnlocked) {
+        statsHTML = `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; background:rgba(0,0,0,0.4); border-radius:16px; padding:12px; font-size:14px; font-weight:500;">
+            <div><span style="color:#ffd700;">🛡️ PLACEMENT COST</span><br><span style="font-size:18px; font-weight:700;">${b.price}💰</span></div>
+            <div><span style="color:#ff6b6b;">❤️ STRUCTURE HP</span><br><span style="font-size:18px; font-weight:700;">${b.health}</span></div>
+            <div><span style="color:#4dabf7;">⚡ ABILITY</span><br><span style="font-size:14px;">${b.special}</span></div>
+            <div><span style="color:#7ee787;">⌨️ SELECT KEY</span><br><span style="font-size:18px; font-weight:700;">${b.id}</span></div>
+          </div>
+        `;
+      }
+
+      // Locked / unlocked status text
+      let statusText = '';
+      if (isUnlocked) {
+        statusText = `<div style="margin-top:12px; text-align:right; color:#7ee787; font-weight:600; letter-spacing:0.5px;">✓ UNLOCKED — READY FOR DEPLOYMENT</div>`;
+      } else {
+        statusText = `<div style="margin-top:12px; text-align:right; color:#ffaa66; font-weight:600;">🔒 LOCKED — CLICK TO UNLOCK</div>`;
+      }
+
+      card.innerHTML = `
+        ${priceBadge}
+        <div style="margin-bottom:8px;">
+          <div style="font-size:24px; font-weight:800; color:#7ee787; letter-spacing:-0.5px;">${b.name}</div>
+          <div style="font-size:14px; color:#4dabf7; font-weight:500; margin-top:2px;">${b.tagline}</div>
+        </div>
+        <div style="font-size:15px; line-height:1.5; color:#cbd5e1; margin:12px 0;">${b.description}</div>
+        ${statsHTML}
+        ${statusText}
+      `;
+
+      // Hover effect
+      card.addEventListener('mouseenter', () => {
+        card.style.transform = 'translateY(-4px)';
+        card.style.boxShadow = '0 12px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(126,231,135,0.5)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = 'none';
+      });
+
+      // Whole card click = unlock (if locked)
+      if (!isUnlocked) {
+        card.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (totalGold >= b.unlockCost) {
+            if (unlockBuilding(b.id)) {
+              panel.remove();
+              showBuildingsInfoPanel(); // refresh
+            } else {
+              const errorNotif = document.createElement('div');
+              errorNotif.textContent = `Failed to unlock! Need ${b.unlockCost}💰`;
+              errorNotif.style.cssText = `position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:black; color:red; padding:8px 16px; border-radius:8px; z-index:10003; font-family:'Inter',sans-serif;`;
+              document.body.appendChild(errorNotif);
+              setTimeout(() => errorNotif.remove(), 1500);
+            }
+          } else {
+            const errorNotif = document.createElement('div');
+            errorNotif.textContent = `Not enough gold! Need ${b.unlockCost}💰 (you have ${totalGold})`;
+            errorNotif.style.cssText = `position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:black; color:#ffaa66; padding:8px 16px; border-radius:8px; z-index:10003; font-family:'Inter',sans-serif;`;
+            document.body.appendChild(errorNotif);
+            setTimeout(() => errorNotif.remove(), 1500);
+          }
+        });
+      } else {
+        // Already unlocked – optional: show a "cannot unlock" cursor
+        card.style.cursor = 'default';
+      }
+
+      grid.appendChild(card);
+    }
+
+    document.body.appendChild(panel);
+
+    const closeBtn = panel.querySelector('#closeBuildings');
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.transform = 'translateY(-2px)';
+      closeBtn.style.boxShadow = '0 8px 25px rgba(15, 76, 117, 0.7)';
+      closeBtn.style.background = 'linear-gradient(135deg, #3282b8, #0f4c75)';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.transform = 'translateY(0)';
+      closeBtn.style.boxShadow = '0 4px 15px rgba(15, 76, 117, 0.4)';
+      closeBtn.style.background = 'linear-gradient(135deg, #0f4c75, #3282b8)';
+    });
+    closeBtn.addEventListener('click', () => {
+      panel.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+      panel.style.opacity = '0';
+      panel.style.transform = 'translate(-50%, -48%)';
+      setTimeout(() => {
+        if (panel.parentNode) panel.parentNode.removeChild(panel);
+      }, 200);
+    });
+
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) {
+        closeBtn.click();
+      }
+    });
+
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && panel.parentNode) {
+        closeBtn.click();
+        window.removeEventListener('keydown', escHandler);
+      }
+    };
+    window.addEventListener('keydown', escHandler);
+  }
+
+
+
   // ===== HER LEGGER DU INN showSkinSelector FUNKSJONEN =====
   // Show skin selector panel
   function showSkinSelector() {
     const panel = document.createElement('div');
     panel.className = 'skin-selector-panel';
     panel.innerHTML = `
-      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">👕 SKINS</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="text-align:center; margin:0; flex:1; font-size:28px; font-weight:800; background:linear-gradient(90deg, #7ee787, #4dabf7); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">👕 SKINS</h2>
+        <button id="closeSkinsTop" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; line-height:1; padding:0 8px;">&times;</button>
+      </div>
       <div class="skins-grid"></div>
       <div style="display:flex;gap:10px;margin-top:25px;">
         <button id="closeSkins" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px;font-weight:700;cursor:pointer;">CLOSE</button>
@@ -3215,7 +3541,7 @@ function initAudio() {
           if (currentSkin !== skinId) {
             applySkin(skinId);
             panel.remove();
-            showSkinSelector(); // Refresh to show equipped state
+            showSkinSelector();
           }
         });
         
@@ -3235,17 +3561,29 @@ function initAudio() {
     
     document.body.appendChild(panel);
     
-    panel.querySelector('#closeSkins').addEventListener('click', () => {
-      panel.remove();
-    });
+    // Top-right close button
+    const closeTop = panel.querySelector('#closeSkinsTop');
+    if (closeTop) {
+      closeTop.addEventListener('click', () => {
+        panel.remove();
+      });
+    }
     
+    // Bottom close button
+    const closeBottom = panel.querySelector('#closeSkins');
+    if (closeBottom) {
+      closeBottom.addEventListener('click', () => {
+        panel.remove();
+      });
+    }
+    
+    // Click outside to close
     panel.addEventListener('click', (e) => {
       if (e.target === panel) {
         panel.remove();
       }
     });
   }
-  // ===== SLUTT PÅ showSkinSelector =====
 
 
   loadEquippedSkin();
@@ -3279,16 +3617,27 @@ function initAudio() {
     const skinBtn = document.createElement('button');
     skinBtn.id = 'skinBtn';
     skinBtn.className = 'start-btn update-log-btn';
-    skinBtn.innerHTML = '👕 Skins';
+    skinBtn.innerHTML = 'Skins';
     skinBtn.style.background = 'linear-gradient(135deg, rgba(91, 44, 111, 0.4), rgba(156, 39, 176, 0.4)) !important';
     skinBtn.style.borderColor = 'rgba(156, 39, 176, 0.3) !important';
     buttonContainer.appendChild(skinBtn);
+    
+    // === NEW: Buildings Info button ===
+    const buildingsBtn = document.createElement('button');
+    buildingsBtn.id = 'buildingsBtn';
+    buildingsBtn.className = 'start-btn update-log-btn';
+    buildingsBtn.innerHTML = '🏗️ Buildings';
+    buildingsBtn.style.background = 'linear-gradient(135deg, rgba(40, 80, 60, 0.4), rgba(60, 120, 80, 0.4)) !important';
+    buildingsBtn.style.borderColor = 'rgba(126, 231, 135, 0.3) !important';
+    buttonContainer.appendChild(buildingsBtn);
     
     document.querySelector('#startScreen').appendChild(buttonContainer);
     
     achievementBtn.addEventListener('click', showAchievementsPanel);
     skinBtn.addEventListener('click', showSkinSelector);
+    buildingsBtn.addEventListener('click', showBuildingsInfoPanel);
   }
+
 
   // Replace addAchievementButton call with addGameButtons
   // Find where it says "addAchievementButton();" and replace with "addGameButtons();"
@@ -3297,36 +3646,47 @@ function initAudio() {
   loadAchievements();
   
 
-// TEMPORARY: Reset achievements button for testing
+// TEMPORARY: Reset achievements, skins, buildings, and gold for testing
 window.addEventListener('keydown', (e) => {
-  // Press 'R' three times quickly to reset achievements
-  if (e.key === 'r' || e.key === 'R') {
+  // Press 'R' three times quickly to reset everything
+  if (e.key === 'z' || e.key === 'Z') {
     if (!window.resetKeyCount) window.resetKeyCount = 0;
     window.resetKeyCount++;
     
     if (window.resetKeyCount >= 3) {
+      // === RESET ACHIEVEMENTS ===
       localStorage.removeItem('echoswap-achievements');
-      localStorage.removeItem('echoswap-skin');
-      console.log('ACHIEVEMENTS AND SKINS RESET!');
-      
       // Reset all achievement unlocked flags
       for (const id in achievements) {
         achievements[id].unlocked = false;
       }
       
-      // Reset all skin unlocked flags (except default)
+      // === RESET SKINS ===
+      localStorage.removeItem('echoswap-skin');
       for (const skinId in skins) {
         if (skinId !== 'default') {
           skins[skinId].unlocked = false;
         }
       }
-      
-      // Reset current skin to default
       currentSkin = 'default';
       localStorage.setItem('echoswap-skin', 'default');
       
+      // === RESET UNLOCKED BUILDINGS ===
+      localStorage.removeItem('echoswap-unlocked-buildings');
+      // Reset to defaults (wall unlocked, others locked)
+      unlockedBuildings = { ...DEFAULT_UNLOCKED };
+      saveUnlockedBuildings();
+      
+      // === RESET GOLD ===
+      totalGold = 0;
+      saveGold();
+      updateGoldDisplays();
+      
+      console.log('ACHIEVEMENTS, SKINS, BUILDINGS, and GOLD have been reset!');
+      
       // Visual feedback
-      alert('Achievements and skins have been reset!');
+      alert('All progress reset! Achievements, skins, unlocked buildings, and gold have been cleared.');
+      
       window.resetKeyCount = 0;
     }
     
@@ -3337,7 +3697,6 @@ window.addEventListener('keydown', (e) => {
     }, 2000);
   }
 });
-
 
 
   // Helper function to close the achievements panel with animation
@@ -3487,33 +3846,13 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    // Building selection (number keys 1-9)
-    if (e.key >= '1' && e.key <= '9') {
-        const newBuilding = parseInt(e.key);
-        selectedBuilding = newBuilding;
-        console.log(`Building ${selectedBuilding} selected`);
-
-        if (selectedBuilding >= 1 && selectedBuilding <= 5) {
-            const buildingNames = {
-                1: 'Wall',
-                2: 'Healing Mortar',
-                3: 'Cannon Turret',
-                4: 'Shockwave Emitter',
-                5: 'Gold Mine'
-            };
-            const name = buildingNames[selectedBuilding];
-
-            // Clear previous timeout and remove old notification
-            if (window.buildingNotifTimeout) {
-                clearTimeout(window.buildingNotifTimeout);
-                window.buildingNotifTimeout = null;
-            }
-            if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
-                window.activeBuildingNotif.remove();
-                window.activeBuildingNotif = null;
-            }
-
-            // Create new notification
+// Building selection (number keys 1-9)
+if (e.key >= '1' && e.key <= '9') {
+    const newBuilding = parseInt(e.key);
+    if (newBuilding >= 1 && newBuilding <= 5) {
+        // Check if this building type is unlocked
+        if (!isBuildingUnlocked(newBuilding)) {
+            // Show locked notification
             const notif = document.createElement('div');
             notif.style.cssText = `
                 position: absolute;
@@ -3525,24 +3864,72 @@ window.addEventListener('keydown', (e) => {
                 font-family: 'Inter', sans-serif;
                 pointer-events: none;
                 white-space: nowrap;
+                background: rgba(0,0,0,0.7);
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #ff6b6b;
+                font-weight: bold;
             `;
             notif.innerHTML = `
-                <div style="font-size: 12px; color: #9aa4b2; margin-bottom: 4px;">BUILDING SELECTED</div>
-                <div style="font-size: 24px; font-weight: bold; color: #7ee787;">${name}</div>
+                <div style="font-size: 14px;">🔒 LOCKED</div>
+                <div style="font-size: 12px;">Unlock in Buildings menu</div>
             `;
             document.body.appendChild(notif);
-            window.activeBuildingNotif = notif;
-
-            // Set new timeout
-            window.buildingNotifTimeout = setTimeout(() => {
-                if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
-                    window.activeBuildingNotif.remove();
-                    window.activeBuildingNotif = null;
-                }
-                window.buildingNotifTimeout = null;
-            }, 2500);
+            setTimeout(() => notif.remove(), 1500);
+            return;
         }
+        
+        selectedBuilding = newBuilding;
+        console.log(`Building ${selectedBuilding} selected`);
+
+        const buildingNames = {
+            1: 'Wall',
+            2: 'Healing Mortar',
+            3: 'Cannon Turret',
+            4: 'Shockwave Emitter',
+            5: 'Gold Mine'
+        };
+        const name = buildingNames[selectedBuilding];
+
+        // Clear previous timeout and remove old notification
+        if (window.buildingNotifTimeout) {
+            clearTimeout(window.buildingNotifTimeout);
+            window.buildingNotifTimeout = null;
+        }
+        if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
+            window.activeBuildingNotif.remove();
+            window.activeBuildingNotif = null;
+        }
+
+        // Create new notification
+        const notif = document.createElement('div');
+        notif.style.cssText = `
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+            font-family: 'Inter', sans-serif;
+            pointer-events: none;
+            white-space: nowrap;
+        `;
+        notif.innerHTML = `
+            <div style="font-size: 12px; color: #9aa4b2; margin-bottom: 4px;">BUILDING SELECTED</div>
+            <div style="font-size: 24px; font-weight: bold; color: #7ee787;">${name}</div>
+        `;
+        document.body.appendChild(notif);
+        window.activeBuildingNotif = notif;
+
+        window.buildingNotifTimeout = setTimeout(() => {
+            if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
+                window.activeBuildingNotif.remove();
+                window.activeBuildingNotif = null;
+            }
+            window.buildingNotifTimeout = null;
+        }, 2500);
     }
+}
     // Pressing '0' selects building type 0
     if (e.key === '0') {
         selectedBuilding = 0;
@@ -3555,6 +3942,28 @@ window.addEventListener('keydown', (e) => {
         if (!gameStarted || !running || gamePaused) return;
         if (selectedBuilding === 0) {
             console.log('No building selected');
+            return;
+        }
+        // Check if building is unlocked
+        if (!isBuildingUnlocked(selectedBuilding)) {
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: absolute;
+                top: 40%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8);
+                color: #ff6b6b;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 10000;
+                font-family: 'Inter', sans-serif;
+                pointer-events: none;
+            `;
+            notif.textContent = `🔒 ${buildingNames[selectedBuilding]} is LOCKED! Unlock in Buildings menu.`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 2000);
             return;
         }
         if (buildingCooldown > 0) {
@@ -3573,20 +3982,19 @@ window.addEventListener('keydown', (e) => {
         const resolved = resolveBuildingCollision(building, buildings);
         if (!resolved) {
             console.log('Cannot place building: no space');
-            return; // placement fails
+            return;
         }
 
         // Placement successful
         buildings.push(resolved);
-
-        rebuildWallConnections();  // update wall connections
+        rebuildWallConnections();
 
         // Deduct gold and update display
         sessionGold -= cost;
         updateGoldDisplays();
 
         // Start cooldown (1 second)
-        buildingCooldown = 1.0;
+        buildingCooldown = 0.5;
 
         // Optional: sound effect for placement
         sfx(800, 0.1, 0.03, 'sine');
@@ -13231,6 +13639,7 @@ class MegaCreeperBoss {
   // Reset
   function resetGame(){
     loadGold(); 
+    loadUnlockedBuildings();
   // Set starting gold based on game mode // ====== start gold startgold gold start
   if (gameMode === 'freemode') {
     sessionGold = 10000;
@@ -13473,6 +13882,12 @@ class MegaCreeperBoss {
   newFeatureBtn.addEventListener('click', () => {
     updateLogPanel.style.display = 'block';
     audioResume();
+    const closeTop = document.getElementById('closeUpdateLogTop');
+    if (closeTop) {
+      closeTop.onclick = () => {
+        updateLogPanel.style.display = 'none';
+      };
+    }
   });
 
   closeUpdateLog.addEventListener('click', () => {
