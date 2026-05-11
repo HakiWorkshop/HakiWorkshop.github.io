@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200254796398157"
+crossorigin="anonymous"></script>
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -1034,6 +1036,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:transparent;
       <div class="card">Score: <span id="score" class="big">0</span></div>
       <div class="card">Time: <span id="time" class="big">0s</span></div>
       <button id="restart" class="btn">Restart</button>
+      <button id="fullscreen" class="btn" style="margin-left:8px;">⛶ Fullscreen</button>
     </div>
   </div>
 
@@ -1386,6 +1389,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 (() => {
   // canvas & context
   const canvas = document.getElementById('c');
+  // Helper to get canvas offset relative to viewport
+  function getCanvasOffset() {
+    const rect = canvas.getBoundingClientRect();
+    return { left: rect.left, top: rect.top };
+  }
   const ctx = canvas.getContext('2d');
   let W = canvas.width, H = canvas.height;
   const scoreEl = document.getElementById('score');
@@ -1642,8 +1650,9 @@ function spawnGoldPickupEffect() {
   // Create a "GOLD +X" notification that floats up
   const notification = document.createElement('div');
   notification.style.position = 'fixed';
-  notification.style.left = (player.x - 30) + 'px';
-  notification.style.top = (player.y - 40) + 'px';
+  const offset = getCanvasOffset();
+  notification.style.left = (player.x - 30 + offset.left) + 'px';
+  notification.style.top = (player.y - 40 + offset.top) + 'px';
   notification.style.color = '#ffd700';
   notification.style.fontSize = '20px';
   notification.style.fontWeight = 'bold';
@@ -1656,7 +1665,7 @@ function spawnGoldPickupEffect() {
   document.body.appendChild(notification);
   
   setTimeout(() => {
-    notification.style.top = (player.y - 80) + 'px';
+    notification.style.top = (player.y - 80 + offset.top) + 'px';
     notification.style.opacity = '0';
     setTimeout(() => {
       if (notification.parentNode) notification.parentNode.removeChild(notification);
@@ -1681,8 +1690,9 @@ function spawnGoldPickupEffectAtPosition(x, y, amount) {
   // Create a "GOLD +X" notification that floats up from enemy position
   const notification = document.createElement('div');
   notification.style.position = 'fixed';
-  notification.style.left = x + 'px';
-  notification.style.top = y + 'px';
+  const offset = getCanvasOffset();
+  notification.style.left = (x + offset.left) + 'px';
+  notification.style.top = (y + offset.top) + 'px';
   notification.style.color = '#ffd700';
   notification.style.fontSize = '18px';
   notification.style.fontWeight = 'bold';
@@ -1695,7 +1705,7 @@ function spawnGoldPickupEffectAtPosition(x, y, amount) {
   document.body.appendChild(notification);
   
   setTimeout(() => {
-    notification.style.top = (y - 40) + 'px';
+    notification.style.top = (y - 40 + offset.top) + 'px';
     notification.style.opacity = '0';
     setTimeout(() => {
       if (notification.parentNode) notification.parentNode.removeChild(notification);
@@ -4830,8 +4840,9 @@ class HealingOrb {
     const indicator = document.createElement('div');
     indicator.textContent = text;
     indicator.style.position = 'absolute';
-    indicator.style.left = x + 'px';
-    indicator.style.top = y + 'px';
+    const offset = getCanvasOffset();
+    indicator.style.left = (x + offset.left) + 'px';
+    indicator.style.top = (y + offset.top) + 'px';
     indicator.style.color = '#ff6b6b';
     indicator.style.fontSize = '20px';
     indicator.style.fontWeight = 'bold';
@@ -4933,8 +4944,8 @@ class HealingOrb {
 function setHardcoreStartingStats() {
   // Worse base stats
   player.speed = 210;           // -40 speed
-  player.fireRate = 0.3;        // Super slow firing
-  player.damageMultiplier = 0.45; //Lower damage multiplier
+  player.fireRate = 0.6;        // Super slow firing
+  player.damageMultiplier = 0.9; //Lower damage multiplier
 }
 
   // Update upgrade chances over time
@@ -5454,11 +5465,11 @@ function setHardcoreStartingStats() {
               </div>
             `;
             summary.style.position = 'absolute';
-            summary.style.left = '50%';
-            summary.style.top = '40%';
+            const canvasRect = canvas.getBoundingClientRect();
+            summary.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+            summary.style.top = (canvasRect.top + canvasRect.height * 0.4) + 'px';
             summary.style.transform = 'translate(-50%, -50%)';
-            summary.style.textAlign = 'center';
-            summary.style.pointerEvents = 'none';
+            summary.style.textAlign = 'center';            summary.style.pointerEvents = 'none';
             summary.style.zIndex = '10000';
             summary.style.fontFamily = 'Inter, sans-serif';
             summary.style.animation = 'fadeOut 2s forwards';
@@ -14865,6 +14876,20 @@ class MegaCreeperBoss {
     }, 200); // Wait for CSS transition to complete 
   }
 
+  // Fullscreen toggle
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.log(`Fullscreen error: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    audioResume(); // resume audio on interaction
+  });
+
   document.getElementById('restart').addEventListener('click', () => { 
     resetGame();
     startGame(gameMode);
@@ -14928,6 +14953,11 @@ class MegaCreeperBoss {
   // Show pause menu
   function showPauseMenu() {
     pauseMenu.style.display = 'block';
+    const canvasRect = canvas.getBoundingClientRect();
+    pauseMenu.style.position = 'fixed';
+    pauseMenu.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+    pauseMenu.style.top = (canvasRect.top + canvasRect.height/2) + 'px';
+    pauseMenu.style.transform = 'translate(-50%, -50%)';
     upgradesList.innerHTML = '';
     
     // Add current upgrades to the list
@@ -15197,32 +15227,49 @@ class MegaCreeperBoss {
         bullets.push(bullet);
       }
     } else {
-      // Levels 1-6: Fire backward bullets in a spread pattern
-      for (let i = 0; i < flankerBullets; i++) {
-        const spreadOffset = (i - Math.floor(flankerBullets / 2)) * flankerAngle;
-        const bulletAngle = baseBackwardAngle + spreadOffset;
-        const dx = Math.cos(bulletAngle);
-        const dy = Math.sin(bulletAngle);
-        
-        const bullet = { 
-          x: player.x + dx*player.r*1.6, 
-          y: player.y + dy*player.r*1.6, 
-          dx, dy, 
-          t:0, 
-          life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
-          speed: player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1),
-          size: player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1),
-          willExplode: false,
-          damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
-          flanker: true,
-          color: '#74c0fc'
-        };
-        
-        bullets.push(bullet);
-      }
-    }
-  }
-  
+      // Levels 1-6: Fire backward bullets evenly spaced over the total flankerAngle
+      if (flankerBullets === 1) {
+          // Single bullet, no spread
+          const bulletAngle = baseBackwardAngle;
+          const dx = Math.cos(bulletAngle);
+          const dy = Math.sin(bulletAngle);
+          bullets.push({
+              x: player.x + dx * player.r * 1.6,
+              y: player.y + dy * player.r * 1.6,
+              dx, dy, t: 0,
+              life: player.bulletLife,
+              speed: player.bulletSpeed,
+              size: player.bulletSize,
+              willExplode: false,
+              damage: 1 * player.damageMultiplier,
+              flanker: true,
+              color: '#74c0fc'
+          });
+      } else {
+          const totalSpread = flankerAngle;      // treat flankerAngle as total spread
+          const step = totalSpread / (flankerBullets - 1);
+          const startAngle = -totalSpread / 2;   // centre the fan
+          for (let i = 0; i < flankerBullets; i++) {
+              const bulletAngle = baseBackwardAngle + startAngle + i * step;
+              const dx = Math.cos(bulletAngle);
+              const dy = Math.sin(bulletAngle);
+              bullets.push({
+                  x: player.x + dx * player.r * 1.6,
+                  y: player.y + dy * player.r * 1.6,
+                  dx, dy, t: 0,
+                  life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
+                  speed: player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1),
+                  size: player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1),
+                  willExplode: false,
+                  damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
+                  flanker: true,
+                  color: '#74c0fc'
+              });
+            }
+          }
+        }
+      }  
+      
     const spread = player.spread * (1 + Math.min(1.5, (difficulty-1)/2));
     const angleOffset = rand(-spread/2, spread/2);
     const cos = Math.cos(angleOffset), sin = Math.sin(angleOffset);
@@ -15337,6 +15384,11 @@ class MegaCreeperBoss {
         maxLevelReached = true;
         pendingUpgrades = 0;
         levelUpNotification.style.display = 'block';
+        const canvasRect = canvas.getBoundingClientRect();
+        levelUpNotification.style.position = 'fixed';
+        levelUpNotification.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+        levelUpNotification.style.top = (canvasRect.top + canvasRect.height/2) + 'px';
+        levelUpNotification.style.transform = 'translate(-50%, -50%)';
         levelUpNotification.querySelector('.level-up-text').textContent = 'MAX LEVEL REACHED!';
         levelUpNotification.querySelector('.level-up-hint').textContent = 'No more upgrades available';
         setTimeout(() => {
@@ -15348,6 +15400,11 @@ class MegaCreeperBoss {
       // FIXED: Only show notification, don't auto-open upgrade menu
       if (running && !gamePaused) {
         levelUpNotification.style.display = 'block';
+        const canvasRect = canvas.getBoundingClientRect();
+        levelUpNotification.style.position = 'fixed';
+        levelUpNotification.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+        levelUpNotification.style.top = (canvasRect.top + canvasRect.height/2) + 'px';
+        levelUpNotification.style.transform = 'translate(-50%, -50%)';
         
         // Add upgrade pulse effect
         createUpgradePulse();
@@ -15370,6 +15427,11 @@ function showUpgradeMenu() {
   if (pendingUpgrades <= 0 || maxLevelReached) return;
 
   upgradeMenu.style.display = 'block';
+  const canvasRect = canvas.getBoundingClientRect();
+  upgradeMenu.style.position = 'fixed';
+  upgradeMenu.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+  upgradeMenu.style.top = (canvasRect.top + canvasRect.height/2) + 'px';
+  upgradeMenu.style.transform = 'translate(-50%, -50%)';
   upgradeOptions.innerHTML = '';
 
   const totalChance = commonChance + rareChance + legendaryChance + mythicalChance;
@@ -16055,6 +16117,11 @@ function checkBossSpawn(dt) {
     if (allBossesDead) {
       endlessMode = true;
       levelUpNotification.style.display = 'block';
+      const canvasRect = canvas.getBoundingClientRect();
+      levelUpNotification.style.position = 'fixed';
+      levelUpNotification.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+      levelUpNotification.style.top = (canvasRect.top + canvasRect.height/2) + 'px';
+      levelUpNotification.style.transform = 'translate(-50%, -50%)';
       levelUpNotification.querySelector('.level-up-text').textContent = 'ENDLESS MODE!';
       levelUpNotification.querySelector('.level-up-hint').textContent = 'Survive as long as you can!';
       setTimeout(() => {
@@ -17621,6 +17688,16 @@ if (b.growth) {
     }
 
     ctx.clearRect(0,0,W,H);
+    // Reposition boss health bar to canvas top centre
+    const canvasRect = canvas.getBoundingClientRect();
+    bossHealth.style.top = (canvasRect.top + 10) + 'px'; // 10px gap
+    bossHealth.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+    bossHealth.style.transform = 'translateX(-50%)';
+
+    // Reposition ability cooldown bar to canvas bottom centre
+    abilityCooldown.style.top = (canvasRect.bottom - 30) + 'px'; // 30px above canvas bottom
+    abilityCooldown.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+    abilityCooldown.style.transform = 'translate(-50%, -100%)';
     
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
