@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200254796398157"
-crossorigin="anonymous"></script>
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -14,8 +12,15 @@ crossorigin="anonymous"></script>
   --card: rgba(255,255,255,0.03);
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#eaf4ff;background:
- radial-gradient(1200px 700px at 10% 20%, #071226 0%, #05101a 30%, #02060a 100%);}
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+  color: #eaf4ff;
+  background: linear-gradient(135deg, #071226 0%, #05101a 50%, #02060a 100%);
+  background-size: cover;
+  background-attachment: fixed;
+}
 .app{display:flex;flex-direction:column;min-height:100vh;padding:14px}
 .header{display:flex;gap:12px;align-items:center}
 h1{margin:0;font-size:20px}
@@ -24,8 +29,7 @@ h1{margin:0;font-size:20px}
 .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:8px 10px;border-radius:10px;border:1px solid var(--card); color:#eaf4ff}
 .btn{background:linear-gradient(180deg,#0f1b28,#07121a);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,255,255,0.02);color:var(--accent);cursor:pointer}
 .hud{display:flex;gap:10px;margin-top:12px;align-items:center}
-canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradient(180deg,rgba(6,10,18,0.7),rgba(2,5,10,0.6));box-shadow:0 12px 40px rgba(56, 144, 97, 0.6);}
-.footer{margin-top:auto;color:var(--muted);text-align:center;padding:10px;font-size:13px}
+canvas{display:block;margin:18px auto;border-radius:12px;background:transparent;box-shadow:0 12px 40px rgba(56, 144, 97, 0.6);}.footer{margin-top:auto;color:var(--muted);text-align:center;padding:10px;font-size:13px}
 .big{font-weight:700;color:#fff}
 .note{color:var(--muted);font-size:13px}
 .small{font-size:12px;color:var(--muted)}
@@ -754,6 +758,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 }
 
 .freemode-mode canvas {
+  
   box-shadow: 0 12px 40px rgba(0, 100, 255, 0.3);
   border: 1px solid rgba(77, 171, 247, 0.1);
 }
@@ -1015,6 +1020,7 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
 
 
 
+
 </style>
 </head>
 <body>
@@ -1032,16 +1038,6 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:linear-gradi
   </div>
 
 
-    <!-- EchoSwap Banner -->
-  <ins class="adsbygoogle"
-      style="display:block"
-      data-ad-client="ca-pub-7200254796398157"
-      data-ad-slot="2852854652"
-      data-ad-format="auto"
-      data-full-width-responsive="true"></ins>
-  <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
 
   <div class="hud">
     <div class="card">High: <span id="hi">0</span></div>
@@ -1725,6 +1721,7 @@ function spawnGoldPickupEffectAtPosition(x, y, amount) {
 let emergencyAbility = 'minelayer'; // Default ability
 let emergencyAbilityCooldown = 0;
 let emergencyAbilityActive = false;
+let abilityTimeouts = [];
 let emergencyAbilityTimer = 0;
 
 // Emergency ability power levels (higher = stronger)
@@ -1809,24 +1806,28 @@ function updateBackgroundForGameMode(mode) {
   // Remove any existing game mode classes
   app.classList.remove('hardcore-mode', 'freemode-mode');
   
-  // Add appropriate class for the game mode
+  // Apply appropriate class for the game mode
   if (mode === 'hardcore') {
     app.classList.add('hardcore-mode');
-    document.body.style.background = 
-      'radial-gradient(1200px 700px at 10% 20%, #2a0a0a 0%, #1a0505 30%, #0a0202 100%)';
+    // Full-screen dark red linear gradient
+    document.body.style.background = 'linear-gradient(135deg, #2a0a0a 0%, #1a0505 50%, #0a0202 100%)';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundAttachment = 'fixed';
   } else if (mode === 'freemode') {
     app.classList.add('freemode-mode');
-    document.body.style.background = 
-      'radial-gradient(1200px 700px at 10% 20%, #0a2a3a 0%, #051525 30%, #020a15 100%)';
+    // Full-screen dark blue linear gradient
+    document.body.style.background = 'linear-gradient(135deg, #0a2a3a 0%, #051525 50%, #020a15 100%)';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundAttachment = 'fixed';
   } else {
-    // Classic mode - reset to defaults
+    // Classic mode - dark blue/black
     app.classList.remove('hardcore-mode', 'freemode-mode');
-    document.body.style.background = 
-      'radial-gradient(1200px 700px at 10% 20%, #071226 0%, #05101a 30%, #02060a 100%)';
+    document.body.style.background = 'linear-gradient(135deg, #071226 0%, #05101a 50%, #02060a 100%)';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundAttachment = 'fixed';
   }
 }
 
-// Initialize audio
 // Initialize audio
 function initAudio() {
   // Create audio elements with actual file sources
@@ -3355,7 +3356,7 @@ function initAudio() {
         name: 'STONE BRICK',
         tagline: 'Fortified core',
         description: 'A heavy stone brick with 200 health and four destructible studs. Blocks enemy movement.',
-        price: 1,
+        price: 1000,
         health: 200,
         special: 'Studs have 50 health each; when all studs are destroyed, the brick crumbles.',
         unlockCost: BUILDING_UNLOCK_COSTS[7],
@@ -4665,7 +4666,7 @@ class HealingOrb {
     4: 75,   // shockwave emitter
     5: 100,  // gold mine
     6: 35,   // XP orb spawner
-    7: 1     // central stone brick with studs
+    7: 50     // central stone brick with studs
   };
   let recordTimer = 0, echoSpawnTimer = 0, difficulty = 1;
   let fireTimer = 0, autoFireTimer = 0, workerFireTimer = 0;
@@ -4949,6 +4950,53 @@ function setHardcoreStartingStats() {
       legendaryChance = Math.min(15, legendaryChance + 0.07);
       mythicalChance = Math.min(10, mythicalChance + 0.03);
     }
+  }
+
+  function cleanupCurrentAbility() {
+    // Clear all pending timeouts
+    abilityTimeouts.forEach(timeout => clearTimeout(timeout));
+    abilityTimeouts = [];
+    
+    // Reset all ability active flags
+    minesActive = false;
+    freezeActive = false;
+    lastResortActive = false;
+    guardsActive = false;
+    shockwaveActive = false;
+    saferSpacesActive = false;
+    damageZoneActive = false;
+    minigunActive = false;
+    teleportActive = false;
+    turretPlanterActive = false;
+    fortressActive = false;
+    missileBarrageActive = false;
+    teslaActive = false;
+    sparkyActive = false;
+    
+    // Clear any ability-specific timers
+    mineTimer = 0;
+    freezeTimer = 0;
+    lastResortTimer = 0;
+    guardsTimer = 0;
+    shockwaveTimer = 0;
+    saferSpacesTimer = 0;
+    damageZoneTimer = 0;
+    minigunTimer = 0;
+    turretPlanterTimer = 0;
+    
+    // Hide overlays
+    freezeOverlay.style.display = 'none';
+    
+    // Reset cooldown display
+    emergencyAbilityCooldown = 0;
+    emergencyAbilityActive = false;
+    abilityCooldown.style.display = 'none';
+    
+    // Clear Tesla segments if any
+    if (window.teslaSegments) window.teslaSegments = [];
+    
+    // Clear any Sparky projectiles
+    sparkyProjectiles = [];
   }
 
   // Activate emergency ability
@@ -15024,8 +15072,8 @@ class MegaCreeperBoss {
           flankerLevel === 1 ? Math.PI / 12 :  // 15 degrees
           flankerLevel === 2 ? Math.PI / 9 :   // 20 degrees
           flankerLevel === 3 ? Math.PI / 8 :   // 22.5 degrees
-          flankerLevel === 4 ? Math.PI / 4 :   // 45 degrees - wider spread
-          flankerLevel === 5 ? Math.PI / 3 :   // 60 degrees
+          flankerLevel === 4 ? Math.PI / 5 :   
+          flankerLevel === 5 ? Math.PI / 4 :   
           flankerLevel === 6 ? Math.PI / 2.5 : // ~72 degrees
           Math.PI / 2;                         // 90 degrees
       }
@@ -15804,30 +15852,35 @@ function selectBonusUpgrade(type) {
       case 'flanker':
         break;
       case 'shockwave':
+        cleanupCurrentAbility();
         emergencyAbility = 'shockwave';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('shockwave');
         break;
       case 'guards':
+        cleanupCurrentAbility();
         emergencyAbility = 'guards';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('guards');
         break;
       case 'freeze':
+        cleanupCurrentAbility();
         emergencyAbility = 'freeze';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('freeze');
         break;
       case 'lastResort':
+        cleanupCurrentAbility();
         emergencyAbility = 'lastResort';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';        
         selectedAbilities.add('lastResort');
         break;
       case 'saferSpaces':
+        cleanupCurrentAbility();
         emergencyAbility = 'saferSpaces';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
@@ -15855,6 +15908,7 @@ function selectBonusUpgrade(type) {
         minigunActive = true;
         break;
       case 'saferSpaces':
+        cleanupCurrentAbility();
         emergencyAbility = 'saferSpaces';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
@@ -15888,36 +15942,42 @@ function selectBonusUpgrade(type) {
         break;
 
             case 'teleport':
+        cleanupCurrentAbility();
         emergencyAbility = 'teleport';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('teleport');
         break;
       case 'turretPlanter':
+        cleanupCurrentAbility();
         emergencyAbility = 'turretPlanter';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('turretPlanter');
         break;
       case 'fortress':
+        cleanupCurrentAbility();
         emergencyAbility = 'fortress';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('fortress');
         break;
       case 'missileBarrage':
+        cleanupCurrentAbility();
         emergencyAbility = 'missileBarrage';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('missileBarrage');
         break;
       case 'tesla':
+        cleanupCurrentAbility();
         emergencyAbility = 'tesla';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
         selectedAbilities.add('tesla');
         break;
       case 'sparky':
+        cleanupCurrentAbility();
         emergencyAbility = 'sparky';
         emergencyAbilityCooldown = 0;
         abilityCooldown.style.display = 'none';
@@ -17562,7 +17622,7 @@ if (b.growth) {
 
     ctx.clearRect(0,0,W,H);
     
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     const gridSize = 50;
     for (let x = 0; x < W; x += gridSize) {
