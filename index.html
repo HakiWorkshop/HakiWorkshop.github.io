@@ -422,6 +422,54 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:transparent;
   filter: drop-shadow(0 0 5px rgba(99, 230, 190, 0.5));
 }
 
+/* ------------------------------------------- */
+/* Fullscreen mode: hide chrome, fill canvas    */
+/* ------------------------------------------- */
+body.fullscreen-active {
+  background: #02060a !important;  /* solid dark background behind canvas */
+}
+
+body.fullscreen-active .header,
+body.fullscreen-active .hud,
+body.fullscreen-active .footer,
+body.fullscreen-active #startScreen,
+body.fullscreen-active #deathScreen {
+  display: none !important;
+}
+
+/* Make the canvas cover the whole viewport */
+body.fullscreen-active canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: linear-gradient(135deg, #071226 0%, #05101a 50%, #02060a 100%) !important;
+  z-index: 0;
+}
+
+/* Ensure all important game overlays stay on top of the canvas */
+body.fullscreen-active #healthDisplay,
+body.fullscreen-active #upgradeMenu,
+body.fullscreen-active #pauseMenu,
+body.fullscreen-active #bossHealth,
+body.fullscreen-active .ability-cooldown,
+body.fullscreen-active #abilityCooldown,
+body.fullscreen-active #goldContainer,
+body.fullscreen-active .gold-container,
+body.fullscreen-active .achievement-notification,
+body.fullscreen-active .upgrade-menu,
+body.fullscreen-active .pause-menu {
+  z-index: 1000;  /* above the canvas */
+  /* The position (fixed / absolute) is already set, and the offset logic will keep them in place */
+}
+
+/* Keep the fullscreen button visible (optional) – you can also hide it */
+body.fullscreen-active #fullscreen {
+  display: none !important;  /* or keep it visible: position:fixed; z-index:2000; */
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .update-log-panel {
@@ -1425,8 +1473,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   const abilityCooldownText = document.getElementById('abilityCooldownText');
   const freezeOverlay = document.getElementById('freezeOverlay');
   const refreshUpgrades = document.getElementById('refreshUpgrades');
-  const resumeBtn = document.getElementById('resumeBtn');
-  
+  const resumeBtn = document.getElementById('resumeBtn');  
   const levelUpNotification = document.createElement('div');
   levelUpNotification.className = 'level-up-notification';
   levelUpNotification.innerHTML = `
@@ -1437,6 +1484,9 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
   // Game mode
   let gameMode = 'classic'; // 'classic', 'hardcore', 'freemode'
+
+  const MAX_FLANKER_SIZE = 12;
+  const MAX_FLANKER_SPEED = 460;
 
   // state
   let lastTime = performance.now(), running = false, gameStarted = false;
@@ -14874,19 +14924,36 @@ class MegaCreeperBoss {
     }, 200); // Wait for CSS transition to complete 
   }
 
-  // Fullscreen toggle
-  document.getElementById('fullscreen').addEventListener('click', () => {
+  // Fullscreen – zoom into the playing field (canvas fills screen, UI hidden → only game visible)
+  const fullscreenBtn = document.getElementById('fullscreen');
+  fullscreenBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
+      document.documentElement.requestFullscreen().then(() => {
+        document.body.classList.add('fullscreen-active');
+      }).catch(err => {
         console.log(`Fullscreen error: ${err.message}`);
       });
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen().then(() => {
+        document.body.classList.remove('fullscreen-active');
+      });
     }
-    audioResume(); // resume audio on interaction
+    audioResume();
   });
+
+  // Update button text / Also remove class if fullscreen is cancelled by Escape
+  function updateFullscreenState() {
+    const btn = document.getElementById('fullscreen');
+    if (document.fullscreenElement) {
+      document.body.classList.add('fullscreen-active');
+      btn.textContent = '✕ Exit Fullscreen';
+    } else {
+      document.body.classList.remove('fullscreen-active');
+      btn.textContent = '⛶ Fullscreen';
+    }
+  }
+  document.addEventListener('fullscreenchange', updateFullscreenState);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenState);
 
   document.getElementById('restart').addEventListener('click', () => { 
     resetGame();
@@ -15079,7 +15146,7 @@ class MegaCreeperBoss {
       } else if (flankerLevel === 6) {
         canActivate = (bulletCounter % 2 === 0);
       } else if (flankerLevel === 7) {
-        canActivate = true;
+        canActivate = (bulletCounter % 2 === 0);
       }
 
       if (canActivate) {
@@ -15093,14 +15160,14 @@ class MegaCreeperBoss {
           flankerLevel === 4 ? 7 :
           flankerLevel === 5 ? 10 :
           flankerLevel === 6 ? 13 :
-          flankerLevel === 7 ? 13 : 0;
+          flankerLevel === 7 ? 18 : 0;
         
         // FIXED: Proper spread angle based on level
         flankerAngle = 
           flankerLevel === 1 ? Math.PI / 12 :  // 15 degrees
-          flankerLevel === 2 ? Math.PI / 9 :   // 20 degrees
-          flankerLevel === 3 ? Math.PI / 8 :   // 22.5 degrees
-          flankerLevel === 4 ? Math.PI / 5 :   
+          flankerLevel === 2 ? Math.PI / 10 :   // 20 degrees
+          flankerLevel === 3 ? Math.PI / 9 :   // 22.5 degrees
+          flankerLevel === 4 ? Math.PI / 6 :   
           flankerLevel === 5 ? Math.PI / 4 :   
           flankerLevel === 6 ? Math.PI / 2.5 : // ~72 degrees
           Math.PI / 2;                         // 90 degrees
@@ -15171,103 +15238,66 @@ class MegaCreeperBoss {
       spawnParticles(muzzleX, muzzleY, 'rgba(255,150,0,0.9)', 15, Math.PI/6, 100);
     }
       if (isFlanker && flankerLevel > 0) {
-    const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
-    
-    if (flankerLevel === 7) {
-      // Level 7: Fire 10 bullets in a full backward circle
-      for (let i = 0; i < flankerBullets; i++) {
-        const angle = baseBackwardAngle + (i / flankerBullets) * Math.PI * 2;
-        const dx = Math.cos(angle);
-        const dy = Math.sin(angle);
+        const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
         
-        const bullet = { 
-          x: player.x + dx*player.r*1.6, 
-          y: player.y + dy*player.r*1.6, 
-          dx, dy, 
-          t:0, 
-          life: player.bulletLife * 0.8,
-          speed: player.bulletSpeed * 0.9,
-          size: player.bulletSize * 0.8,
-          willExplode: false,
-          damage: 0.8 * player.damageMultiplier,
-          flanker: true,
-          color: '#74c0fc'
-        };
-        
-        bullets.push(bullet);
-      }
-    } else if (flankerLevel === 4) {
-      // Level 4: Fire 4 bullets in a backward cross pattern
-      const angles = [
-        baseBackwardAngle, // Straight back
-        baseBackwardAngle + Math.PI/4, // Back-left diagonal
-        baseBackwardAngle - Math.PI/4, // Back-right diagonal
-        baseBackwardAngle + Math.PI/2  // Perpendicular back
-      ];
-      for (let i = 0; i < Math.min(flankerBullets, angles.length); i++) {
-        const dx = Math.cos(angles[i]);
-        const dy = Math.sin(angles[i]);
-        
-        const bullet = { 
-          x: player.x + dx*player.r*1.6, 
-          y: player.y + dy*player.r*1.6, 
-          dx, dy, 
-          t:0, 
-          life: player.bulletLife,
-          speed: player.bulletSpeed,
-          size: player.bulletSize,
-          willExplode: false,
-          damage: 1 * player.damageMultiplier,
-          flanker: true,
-          color: '#74c0fc'
-        };
-        
-        bullets.push(bullet);
-      }
-    } else {
-      // Levels 1-6: Fire backward bullets evenly spaced over the total flankerAngle
-      if (flankerBullets === 1) {
-          // Single bullet, no spread
-          const bulletAngle = baseBackwardAngle;
-          const dx = Math.cos(bulletAngle);
-          const dy = Math.sin(bulletAngle);
-          bullets.push({
+        // Level 6 and 7: Fire in FULL CIRCLE (360 degrees)
+        if (flankerLevel >= 6) {
+          for (let i = 0; i < flankerBullets; i++) {
+            const angle = (i / flankerBullets) * Math.PI * 2;
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
+            
+            bullets.push({
               x: player.x + dx * player.r * 1.6,
               y: player.y + dy * player.r * 1.6,
               dx, dy, t: 0,
-              life: player.bulletLife,
-              speed: player.bulletSpeed,
-              size: player.bulletSize,
+              life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
+              speed: Math.min(player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1), MAX_FLANKER_SPEED),
+              size: Math.min(player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1), MAX_FLANKER_SIZE),
               willExplode: false,
-              damage: 1 * player.damageMultiplier,
+              damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
               flanker: true,
               color: '#74c0fc'
-          });
-      } else {
-          const totalSpread = flankerAngle;      // treat flankerAngle as total spread
-          const step = totalSpread / (flankerBullets - 1);
-          const startAngle = -totalSpread / 2;   // centre the fan
+            });
+          }
+        } else {
+          // Levels 1-5: Fire BACKWARDS ONLY (spread arc behind player)
+          let totalSpread;
+          if (flankerLevel === 1) totalSpread = Math.PI / 6;      // 30 degrees
+          else if (flankerLevel === 2) totalSpread = Math.PI / 5; // 36 degrees
+          else if (flankerLevel === 3) totalSpread = Math.PI / 4; // 45 degrees (wider spread)
+          else if (flankerLevel === 4) totalSpread = Math.PI / 3; // 60 degrees (FIXED - 7 bullets)
+          else if (flankerLevel === 5) totalSpread = Math.PI / 2.2; // ~82 degrees (wider spread)
+          else totalSpread = Math.PI / 2; // 90 degrees default
+          
+          const startAngle = baseBackwardAngle - totalSpread / 2;
+          
           for (let i = 0; i < flankerBullets; i++) {
-              const bulletAngle = baseBackwardAngle + startAngle + i * step;
-              const dx = Math.cos(bulletAngle);
-              const dy = Math.sin(bulletAngle);
-              bullets.push({
-                  x: player.x + dx * player.r * 1.6,
-                  y: player.y + dy * player.r * 1.6,
-                  dx, dy, t: 0,
-                  life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
-                  speed: player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1),
-                  size: player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1),
-                  willExplode: false,
-                  damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
-                  flanker: true,
-                  color: '#74c0fc'
-              });
+            let angle;
+            if (flankerBullets === 1) {
+              angle = baseBackwardAngle;
+            } else {
+              angle = startAngle + (i / (flankerBullets - 1)) * totalSpread;
             }
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
+            
+            bullets.push({
+              x: player.x + dx * player.r * 1.6,
+              y: player.y + dy * player.r * 1.6,
+              dx, dy, t: 0,
+              life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
+              speed: Math.min(player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1), MAX_FLANKER_SPEED),
+              size: Math.min(player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1), MAX_FLANKER_SIZE),
+              willExplode: false,
+              damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
+              flanker: true,
+              color: '#74c0fc'
+            });
           }
         }
-      }  
-      
+      }
+
     const spread = player.spread * (1 + Math.min(1.5, (difficulty-1)/2));
     const angleOffset = rand(-spread/2, spread/2);
     const cos = Math.cos(angleOffset), sin = Math.sin(angleOffset);
