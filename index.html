@@ -21,15 +21,142 @@ html, body {
   background-size: cover;
   background-attachment: fixed;
 }
-.app{display:flex;flex-direction:column;min-height:100vh;padding:14px}
-.header{display:flex;gap:12px;align-items:center}
-h1{margin:0;font-size:20px}
-.subtitle{color:var(--muted);font-size:13px}
-.meta{margin-left:auto;display:flex;gap:8px;align-items:center}
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:8px 10px;border-radius:10px;border:1px solid var(--card); color:#eaf4ff}
-.btn{background:linear-gradient(180deg,#0f1b28,#07121a);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,255,255,0.02);color:var(--accent);cursor:pointer}
-.hud{display:flex;gap:10px;margin-top:12px;align-items:center}
-canvas{display:block;margin:18px auto;border-radius:12px;background:transparent;box-shadow:0 12px 40px rgba(56, 144, 97, 0.6);}.footer{margin-top:auto;color:var(--muted);text-align:center;padding:10px;font-size:13px}
+body.game-active {
+  overflow: hidden;
+  background: #020508 !important;
+}
+
+.app {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100svh;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(39, 76, 75, 0.12), transparent 35%),
+    linear-gradient(145deg, #020508, #061014 58%, #020405);
+}
+
+.app::before {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 25% 75%, rgba(63, 50, 75, 0.12), transparent 27%),
+    radial-gradient(circle at 75% 25%, rgba(34, 83, 81, 0.1), transparent 30%);
+  animation: gameplayAtmosphere 18s ease-in-out infinite alternate;
+}
+
+body.game-hardcore .app::before {
+  background:
+    radial-gradient(circle at 28% 70%, rgba(132, 18, 24, 0.2), transparent 30%),
+    radial-gradient(circle at 75% 24%, rgba(92, 12, 18, 0.18), transparent 36%);
+  animation-duration: 7s;
+}
+
+@keyframes gameplayAtmosphere {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(1.5%, 1%, 0) scale(1.05);
+  }
+}
+
+.header,
+.hud,
+.game-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  align-items: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.card {
+  padding: 7px 10px;
+  color: #dce8e7;
+  border: 1px solid rgba(126, 155, 151, 0.13);
+  border-radius: 5px;
+  background: rgba(4, 11, 15, 0.78);
+}
+
+.btn {
+  padding: 7px 10px;
+  color: #8fc5b1;
+  cursor: pointer;
+  border: 1px solid rgba(126, 155, 151, 0.15);
+  border-radius: 5px;
+  background: rgba(5, 13, 17, 0.9);
+}
+
+.hud {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.hud .small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-stage{position:relative;z-index:1;container-type:size;display:grid;flex:1;min-height:0;padding-top:6px;overflow:hidden;place-items:center}
+#c{display:block;width:min(100cqw,175cqh);height:auto;max-width:100%;max-height:100%;margin:0;background:#03080d;border:1px solid rgba(102,143,137,.25);border-radius:16px;box-shadow:0 15px 45px rgba(0,0,0,.65)}
+
+.footer {
+  display: none;
+}
+
+@media (max-width: 1100px), (max-height: 700px) {
+  .subtitle,
+  .hud .small {
+    display: none;
+  }
+
+  h1 {
+    font-size: 15px;
+  }
+
+  .card,
+  .btn {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
 .big{font-weight:700;color:#fff}
 .note{color:var(--muted);font-size:13px}
 .small{font-size:12px;color:var(--muted)}
@@ -425,28 +552,21 @@ canvas{display:block;margin:18px auto;border-radius:12px;background:transparent;
 /* ------------------------------------------- */
 /* Fullscreen mode: hide chrome, fill canvas    */
 /* ------------------------------------------- */
-body.fullscreen-active {
-  background: #02060a !important;  /* solid dark background behind canvas */
-}
-
-body.fullscreen-active .header,
+body.fullscreen-active{background:#020407!important}
 body.fullscreen-active .hud,
 body.fullscreen-active .footer,
 body.fullscreen-active #startScreen,
-body.fullscreen-active #deathScreen {
-  display: none !important;
+body.fullscreen-active #deathScreen{display:none!important}
+
+body.fullscreen-active .game-stage{
+  position:fixed;inset:0;z-index:0;padding:0;
+  display:grid;place-items:center;background:#020407
 }
 
-/* Make the canvas cover the whole viewport */
-body.fullscreen-active canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  object-fit: contain;
-  background: linear-gradient(135deg, #071226 0%, #05101a 50%, #02060a 100%) !important;
-  z-index: 0;
+body.fullscreen-active #c{
+  position:static;width:min(100vw,175vh);height:auto;
+  max-width:100vw;max-height:100vh;margin:0;
+  border:0;border-radius:0;box-shadow:none
 }
 
 /* Ensure all important game overlays stay on top of the canvas */
@@ -780,9 +900,10 @@ body.fullscreen-active #fullscreen {
   background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
 }
 
-.hardcore-mode canvas {
-  box-shadow: 0 12px 40px rgba(255, 0, 0, 0.3);
-  border: 1px solid rgba(255, 107, 107, 0.1);
+.hardcore-mode #c{border:1px solid rgba(255,70,70,.55);animation:hardcorePulse .8s ease-in-out infinite alternate}
+@keyframes hardcorePulse{
+  from{box-shadow:0 0 25px rgba(150,0,0,.35);filter:saturate(1)}
+  to{box-shadow:0 0 55px rgba(255,25,25,.65);filter:saturate(1.18)}
 }
 
 /* Freemode Styles */
@@ -1066,40 +1187,1800 @@ body.fullscreen-active #fullscreen {
   border-radius: 10px;
 }
 
+/* ==================== DARK MYSTERIOUS START MENU ==================== */
+
+.start-screen {
+  --menu-accent:#a89b7c;
+  --menu-text:#d4dcdb;
+  --menu-muted:#798584;
+  overflow:hidden;
+  isolation:isolate;
+  padding:36px 28px 110px;
+  background:
+    radial-gradient(ellipse at 70% 25%, rgba(36,64,70,0.18), transparent 42%),
+    radial-gradient(ellipse at 20% 85%, rgba(58,46,63,0.2), transparent 38%),
+    linear-gradient(145deg, #03070b 0%, #071014 52%, #020405 100%);
+}
+
+/* Sakte svevende støvpartikler */
+.start-screen::before {
+  content:'';
+  position:absolute;
+  inset:-180px;
+  z-index:0;
+  pointer-events:none;
+  opacity:0.3;
+  background-image:
+    radial-gradient(circle, rgba(205,215,205,0.75) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(128,157,151,0.65) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(145,122,142,0.55) 0 1px, transparent 1.5px);
+  background-size:173px 173px, 257px 257px, 389px 389px;
+  background-position:23px 41px, 96px 147px, 205px 60px;
+  animation:distantDust 75s linear infinite;
+}
+
+/* Bevegelig fremmed tåke */
+.start-screen::after {
+  content:'';
+  position:absolute;
+  top:20%;
+  left:-20%;
+  width:140%;
+  height:95%;
+  z-index:0;
+  pointer-events:none;
+  opacity:0.8;
+  filter:blur(45px);
+  background:
+    radial-gradient(ellipse at 15% 70%, rgba(53,65,65,0.32), transparent 29%),
+    radial-gradient(ellipse at 42% 45%, rgba(41,57,59,0.2), transparent 31%),
+    radial-gradient(ellipse at 72% 66%, rgba(62,49,60,0.22), transparent 28%),
+    radial-gradient(ellipse at 92% 38%, rgba(40,65,63,0.18), transparent 25%);
+  animation:alienWeather 24s ease-in-out infinite alternate;
+}
+
+@keyframes distantDust {
+  from { transform:translate3d(0,0,0); }
+  to { transform:translate3d(-80px,45px,0); }
+}
+
+@keyframes alienWeather {
+  0% { transform:translate3d(-2%,0,0) scale(1); }
+  50% { transform:translate3d(1%,-2%,0) scale(1.06); }
+  100% { transform:translate3d(3%,1%,0) scale(1.02); }
+}
+
+/* Mørkt, matt hovedpanel */
+.space-menu-shell {
+  position:relative;
+  z-index:2;
+  width:min(1100px, calc(100vw - 70px));
+  padding:38px 42px 34px;
+  overflow:hidden;
+  text-align:left;
+  border:1px solid rgba(143,159,156,0.2);
+  border-left:3px solid rgba(168,155,124,0.65);
+  border-radius:3px;
+  background:rgba(3,9,12,0.72);
+  box-shadow:
+    0 28px 80px rgba(0,0,0,0.55),
+    inset 0 1px rgba(255,255,255,0.025);
+  backdrop-filter:blur(8px);
+}
+
+/* Svak tekstur i panelet */
+.space-menu-shell::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0.08;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 3px,
+      rgba(255,255,255,0.08) 4px
+    );
+}
+
+/* Dempet signaltekst */
+.space-eyebrow {
+  position:relative;
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  gap:10px;
+  color:#82918f;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:3.5px;
+}
+
+.signal-dot {
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#9f9a76;
+  box-shadow:0 0 5px rgba(159,154,118,0.4);
+  animation:signalFlicker 4s steps(1) infinite;
+}
+
+@keyframes signalFlicker {
+  0%, 87%, 100% { opacity:1; }
+  88%, 91% { opacity:0.2; }
+  92%, 95% { opacity:0.7; }
+}
+
+/* Tittel uten den sterke glansen */
+.start-screen .start-title {
+  position:relative;
+  margin:17px 0 12px;
+  color:#d4dcdb;
+  font-size:clamp(40px,5vw,68px);
+  font-weight:500;
+  line-height:1;
+  letter-spacing:7px;
+  text-align:left;
+  background:none;
+  -webkit-text-fill-color:currentColor;
+  text-shadow:0 3px 2px rgba(0,0,0,0.6);
+  filter:none;
+  animation:none;
+}
+
+.start-screen .start-subtitle {
+  position:relative;
+  max-width:650px;
+  margin:0 0 18px;
+  color:#788583;
+  font-size:14px;
+  line-height:1.7;
+  text-align:left;
+}
+
+/* Personal Best som enkel informasjonslinje */
+.start-screen .moving-best-time {
+  position:static !important;
+  display:inline-flex;
+  align-items:center;
+  margin:0 0 27px;
+  padding:6px 12px;
+  color:#aaa58d;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.2px;
+  border:1px solid rgba(168,155,124,0.26);
+  border-radius:2px;
+  background:rgba(168,155,124,0.06);
+  text-shadow:none;
+  transform:none !important;
+  animation:none !important;
+  filter:none;
+}
+
+/* Gamemode-layout */
+.mode-grid {
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+
+/* Mørke og matte gamemode-kort */
+.start-screen .mode-card {
+  --mode-color:#87958e;
+  position:relative;
+  display:grid;
+  grid-template-columns:38px 1fr;
+  grid-template-rows:auto auto;
+  align-items:center;
+  min-width:0;
+  min-height:100px;
+  padding:16px;
+  overflow:hidden;
+  text-align:left;
+  color:#ced6d5;
+  border:1px solid rgba(130,145,143,0.2);
+  border-left:2px solid var(--mode-color);
+  border-radius:2px;
+  background:rgba(7,15,18,0.88);
+  box-shadow:none;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+#classicBtn { --mode-color:#778f7d; }
+#builderBtn { --mode-color:#7b7083; }
+#hardcoreBtn { --mode-color:#936863; }
+#freemodeBtn { --mode-color:#647f86; }
+
+.start-screen .mode-card::before {
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  width:2px;
+  height:100%;
+  opacity:0;
+  background:var(--mode-color);
+  transition:opacity 0.18s ease;
+}
+
+.start-screen .mode-card::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  background:linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mode-color) 13%, transparent),
+    transparent 55%
+  );
+  transition:opacity 0.18s ease;
+}
+
+.start-screen .mode-card:hover {
+  transform:translateX(4px);
+  border-color:rgba(160,173,170,0.4);
+  border-left-color:var(--mode-color);
+  background:rgba(13,23,26,0.96);
+  box-shadow:none;
+}
+
+.start-screen .mode-card:hover::before,
+.start-screen .mode-card:hover::after {
+  opacity:1;
+}
+
+.mode-symbol {
+  position:relative;
+  z-index:1;
+  grid-row:1 / 3;
+  color:var(--mode-color);
+  font-size:23px;
+  text-align:center;
+  filter:none;
+}
+
+.mode-name {
+  position:relative;
+  z-index:1;
+  color:#d1d8d7;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:1.2px;
+}
+
+.mode-description {
+  position:relative;
+  z-index:1;
+  margin-top:5px;
+  color:#687472;
+  font-size:10px;
+  line-height:1.4;
+}
+
+/* Status nederst i panelet */
+.arena-status {
+  position:relative;
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  gap:8px;
+  margin-top:23px;
+  color:#667270;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:2.5px;
+}
+
+/* ==================== BOTTOM-LEFT MENU BAR ==================== */
+
+/*
+  ID-selectoren er med vilje sterkere enn den gamle:
+  #startScreen > div:last-of-type
+*/
+#startScreen > #menuDock {
+  position:fixed;
+  left:24px !important;
+  right:auto !important;
+  bottom:22px !important;
+  z-index:10;
+  display:flex;
+  flex-wrap:nowrap;
+  gap:0 !important;
+  max-width:calc(100vw - 48px);
+  padding:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  border:1px solid rgba(137,153,150,0.2);
+  border-left:2px solid rgba(168,155,124,0.6);
+  border-radius:2px;
+  background:rgba(3,9,12,0.9);
+  box-shadow:0 14px 35px rgba(0,0,0,0.55);
+  backdrop-filter:blur(7px);
+  transform:none !important;
+  scrollbar-width:none;
+}
+
+#startScreen > #menuDock::-webkit-scrollbar {
+  display:none;
+}
+
+#startScreen > #menuDock .menu-dock-btn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-width:auto !important;
+  padding:12px 15px !important;
+  color:#7d8987;
+  font-size:11px !important;
+  font-weight:700;
+  white-space:nowrap;
+  border:0;
+  border-right:1px solid rgba(137,153,150,0.13);
+  border-radius:0;
+  background:transparent;
+  cursor:pointer;
+  transition:color 0.18s ease, background 0.18s ease;
+}
+
+#startScreen > #menuDock .menu-dock-btn:last-child {
+  border-right:0;
+}
+
+#startScreen > #menuDock .menu-dock-btn:hover {
+  color:#c4ccca;
+  background:rgba(132,148,145,0.1);
+  transform:none;
+}
+
+#controlsBtn:hover { color:#a7a187 !important; }
+#newFeatureBtn:hover { color:#80999c !important; }
+#achievementBtn:hover { color:#aa9875 !important; }
+#skinBtn:hover { color:#8c8092 !important; }
+#buildingsBtn:hover { color:#7f9686 !important; }
+
+/* ==================== CONTROLS WINDOW ==================== */
+
+.start-screen > .space-overlay {
+  position:fixed;
+  inset:0 !important;
+  left:0 !important;
+  bottom:0 !important;
+  z-index:20;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:0 !important;
+  padding:24px;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  background:rgba(1,4,5,0.82);
+  backdrop-filter:blur(5px);
+  transition:opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.start-screen > .space-overlay.open {
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+.space-controls-card {
+  width:min(720px,94vw);
+  padding:25px;
+  border:1px solid rgba(135,150,147,0.25);
+  border-left:3px solid rgba(168,155,124,0.58);
+  border-radius:2px;
+  background:#071013;
+  box-shadow:0 30px 80px rgba(0,0,0,0.7);
+  transform:translateY(10px);
+  transition:transform 0.2s ease;
+}
+
+.space-overlay.open .space-controls-card {
+  transform:translateY(0);
+}
+
+.space-controls-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.space-controls-header h2 {
+  margin:6px 0 0;
+  color:#cbd3d2;
+  font-size:22px;
+  font-weight:500;
+  letter-spacing:4px;
+}
+
+.space-controls-close {
+  min-width:0 !important;
+  padding:8px 11px !important;
+  color:#7c8785;
+  font-size:14px !important;
+  border:1px solid rgba(135,150,147,0.2);
+  border-radius:2px;
+  background:transparent;
+  cursor:pointer;
+}
+
+.space-controls-close:hover {
+  color:#d0d7d6;
+  border-color:rgba(160,175,171,0.45);
+  background:rgba(255,255,255,0.035);
+}
+
+.space-controls-card .controls {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  width:100%;
+  max-width:none;
+  margin:0;
+}
+
+.space-controls-card .control-group {
+  padding:17px;
+  border:1px solid rgba(128,145,141,0.15);
+  border-radius:2px;
+  background:rgba(255,255,255,0.018);
+}
+
+.space-controls-card .control-title {
+  margin-bottom:14px;
+  color:#949d9b;
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+
+.space-controls-card .control-item {
+  align-items:center;
+  margin:10px 0;
+  color:#899390;
+  font-size:12px;
+}
+
+.space-controls-card .control-key {
+  color:#b9c1bf;
+  border:1px solid rgba(130,145,142,0.15);
+  border-radius:2px;
+  background:rgba(255,255,255,0.025);
+}
+
+/* Skjul gameplay-elementer bak menyen */
+body:has(#startScreen:not(.hidden)) #healthDisplay,
+body:has(#startScreen:not(.hidden)) #abilityCooldown,
+body:has(#startScreen:not(.hidden)) #bossHealth {
+  opacity:0 !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+
+/* Dempet gullvisning */
+body:has(#startScreen:not(.hidden)) .gold-container {
+  border-color:rgba(168,155,124,0.28);
+  border-radius:2px;
+  background:rgba(3,9,12,0.88);
+  box-shadow:0 12px 30px rgba(0,0,0,0.5);
+  backdrop-filter:blur(6px);
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width:850px) {
+  .start-screen {
+    justify-content:flex-start;
+    overflow-y:auto;
+    padding-top:65px;
+    padding-bottom:100px;
+  }
+
+  .space-menu-shell {
+    width:calc(100vw - 32px);
+    padding:29px 23px;
+  }
+
+  .mode-grid {
+    grid-template-columns:1fr 1fr;
+  }
+
+  .space-controls-card .controls {
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width:560px) {
+  .start-screen .start-title {
+    font-size:34px;
+    letter-spacing:3px;
+  }
+
+  .start-screen .start-subtitle {
+    font-size:12px;
+  }
+
+  .mode-grid {
+    grid-template-columns:1fr;
+  }
+
+  .start-screen .mode-card {
+    min-height:82px;
+  }
+
+  #startScreen > #menuDock {
+    left:12px !important;
+    bottom:12px !important;
+    max-width:calc(100vw - 24px);
+  }
+
+  #startScreen > #menuDock .menu-dock-btn {
+    padding:11px 12px !important;
+  }
+
+  #startScreen > #menuDock .menu-dock-btn span:last-child {
+    display:none;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .start-screen::before,
+  .start-screen::after,
+  .signal-dot {
+    animation:none;
+  }
+}
 
 
+/* ==================== INTERACTIVE GAME MENU ==================== */
+
+/* Levende canvas bak resten av menyen */
+#menuBackgroundCanvas {
+  position:absolute;
+  inset:0;
+  z-index:1;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+/* Mørk vignett rundt skjermkantene */
+.start-screen {
+  --active-mode-rgb:119,143,125;
+  box-shadow:
+    inset 0 0 160px rgba(0,0,0,0.65),
+    inset 0 -80px 120px rgba(0,0,0,0.35);
+}
+
+/* Hovedpanelet deployes når spillet åpnes */
+.space-menu-shell {
+  animation:menuDeployment 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  transition:border-color 0.35s ease, background 0.35s ease;
+}
+
+.space-menu-shell::after {
+  content:'';
+  position:absolute;
+  top:-10%;
+  left:0;
+  right:0;
+  height:1px;
+  z-index:4;
+  pointer-events:none;
+  opacity:0.18;
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--active-mode-rgb),0.8),
+    transparent
+  );
+  animation:menuScanner 8s linear infinite;
+}
+
+@keyframes menuDeployment {
+  from {
+    opacity:0;
+    transform:translateY(22px) scale(0.985);
+    filter:blur(3px);
+  }
+
+  to {
+    opacity:1;
+    transform:translateY(0) scale(1);
+    filter:blur(0);
+  }
+}
+
+@keyframes menuScanner {
+  from { top:-5%; }
+  to { top:105%; }
+}
+
+/* Gamemodes kommer inn etter hverandre */
+.start-screen .mode-card {
+  animation:protocolDeployment 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.start-screen .mode-card:nth-child(1) {
+  animation-delay:0.14s;
+}
+
+.start-screen .mode-card:nth-child(2) {
+  animation-delay:0.21s;
+}
+
+.start-screen .mode-card:nth-child(3) {
+  animation-delay:0.28s;
+}
+
+.start-screen .mode-card:nth-child(4) {
+  animation-delay:0.35s;
+}
+
+@keyframes protocolDeployment {
+  from {
+    opacity:0;
+    transform:translateX(-16px);
+  }
+
+  to {
+    opacity:1;
+    transform:translateX(0);
+  }
+}
+
+/* Kortene reagerer tydeligere på spilleren */
+.mode-grid:has(.mode-card:hover) .mode-card:not(:hover),
+.mode-grid:has(.mode-card:focus-visible) .mode-card:not(:focus-visible) {
+  opacity:0.48;
+}
+
+.start-screen .mode-card {
+  outline:none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.start-screen .mode-card.menu-focused,
+.start-screen .mode-card:focus-visible {
+  transform:translateX(7px);
+  color:#e4e9e8;
+  border-color:rgba(var(--active-mode-rgb),0.46);
+  border-left-color:rgb(var(--active-mode-rgb));
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--active-mode-rgb),0.12),
+      rgba(7,15,18,0.94) 55%
+    );
+  box-shadow:
+    inset 10px 0 30px rgba(var(--active-mode-rgb),0.045),
+    0 8px 25px rgba(0,0,0,0.25);
+}
+
+.start-screen .mode-card:active {
+  transform:translateX(9px) scale(0.985);
+}
+
+.mode-symbol {
+  transition:transform 0.25s ease, color 0.25s ease;
+}
+
+.mode-card.menu-focused .mode-symbol,
+.mode-card:focus-visible .mode-symbol {
+  color:rgb(var(--active-mode-rgb));
+  transform:scale(1.16) rotate(-5deg);
+}
+
+/* Pil vises ved gamemoden du peker på */
+.mode-name::after {
+  content:'›';
+  display:inline-block;
+  margin-left:0;
+  opacity:0;
+  color:rgb(var(--active-mode-rgb));
+  transform:translateX(-6px);
+  transition:opacity 0.2s ease, transform 0.2s ease, margin 0.2s ease;
+}
+
+.mode-card.menu-focused .mode-name::after,
+.mode-card:focus-visible .mode-name::after {
+  margin-left:9px;
+  opacity:1;
+  transform:translateX(0);
+}
+
+/* Statuslinjen føles som et aktivt spillsystem */
+.arena-status {
+  width:100%;
+  min-height:14px;
+}
+
+#modeStatusText {
+  transition:color 0.2s ease;
+}
+
+#modeStatusText.status-refresh {
+  animation:statusRefresh 0.28s ease;
+}
+
+.status-chevron {
+  margin-left:auto;
+  color:rgba(var(--active-mode-rgb),0.65);
+  letter-spacing:2px;
+  animation:dataStream 1.5s steps(3) infinite;
+}
+
+@keyframes statusRefresh {
+  0% {
+    opacity:0;
+    transform:translateX(-5px);
+  }
+
+  100% {
+    opacity:1;
+    transform:translateX(0);
+  }
+}
+
+@keyframes dataStream {
+  0%, 100% { opacity:0.25; }
+  50% { opacity:0.9; }
+}
+
+/* Den nederste baren deployes inn fra venstre */
+#startScreen > #menuDock {
+  animation:dockDeployment 0.6s 0.42s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes dockDeployment {
+  from {
+    opacity:0;
+    transform:translateX(-25px) !important;
+  }
+
+  to {
+    opacity:1;
+    transform:translateX(0) !important;
+  }
+}
+
+/* Litt tydeligere respons i bunnmenyen */
+#startScreen > #menuDock .menu-dock-btn {
+  position:relative;
+  overflow:hidden;
+}
+
+#startScreen > #menuDock .menu-dock-btn::after {
+  content:'';
+  position:absolute;
+  right:0;
+  bottom:0;
+  left:0;
+  height:1px;
+  opacity:0;
+  background:currentColor;
+  transform:scaleX(0);
+  transition:opacity 0.18s ease, transform 0.18s ease;
+}
+
+#startScreen > #menuDock .menu-dock-btn:hover::after,
+#startScreen > #menuDock .menu-dock-btn:focus-visible::after {
+  opacity:0.55;
+  transform:scaleX(1);
+}
+
+#startScreen > #menuDock .menu-dock-btn:active {
+  background:rgba(255,255,255,0.075);
+}
+
+/* Animasjonene reduseres for brukere som ønsker det */
+@media (prefers-reduced-motion:reduce) {
+  .space-menu-shell,
+  .start-screen .mode-card,
+  #startScreen > #menuDock,
+  .space-menu-shell::after,
+  .status-chevron {
+    animation:none;
+  }
+}
+
+/* ==================== STRONGER ATMOSPHERE ==================== */
+
+/* Raskere og tydeligere bakgrunnsbevegelse */
+.start-screen::before {
+  opacity:0.48;
+  animation-duration:34s;
+}
+
+.start-screen::after {
+  opacity:1;
+  filter:blur(30px);
+  animation-duration:13s;
+}
+
+/* Bryt opp den store firkantede hovedflaten */
+.space-menu-shell {
+  width:min(1150px,calc(100vw - 70px));
+  border-radius:0;
+  clip-path:polygon(
+    25px 0,
+    calc(100% - 75px) 0,
+    100% 42px,
+    100% calc(100% - 24px),
+    calc(100% - 24px) 100%,
+    55px 100%,
+    0 calc(100% - 48px),
+    0 22px
+  );
+  background:
+    linear-gradient(
+      112deg,
+      rgba(3,9,12,0.82) 0%,
+      rgba(4,12,15,0.72) 63%,
+      rgba(5,13,15,0.48) 100%
+    );
+  animation:
+    menuDeployment 0.7s cubic-bezier(0.16,1,0.3,1) both,
+    panelBreathing 9s 1s ease-in-out infinite;
+}
+
+/* Erstatter den gamle keyframe-versjonen som brukte blur */
+@keyframes menuDeployment {
+  from {
+    opacity:0;
+    transform:translateY(22px) scale(0.985);
+  }
+
+  to {
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+@keyframes panelBreathing {
+  0%, 100% {
+    border-left-color:rgba(168,155,124,0.48);
+  }
+
+  50% {
+    border-left-color:rgba(120,143,137,0.75);
+  }
+}
+
+/* Avkuttede hjørner på gamemode-knappene */
+.start-screen .mode-card {
+  border-radius:0;
+  clip-path:polygon(
+    11px 0,
+    100% 0,
+    100% calc(100% - 11px),
+    calc(100% - 11px) 100%,
+    0 100%,
+    0 11px
+  );
+}
+
+/* Symbolene svever forsiktig selv når menyen står i ro */
+.mode-card:not(.menu-focused):not(:focus-visible) .mode-symbol {
+  animation:symbolDrift 4s ease-in-out infinite;
+}
+
+.mode-card:nth-child(2) .mode-symbol {
+  animation-delay:-1s;
+}
+
+.mode-card:nth-child(3) .mode-symbol {
+  animation-delay:-2s;
+}
+
+.mode-card:nth-child(4) .mode-symbol {
+  animation-delay:-3s;
+}
+
+@keyframes symbolDrift {
+  0%, 100% {
+    transform:translateY(0);
+  }
+
+  50% {
+    transform:translateY(-3px);
+  }
+}
+
+/* Avkuttet bunnmeny, fortsatt låst nederst til venstre */
+#startScreen > #menuDock {
+  left:24px !important;
+  transform:none !important;
+  border-radius:0;
+  clip-path:polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+/* Controls-vindu med samme formspråk */
+.space-controls-card {
+  border-radius:0;
+  clip-path:polygon(
+    18px 0,
+    calc(100% - 42px) 0,
+    100% 30px,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    32px 100%,
+    0 calc(100% - 30px),
+    0 18px
+  );
+}
+
+@media (max-width:850px) {
+  .space-menu-shell {
+    width:calc(100vw - 32px);
+  }
+}
+
+/* ==================== HARDCORE HOVER ATMOSPHERE ==================== */
+
+.start-screen {
+  transition:
+    background 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+#menuBackgroundCanvas {
+  transition:filter 0.4s ease;
+}
+
+/* Hele verdensrommet går over i faremodus */
+.start-screen.hardcore-preview {
+  --active-mode-rgb:220,58,52 !important;
+  background:
+    radial-gradient(ellipse at 70% 25%, rgba(120,15,15,0.25), transparent 42%),
+    radial-gradient(ellipse at 20% 85%, rgba(90,8,14,0.3), transparent 40%),
+    linear-gradient(145deg, #080203 0%, #160405 52%, #030101 100%);
+  box-shadow:
+    inset 0 0 190px rgba(80,0,0,0.65),
+    inset 0 -100px 150px rgba(120,0,0,0.32);
+}
+
+/* Røde og raskere støvpartikler i CSS-bakgrunnen */
+.start-screen.hardcore-preview::before {
+  opacity:0.75;
+  background-image:
+    radial-gradient(circle, rgba(255,116,105,0.95) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(200,47,47,0.8) 0 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(130,20,25,0.75) 0 1.2px, transparent 1.8px);
+  animation-duration:10s !important;
+}
+
+/* Rask, rød stormtåke */
+.start-screen.hardcore-preview::after {
+  opacity:1;
+  filter:blur(22px);
+  background:
+    radial-gradient(ellipse at 15% 70%, rgba(145,15,20,0.42), transparent 29%),
+    radial-gradient(ellipse at 42% 45%, rgba(105,10,16,0.3), transparent 31%),
+    radial-gradient(ellipse at 72% 66%, rgba(165,18,18,0.32), transparent 28%),
+    radial-gradient(ellipse at 92% 38%, rgba(110,5,10,0.25), transparent 25%);
+  animation-duration:5.5s !important;
+}
+
+/* Canvas blir mørkere og farligere */
+.start-screen.hardcore-preview #menuBackgroundCanvas {
+  filter:contrast(1.2) saturate(1.3);
+}
+
+/* Selve Hardcore-knappen */
+.start-screen.hardcore-preview #hardcoreBtn.menu-focused,
+.start-screen.hardcore-preview #hardcoreBtn:focus-visible {
+  color:#fff1f1;
+  border-color:rgba(255,76,70,0.92);
+  border-left-color:#ff4c46;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(190,25,25,0.34),
+      rgba(40,5,7,0.96) 65%
+    );
+  box-shadow:
+    0 0 14px rgba(255,45,40,0.65),
+    0 0 38px rgba(210,20,20,0.4),
+    inset 12px 0 34px rgba(255,45,40,0.16);
+  animation:hardcoreDangerPulse 0.9s ease-in-out infinite;
+}
+
+.start-screen.hardcore-preview #hardcoreBtn .mode-symbol {
+  color:#ff514b;
+  filter:
+    drop-shadow(0 0 5px rgba(255,70,65,0.9))
+    drop-shadow(0 0 13px rgba(255,30,25,0.75));
+}
+
+.start-screen.hardcore-preview #hardcoreBtn .mode-name {
+  color:#fff;
+  text-shadow:0 0 9px rgba(255,60,55,0.65);
+}
+
+.start-screen.hardcore-preview #modeStatusText,
+.start-screen.hardcore-preview .status-chevron {
+  color:#df5954;
+}
+
+.start-screen.hardcore-preview .space-menu-shell {
+  border-color:rgba(160,38,38,0.36);
+  border-left-color:rgba(225,59,52,0.78);
+}
+
+@keyframes hardcoreDangerPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(255,45,40,0.55),
+      0 0 30px rgba(210,20,20,0.3),
+      inset 12px 0 30px rgba(255,45,40,0.12);
+  }
+
+  50% {
+    box-shadow:
+      0 0 21px rgba(255,62,55,0.9),
+      0 0 55px rgba(225,18,18,0.55),
+      inset 12px 0 42px rgba(255,45,40,0.23);
+  }
+}
+
+/* ==================== UNIFIED DATABASE PANELS ==================== */
+
+.achievements-panel { --panel-accent:#a59670; }
+.buildings-info-panel { --panel-accent:#718c7b; }
+.skin-selector-panel { --panel-accent:#80758a; }
+#updateLogPanel { --panel-accent:#70878a; }
+
+/* Felles vindusdesign */
+.achievements-panel,
+.buildings-info-panel,
+.skin-selector-panel,
+#updateLogPanel {
+  position:fixed !important;
+  top:50% !important;
+  left:50% !important;
+  width:min(980px,calc(100vw - 48px)) !important;
+  height:min(760px,calc(100vh - 70px)) !important;
+  max-width:none !important;
+  max-height:none !important;
+  padding:22px !important;
+  overflow:hidden !important;
+  color:#cbd3d1 !important;
+  border:1px solid rgba(130,148,143,0.22) !important;
+  border-left:3px solid var(--panel-accent) !important;
+  border-radius:0 !important;
+  background:
+    linear-gradient(
+      115deg,
+      rgba(4,11,14,0.98),
+      rgba(6,15,18,0.97) 62%,
+      rgba(4,10,12,0.98)
+    ) !important;
+  box-shadow:
+    0 0 0 100vmax rgba(0,3,5,0.74),
+    0 30px 90px rgba(0,0,0,0.75) !important;
+  backdrop-filter:blur(8px) !important;
+  clip-path:polygon(
+    18px 0,
+    calc(100% - 44px) 0,
+    100% 30px,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    35px 100%,
+    0 calc(100% - 32px),
+    0 18px
+  );
+  transform:translate(-50%,-50%) !important;
+  animation:databasePanelOpen 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+
+.achievements-panel,
+.buildings-info-panel,
+.skin-selector-panel {
+  display:flex !important;
+  flex-direction:column;
+}
+
+#updateLogPanel[style*="display: block"] {
+  display:flex !important;
+  flex-direction:column;
+}
+
+@keyframes databasePanelOpen {
+  from {
+    opacity:0;
+    transform:translate(-50%,-47%) scale(0.985);
+  }
+
+  to {
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1);
+  }
+}
+
+/* Overskrift */
+.panel-header {
+  display:flex;
+  flex:0 0 auto;
+  justify-content:space-between;
+  align-items:center;
+  min-height:68px;
+  margin-bottom:10px;
+  padding:0 4px 13px;
+  border-bottom:1px solid rgba(130,148,143,0.16);
+}
+
+.panel-header h2 {
+  margin:4px 0 0 !important;
+  padding:0 !important;
+  color:#d7dedc !important;
+  font-size:25px !important;
+  font-weight:500 !important;
+  line-height:1 !important;
+  letter-spacing:5px !important;
+  text-align:left !important;
+  background:none !important;
+  text-shadow:none !important;
+  -webkit-text-fill-color:currentColor !important;
+}
+
+.panel-header h2::after {
+  display:none !important;
+}
+
+.panel-kicker {
+  color:var(--panel-accent);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:2.7px;
+}
+
+/* Kryss øverst */
+.panel-close {
+  display:grid !important;
+  place-items:center;
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  padding:0 !important;
+  color:#74817e !important;
+  font-size:22px !important;
+  font-weight:300 !important;
+  line-height:1 !important;
+  border:1px solid rgba(130,148,143,0.18) !important;
+  border-radius:0 !important;
+  background:rgba(255,255,255,0.015) !important;
+  box-shadow:none !important;
+  cursor:pointer;
+  transition:color 0.18s ease, border-color 0.18s ease, background 0.18s ease !important;
+}
+
+.panel-close:hover {
+  color:#d7dedc !important;
+  border-color:var(--panel-accent) !important;
+  background:rgba(255,255,255,0.045) !important;
+  transform:none !important;
+}
+
+/* Informasjonslinje under overskriften */
+.panel-summary {
+  display:flex;
+  flex:0 0 auto;
+  align-items:center;
+  gap:24px;
+  min-height:32px;
+  margin-bottom:14px;
+  padding:7px 11px;
+  color:#64716e;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:1.35px;
+  border-left:2px solid var(--panel-accent);
+  background:rgba(255,255,255,0.018);
+}
+
+.panel-summary strong {
+  color:#aeb8b5;
+}
+
+/* Grids */
+.achievements-grid,
+.buildings-grid,
+.skins-grid,
+.news-feed {
+  flex:1;
+  min-height:0;
+  max-height:none !important;
+  padding:4px 8px 4px 3px !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  align-items:start !important;
+  align-content:start !important;
+  scrollbar-width:thin;
+  scrollbar-color:var(--panel-accent) rgba(255,255,255,0.025);
+}
+
+.achievements-grid {
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) !important;
+  gap:10px !important;
+}
+
+.buildings-grid{
+  grid-template-columns:repeat(auto-fit,minmax(310px,1fr))!important;
+  grid-auto-flow:row!important;
+  grid-auto-rows:max-content!important;
+  align-items:start!important;
+  gap:11px!important;
+}
+
+.skins-grid {
+  grid-template-columns:repeat(auto-fit,minmax(290px,1fr)) !important;
+  gap:10px !important;
+}
+
+/* Scrollbars */
+.achievements-grid::-webkit-scrollbar,
+.buildings-grid::-webkit-scrollbar,
+.skins-grid::-webkit-scrollbar,
+.news-feed::-webkit-scrollbar {
+  width:5px;
+}
+
+.achievements-grid::-webkit-scrollbar-track,
+.buildings-grid::-webkit-scrollbar-track,
+.skins-grid::-webkit-scrollbar-track,
+.news-feed::-webkit-scrollbar-track {
+  background:rgba(255,255,255,0.025);
+}
+
+.achievements-grid::-webkit-scrollbar-thumb,
+.buildings-grid::-webkit-scrollbar-thumb,
+.skins-grid::-webkit-scrollbar-thumb,
+.news-feed::-webkit-scrollbar-thumb {
+  border:0;
+  border-radius:0;
+  background:var(--panel-accent);
+}
+
+/* ==================== ACHIEVEMENTS ==================== */
+
+.achievement-card {
+  min-height:92px;
+  padding:13px !important;
+  gap:12px !important;
+  opacity:1 !important;
+  border-radius:0 !important;
+  border:1px solid rgba(130,148,143,0.16) !important;
+  background:rgba(255,255,255,0.018) !important;
+  box-shadow:none !important;
+  clip-path:polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+  animation:none !important;
+}
+
+.achievement-card.locked {
+  opacity:0.42 !important;
+  filter:grayscale(0.7);
+}
+
+.achievement-card.unlocked {
+  border-left:2px solid var(--panel-accent) !important;
+}
+
+.achievement-card:hover {
+  transform:translateX(3px) !important;
+  border-color:rgba(165,150,112,0.45) !important;
+  background:rgba(165,150,112,0.045) !important;
+}
+
+.achievement-card::before {
+  display:none !important;
+}
+
+.achievement-card > div:first-child {
+  width:46px !important;
+  height:46px !important;
+  flex:0 0 46px;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+
+.achievement-card > div:nth-child(2) > div:first-child {
+  font-size:13px !important;
+  letter-spacing:0.5px !important;
+}
+
+.achievement-card > div:nth-child(2) > div:nth-child(2) {
+  color:#77827f !important;
+  font-size:11px !important;
+}
+
+.achievement-card > div:nth-child(2) > div:nth-child(3) {
+  padding:2px 6px !important;
+  color:#909c98 !important;
+  font-size:9px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:rgba(255,255,255,0.035) !important;
+}
+
+/* ==================== STRUCTURES ==================== */
+
+.building-card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:start!important;
+  width:100%!important;
+  height:max-content!important;
+  min-height:max-content!important;
+  padding:16px!important;
+  border-radius:0 !important;
+  border:1px solid rgba(130,148,143,0.16) !important;
+  background:rgba(255,255,255,0.018) !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  clip-path:polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+.building-card.unlocked {
+  border-left:2px solid #718c7b !important;
+  cursor:default !important;
+}
+
+.building-card.locked {
+  border-left:2px solid #80605b !important;
+}
+
+.building-card:hover {
+  transform:translateX(3px) !important;
+  box-shadow:none !important;
+  background:rgba(113,140,123,0.045) !important;
+}
+
+.structure-card-header {
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.structure-type {
+  color:#596763;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:2px;
+}
+
+.structure-card-header h3 {
+  margin:6px 0 2px;
+  color:#cbd5d2;
+  font-size:17px;
+  font-weight:650;
+  letter-spacing:0.5px;
+}
+
+.structure-card-header p {
+  margin:0;
+  color:#71817c;
+  font-size:11px;
+}
+
+.structure-description {
+  min-height:34px;
+  margin:13px 0;
+  color:#7b8784;
+  font-size:11px;
+  line-height:1.5;
+}
+
+.structure-unlock-price {
+  display:flex;
+  flex:0 0 auto;
+  flex-direction:column;
+  align-items:flex-end;
+  padding:5px 8px;
+  color:#b0a47d;
+  border-left:1px solid rgba(176,164,125,0.3);
+}
+
+.structure-unlock-price span {
+  font-size:15px;
+  font-weight:800;
+}
+
+.structure-unlock-price small {
+  color:#686657;
+  font-size:7px;
+  letter-spacing:1.5px;
+}
+
+.structure-stats {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+  margin-top:12px;
+  padding:1px;
+  background:rgba(130,148,143,0.1);
+}
+
+.structure-stat {
+  display:flex;
+  min-height:47px;
+  flex-direction:column;
+  justify-content:center;
+  padding:8px 10px;
+  background:#071012;
+}
+
+.structure-stat-wide {
+  grid-column:span 2;
+}
+
+.structure-stat span {
+  color:#596763;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:1.5px;
+}
+
+.structure-stat strong {
+  margin-top:4px;
+  color:#aeb8b5;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.35;
+}
+
+.structure-state {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:12px;
+  color:#697572;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:1.1px;
+}
+
+.structure-state.ready {
+  color:#7f9c88;
+}
+
+.structure-state.locked {
+  color:#9a7168;
+}
+
+.state-indicator {
+  width:6px;
+  height:6px;
+  background:currentColor;
+}
+
+/* ==================== SKINS ==================== */
+
+.skin-card {
+  display:grid !important;
+  grid-template-columns:68px 1fr auto;
+  grid-template-rows:auto auto auto;
+  align-items:center !important;
+  gap:3px 12px !important;
+  min-height:105px;
+  padding:14px !important;
+  text-align:left !important;
+  border-width:1px !important;
+  border-radius:0 !important;
+  background:rgba(255,255,255,0.018) !important;
+  box-shadow:none !important;
+  clip-path:polygon(
+    9px 0,
+    100% 0,
+    100% calc(100% - 9px),
+    calc(100% - 9px) 100%,
+    0 100%,
+    0 9px
+  );
+}
+
+.skin-card.locked {
+  opacity:0.38 !important;
+  filter:grayscale(0.8);
+}
+
+.skin-card.equipped {
+  border-left-width:3px !important;
+  background:rgba(128,117,138,0.055) !important;
+}
+
+.skin-card:hover {
+  transform:translateX(3px) !important;
+  box-shadow:none !important;
+}
+
+/* Preview-sirkelen */
+.skin-card > div:nth-child(1) {
+  grid-column:1;
+  grid-row:1 / 4;
+  width:58px !important;
+  height:58px !important;
+  margin:0 !important;
+  box-shadow:none !important;
+  border:1px solid rgba(255,255,255,0.13);
+}
+
+/* Skjul separat emoji under previewen */
+.skin-card > div:nth-child(2) {
+  display:none;
+}
+
+.skin-card > div:nth-child(3) {
+  grid-column:2;
+  color:#c8d0ce !important;
+  font-size:14px !important;
+  text-align:left;
+}
+
+.skin-card > div:nth-child(4) {
+  grid-column:2 / 4;
+  color:#717c79 !important;
+  font-size:10px !important;
+  text-align:left !important;
+}
+
+.skin-card > div:nth-child(5) {
+  grid-column:2;
+  margin:3px 0 0 !important;
+  font-size:8px !important;
+  letter-spacing:1.2px;
+}
+
+/* ==================== NEWS ==================== */
+
+#updateLogPanel > div:last-child {
+  display:none !important;
+}
+
+.news-feed {
+  display:block;
+}
+
+.update-log-entry {
+  margin:0 0 9px !important;
+  padding:15px 17px !important;
+  border:1px solid rgba(130,148,143,0.14) !important;
+  border-left:2px solid #70878a !important;
+  border-radius:0 !important;
+  background:rgba(255,255,255,0.017) !important;
+  box-shadow:none !important;
+  animation:none !important;
+  clip-path:polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+}
+
+.update-log-entry:hover {
+  transform:translateX(3px) !important;
+  border-color:rgba(112,135,138,0.45) !important;
+  background:rgba(112,135,138,0.045) !important;
+  box-shadow:none !important;
+}
+
+.update-log-entry::before {
+  display:none !important;
+}
+
+.update-log-entry .update-log-title {
+  color:#bbc6c4 !important;
+  font-size:14px !important;
+  font-weight:600 !important;
+  letter-spacing:1px !important;
+  background:none !important;
+  -webkit-text-fill-color:currentColor !important;
+  text-shadow:none !important;
+}
+
+.update-log-entry .update-log-title::before {
+  content:'//';
+  color:#70878a;
+  font-size:10px;
+}
+
+.update-log-date {
+  color:#64716e !important;
+  font-size:8px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:rgba(255,255,255,0.025) !important;
+}
+
+.update-log-content li {
+  margin-bottom:5px !important;
+  color:#7d8986 !important;
+  font-size:11px !important;
+}
+
+.update-log-content li strong {
+  color:#aeb9b6 !important;
+  background:none !important;
+  -webkit-text-fill-color:currentColor !important;
+  text-shadow:none !important;
+}
+
+/* ==================== DOCK CONTENT ==================== */
+
+#startScreen > #menuDock .menu-dock-btn {
+  min-height:48px !important;
+  padding:8px 14px !important;
+  text-align:left;
+}
+
+.dock-icon {
+  display:grid;
+  place-items:center;
+  width:23px;
+  color:#7e8b88;
+  font-size:14px;
+}
+
+.dock-copy {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.dock-copy strong {
+  color:#8d9895;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:0.7px;
+}
+
+.dock-copy small {
+  color:#4e5b58;
+  font-size:6px;
+  font-weight:700;
+  letter-spacing:1.2px;
+}
+
+.menu-dock-btn:hover .dock-copy strong {
+  color:#c4ccca;
+}
+
+.menu-dock-btn:hover .dock-copy small {
+  color:#76827f;
+}
+
+@media (max-width:720px) {
+  .achievements-panel,
+  .buildings-info-panel,
+  .skin-selector-panel,
+  #updateLogPanel {
+    width:calc(100vw - 22px) !important;
+    height:calc(100vh - 22px) !important;
+    padding:15px !important;
+  }
+
+  .panel-summary {
+    gap:10px;
+    overflow-x:auto;
+    white-space:nowrap;
+  }
+
+  .achievements-grid,
+  .buildings-grid,
+  .skins-grid {
+    grid-template-columns:1fr !important;
+  }
+
+  .dock-copy small {
+    display:none;
+  }
+}
+
+/* ===== DEEP SPACE UPGRADE CARDS ===== */
+#upgradeMenu{width:min(920px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 28px);overflow:auto;padding:22px 24px 18px;background:linear-gradient(180deg,rgba(5,12,18,.985),rgba(1,5,8,.99));border:1px solid rgba(127,189,178,.3);border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,4,8,.76),0 30px 90px #000}
+#upgradeMenu .upgrade-kicker{text-align:center;color:#78b7ac;font-size:10px;font-weight:900;letter-spacing:4px}
+#upgradeMenu h2{text-align:center;margin:5px 0 20px;color:#edf7f5;font-size:27px;letter-spacing:2px;text-shadow:0 0 18px rgba(126,231,135,.18)}
+#upgradeOptions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;padding:8px 3px 12px}
+
+#upgradeMenu .upgrade-option{--tilt:0deg;position:relative;display:flex;flex-direction:column;min-height:330px;margin:0;padding:12px 14px 14px;overflow:hidden;cursor:pointer!important;color:#e9f1ef;border:1px solid rgba(var(--rarity-rgb),.5);border-radius:0;background:linear-gradient(160deg,rgba(var(--rarity-rgb),.13),rgba(5,12,17,.98) 48%);clip-path:polygon(0 13px,13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px));box-shadow:inset 0 0 35px rgba(var(--rarity-rgb),.05),0 12px 30px #0008;animation:upgradeDeal .38s cubic-bezier(.2,.8,.2,1) var(--deal-delay) both;transition:transform .2s,filter .2s,box-shadow .2s}
+#upgradeMenu .upgrade-option:nth-child(1){--tilt:-1.2deg}
+#upgradeMenu .upgrade-option:nth-child(3){--tilt:1.2deg}
+#upgradeMenu .upgrade-option:hover{transform:translateY(-10px) rotate(0) scale(1.025);filter:brightness(1.18);box-shadow:0 20px 45px #000b,0 0 28px rgba(var(--rarity-rgb),.24)}
+#upgradeMenu .upgrade-option:active{transform:translateY(-4px) scale(.98)}
+
+#upgradeMenu .upgrade-option.rarity-common{--rarity:#bac4c8;--rarity-rgb:186,196,200}
+#upgradeMenu .upgrade-option.rarity-rare{--rarity:#58b8ff;--rarity-rgb:88,184,255}
+#upgradeMenu .upgrade-option.rarity-legendary{--rarity:#ffd45c;--rarity-rgb:255,212,92}
+#upgradeMenu .upgrade-option.rarity-mythical{--rarity:#d77cff;--rarity-rgb:215,124,255}
+
+#upgradeMenu .upgrade-art{position:relative;height:138px;display:grid;place-items:center;overflow:hidden;border:1px solid rgba(var(--rarity-rgb),.22);background:radial-gradient(circle,rgba(var(--rarity-rgb),.28),transparent 48%),linear-gradient(145deg,rgba(var(--rarity-rgb),.1),#02070b)}
+#upgradeMenu .upgrade-art:before{content:"";position:absolute;width:82px;height:82px;border:1px solid rgba(var(--rarity-rgb),.35);box-shadow:0 0 20px rgba(var(--rarity-rgb),.12);transform:rotate(45deg);animation:upgradeSeal 12s linear infinite}
+#upgradeMenu .upgrade-glyph{z-index:1;color:var(--rarity);font:70px Georgia,serif;text-shadow:0 0 22px rgba(var(--rarity-rgb),.75)}
+#upgradeMenu .upgrade-number{position:absolute;right:9px;top:7px;color:rgba(var(--rarity-rgb),.55);font-size:10px;letter-spacing:2px}
+
+#upgradeMenu .upgrade-meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#dce7e4;font-size:12px;font-weight:900}
+#upgradeMenu .upgrade-rarity{margin:0;padding:3px 7px;border:1px solid rgba(var(--rarity-rgb),.4);border-radius:3px;background:rgba(var(--rarity-rgb),.1);color:var(--rarity);font-size:9px;letter-spacing:1.4px;text-transform:uppercase}
+#upgradeMenu .upgrade-title{display:block;margin:12px 0 7px;color:#fff;font-size:19px;font-weight:900;line-height:1.1}
+#upgradeMenu .upgrade-desc{flex:1;color:#92a19f;font-size:12px;line-height:1.45}
+#upgradeMenu .upgrade-pick{display:flex;justify-content:space-between;margin-top:13px;padding-top:10px;border-top:1px solid rgba(var(--rarity-rgb),.2);color:var(--rarity);font-size:10px;font-weight:900;letter-spacing:1.3px}
+
+#upgradeMenu .upgrade-footer{display:flex;justify-content:center;align-items:center;gap:18px;color:#73827f;font-size:11px}
+#upgradeMenu .refresh-btn{margin:0;padding:7px 13px;color:#b7d5cf;background:#07141a;border:1px solid #31544e;border-radius:5px;box-shadow:none}
+#upgradeMenu .refresh-btn:not(:disabled):hover{color:#fff;border-color:#7ee787}
+@keyframes upgradeDeal{from{opacity:0;transform:translateY(38px) scale(.9)}to{opacity:1;transform:translateY(0) rotate(var(--tilt)) scale(1)}}
+@keyframes upgradeSeal{to{transform:rotate(405deg)}}
+
+@media(max-width:760px){
+  #upgradeMenu{padding:18px 14px}
+  #upgradeOptions{grid-template-columns:1fr}
+  #upgradeMenu .upgrade-option{min-height:230px}
+  #upgradeMenu .upgrade-art{height:90px}
+}
 
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <div>
-      <h1>EchoSwap — Amplified Arena</h1>
-      <div class="subtitle">Survive the hostile echoes in this fast-paced arena shooter. Collect upgrades and master movement!</div>
-    </div>
-    <div class="meta">
-      <div class="card">Score: <span id="score" class="big">0</span></div>
-      <div class="card">Time: <span id="time" class="big">0s</span></div>
-      <button id="restart" class="btn">Restart</button>
-      <button id="fullscreen" class="btn" style="margin-left:8px;">⛶ Fullscreen</button>
-    </div>
-  </div>
-
-
-
   <div class="hud">
     <div class="card">High: <span id="hi">0</span></div>
     <div class="card">Echoes: <span id="echoCount">0</span></div>
     <div class="card">Diff: <span id="diff">Normal</span></div>
     <div class="card">Level: <span id="level">1</span></div>
     <div class="card">Lives: <span id="lives">3</span></div>
-    <div class="card ingame-gold">💰 <span id="ingameGold">0</span></div>
-    <div id="buildingNotification" class="card" style="display: none;">Selected: None</div>
-    <div style="margin-left:auto" class="small">Aim with mouse — Click to fire — TAB for upgrades — M for auto-fire — L for emergency ability — P to pause</div>
+    <div class="card ingame-gold">💲 <span id="ingameGold">0</span></div>
+    <div id="buildingNotification" class="card" style="display:none">Selected: None</div>
+
+    <div class="meta">
+      <div class="card">Score: <span id="score" class="big">0</span></div>
+      <div class="card">Time: <span id="time" class="big">0s</span></div>
+      <button id="restart" class="btn">Restart</button>
+      <button id="fullscreen" class="btn">⛶ Fullscreen</button>
+    </div>
+  </div>
+  <div class="game-stage">
+    <canvas id="c" width="1400" height="800"></canvas>
   </div>
 
-  <canvas id="c" width="1400" height="800"></canvas>
   <div class="boss-health" id="bossHealth">
     <div class="boss-health-bar" id="bossHealthBar"></div>
     <div class="boss-health-text" id="bossHealthText"></div>
@@ -1107,7 +2988,7 @@ body.fullscreen-active #fullscreen {
 
   <!-- Gold Currency Display -->
   <div id="goldContainer" class="gold-container">
-    <div class="gold-icon">💰</div>
+    <div class="gold-icon">💲</div>
     <div>
       <span id="goldAmount" class="gold-amount">0</span>
       <span class="gold-label">GOLD</span>
@@ -1123,43 +3004,145 @@ body.fullscreen-active #fullscreen {
 Made for fun · Local high score stored in your browser · Tip: click to enable audio</div>
 </div>
 
-
 <div id="startScreen" class="screen start-screen">
-  <h1 class="start-title">ECHOSWAP ARENA</h1>
-  <p class="start-subtitle">Survive the hostile echoes in this fast-paced arena shooter. Collect upgrades, master movement, and set a new high score!</p>
-  
-  <div style="display: flex; gap: 20px; margin-bottom: 30px;">
-    <button id="classicBtn" class="start-btn pulse">CLASSIC MODE</button>
-    <button id="hardcoreBtn" class="start-btn">HARDCORE MODE</button>
-    <button id="freemodeBtn" class="start-btn">FREEMODE</button>
+  <canvas id="menuBackgroundCanvas" aria-hidden="true"></canvas>
+  <section class="space-menu-shell">
+    <div class="space-eyebrow">
+      <span class="signal-dot"></span>
+      UNKNOWN SIGNAL // ACTIVE
+    </div>
+
+    <h1 class="start-title">ECHOSWAP ARENA</h1>
+
+    <p class="start-subtitle">
+      A distant signal has reached the arena. Enter the unknown,
+      adapt to the storm and survive what answers.
+    </p>
+
+    <div id="bestTimeDisplay" class="moving-best-time">
+      Personal Best: 0s
+    </div>
+
+    <div class="mode-grid">
+      <button id="classicBtn" class="start-btn mode-card">
+        <span class="mode-symbol">✦</span>
+        <span class="mode-name">CLASSIC</span>
+        <span class="mode-description">Pure survival. No structures.</span>
+      </button>
+
+      <button id="builderBtn" class="start-btn mode-card">
+        <span class="mode-symbol">⬡</span>
+        <span class="mode-name">BUILDER</span>
+        <span class="mode-description">Construct, defend and survive.</span>
+      </button>
+
+      <button id="hardcoreBtn" class="start-btn mode-card">
+        <span class="mode-symbol">☄</span>
+        <span class="mode-name">HARDCORE</span>
+        <span class="mode-description">One life. Maximum danger.</span>
+      </button>
+
+      <button id="freemodeBtn" class="start-btn mode-card">
+        <span class="mode-symbol">∞</span>
+        <span class="mode-name">FREEMODE</span>
+        <span class="mode-description">Experiment without limits.</span>
+      </button>
+    </div>
+
+  <div class="arena-status">
+    <span class="signal-dot"></span>
+    <span id="modeStatusText">SELECT A SURVIVAL PROTOCOL</span>
+    <span class="status-chevron">///</span>
+  </div>
+</section>
+
+  <!-- Controls-popup -->
+  <div id="controlsPanel" class="space-overlay" aria-hidden="true">
+    <div class="space-controls-card">
+      <div class="space-controls-header">
+        <div>
+          <div class="space-eyebrow">SHIP INTERFACE</div>
+          <h2>CONTROLS</h2>
+        </div>
+
+        <button id="closeControlsPanel" class="space-controls-close">✕</button>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-title">Movement</div>
+
+          <div class="control-item">
+            <span>Move</span>
+            <span class="control-key">WASD / Arrows</span>
+          </div>
+
+          <div class="control-item">
+            <span>Select building</span>
+            <span class="control-key">1–6</span>
+          </div>
+
+          <div class="control-item">
+            <span>Place building</span>
+            <span class="control-key">K</span>
+          </div>
+
+          <div class="control-item">
+            <span>Upgrade Menu</span>
+            <span class="control-key">TAB</span>
+          </div>
+
+          <div class="control-item">
+            <span>Pause</span>
+            <span class="control-key">P</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">Combat Systems</div>
+
+          <div class="control-item">
+            <span>Manual Fire</span>
+            <span class="control-key">LEFT CLICK</span>
+          </div>
+
+          <div class="control-item">
+            <span>Auto Fire</span>
+            <span class="control-key">M</span>
+          </div>
+
+          <div class="control-item">
+            <span>Auto Aim</span>
+            <span class="control-key">N</span>
+          </div>
+
+          <div class="control-item">
+            <span>Emergency Ability</span>
+            <span class="control-key">L</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-<div style="position: absolute; bottom: 30px; left: 30px;">
-  <button id="newFeatureBtn" class="start-btn update-log-btn">
-    📰News
-  </button>
-</div>
-  
-  <div class="controls">
-    <div class="control-group">
-      <div class="control-title">Control</div>
-      <div class="control-item"><span>Move</span><span class="control-key">WASD / Arrows</span></div>
-      <div class="control-item"><span>Select building</span><span class="control-key">Key 1-5</span></div>      
-      <div class="control-item"><span>Place building</span><span class="control-key">K</span></div>      
-      <div class="control-item"><span>Upgrade Menu</span><span class="control-key">TAB</span></div>
-      <div class="control-item"><span>Pause</span><span class="control-key">P</span></div>
-    </div>
-    <div class="control-group">
-      <div class="control-title">Combat</div>
-      <div class="control-item"><span>Manual fire</span><span class="control-key">LEFT MOUSE BUTTON</span></div>
-      <div class="control-item"><span>Auto Fire</span><span class="control-key">M</span></div>
-      <div class="control-item"><span>Auto Aim</span><span class="control-key">N</span></div>
-      <div class="control-item"><span>Emergency Ability</span><span class="control-key">L</span></div>
-    </div>
+  <!-- Kompakt meny nederst -->
+  <div id="menuDock" class="menu-dock">
+    <button id="controlsBtn" class="menu-dock-btn">
+      <span class="dock-icon">⌨</span>
+      <span class="dock-copy">
+        <strong>CONTROLS</strong>
+        <small>INPUT SYSTEMS</small>
+      </span>
+    </button>
+
+    <button id="newFeatureBtn" class="menu-dock-btn">
+      <span class="dock-icon">▤</span>
+      <span class="dock-copy">
+        <strong>NEWS</strong>
+        <small>VERSION 24</small>
+      </span>
+    </button>
   </div>
-
-  <div id="bestTimeDisplay" class="moving-best-time">Personal Best: 0s</div>
-
 </div>
 
 <div id="deathScreen" class="screen death-screen">
@@ -1189,10 +3172,11 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 </div>
 
 <div id="upgradeMenu" class="upgrade-menu">
-  <h2 style="text-align:center;margin-bottom:20px">UPGRADE AVAILABLE</h2>
+  <div class="upgrade-kicker">SIGNAL ASCENSION</div>
+  <h2>CHOOSE AN ECHO</h2>
   <div id="upgradeOptions"></div>
-  <div style="text-align:center;margin-top:20px;color:var(--muted);font-size:12px">Select an upgrade to continue</div>
-  <div style="text-align:center;margin-top:10px;">
+  <div class="upgrade-footer">
+    <span>Select one card to continue</span>
     <button id="refreshUpgrades" class="refresh-btn" disabled>REFRESH (1/1)</button>
   </div>
 </div>
@@ -1225,12 +3209,26 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
 
 
 <div id="updateLogPanel" class="upgrade-menu" style="display: none;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-    <h2 style="margin:0; text-align:center; flex:1;">UPDATE LOG</h2>
-    <button id="closeUpdateLogTop" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; line-height:1; padding:0 8px;">&times;</button>
+  <div class="panel-header">
+    <div>
+      <span class="panel-kicker">TRANSMISSION ARCHIVE</span>
+      <h2>NEWS</h2>
+    </div>
+
+    <button
+      id="closeUpdateLogTop"
+      class="panel-close"
+      aria-label="Close news"
+    >×</button>
   </div>
-  <div class="update-log-title">Updated version - V.24</div>
-  <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+
+  <div class="panel-summary">
+    <span><strong>V.24</strong> CURRENT BUILD</span>
+    <span>TRANSMISSION ONLINE</span>
+    <span>NEWEST FIRST</span>
+  </div>
+
+  <div class="news-feed">
 
       <div class="update-log-entry">
       <div class="update-log-title">The BUILDING Update</div>
@@ -1458,6 +3456,7 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   const pauseMenu = document.getElementById('pauseMenu');
   const upgradesList = document.getElementById('upgradesList');
   const classicBtn = document.getElementById('classicBtn');
+  const builderBtn = document.getElementById('builderBtn');
   const hardcoreBtn = document.getElementById('hardcoreBtn');
   const freemodeBtn = document.getElementById('freemodeBtn');
   const restartFromDeath = document.getElementById('restartFromDeath');
@@ -1473,7 +3472,8 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   const abilityCooldownText = document.getElementById('abilityCooldownText');
   const freezeOverlay = document.getElementById('freezeOverlay');
   const refreshUpgrades = document.getElementById('refreshUpgrades');
-  const resumeBtn = document.getElementById('resumeBtn');  
+  const resumeBtn = document.getElementById('resumeBtn');
+  
   const levelUpNotification = document.createElement('div');
   levelUpNotification.className = 'level-up-notification';
   levelUpNotification.innerHTML = `
@@ -1483,10 +3483,10 @@ Made for fun · Local high score stored in your browser · Tip: click to enable 
   document.body.appendChild(levelUpNotification);
 
   // Game mode
-  let gameMode = 'classic'; // 'classic', 'hardcore', 'freemode'
+  let gameMode = 'classic'; // 'classic', 'builder', 'hardcore', 'freemode'
 
-  const MAX_FLANKER_SIZE = 12;
-  const MAX_FLANKER_SPEED = 460;
+  // Oppgraderinger som lager bygninger og derfor ikke skal finnes i Classic
+  const BUILDING_ONLY_UPGRADES = ['saferSpaces', 'turretPlanter', 'fortress'];
 
   // state
   let lastTime = performance.now(), running = false, gameStarted = false;
@@ -1553,26 +3553,27 @@ let goldSpawnDelay = 0;
 
 
 // ==================== BUILDING UNLOCK SYSTEM ====================
-// Each building type (1-5) has a one-time unlock cost
 const BUILDING_UNLOCK_COSTS = {
-  1: 50,   // Wall
-  2: 500,  // Healing Mortar
-  3: 100,  // Cannon Turret
-  4: 500,  // Shockwave Emitter
-  5: 250,  // Gold Mine
-  6: 1,  // XP Orb Spawner
-  7: 1   // Stone Brick
+  1: 100, 2: 1000, 3: 1000,
+  4: 1000, 5: 1000, 7: 1000
 };
 
+// Brukes av både valgmenyen og plasseringssystemet
+const BUILDING_NAMES = {
+  1: 'Wall',
+  2: 'Healing Mortar',
+  3: 'Cannon Turret',
+  4: 'Shockwave Emitter',
+  5: 'Gold Mine',
+  7: 'Stone Brick'
+};
 
-// Default unlocked buildings (type 1 = Wall is unlocked by default, others locked)
 const DEFAULT_UNLOCKED = {
   1: false,
   2: false,
   3: false,
   4: false,
   5: false,
-  6: true,
   7: false
 };
 
@@ -1583,7 +3584,7 @@ function loadUnlockedBuildings() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      // Merge – but ensure all building types exist (for future updates)
+      delete parsed[6]; 
       unlockedBuildings = { ...DEFAULT_UNLOCKED, ...parsed };
     } catch(e) {
       console.log('Failed to load unlocked buildings');
@@ -1629,7 +3630,7 @@ function unlockBuilding(type) {
   
   // Show notification
   const notif = document.createElement('div');
-  notif.textContent = `🔓 Building UNLOCKED! (${type === 1 ? 'Wall' : type === 2 ? 'Healing Mortar' : type === 3 ? 'Cannon Turret' : type === 4 ? 'Shockwave Emitter' : 'Gold Mine'})`;
+  notif.textContent = `🔓 Building UNLOCKED! (${BUILDING_NAMES[type] || 'Unknown'})`;
   notif.style.cssText = `
     position: fixed;
     top: 30%;
@@ -1749,7 +3750,7 @@ function spawnGoldPickupEffectAtPosition(x, y, amount) {
   notification.style.zIndex = '9999';
   notification.style.transition = 'all 0.8s ease-out';
   notification.style.fontFamily = 'Inter, sans-serif';
-  notification.innerHTML = `+${amount}💰`;
+  notification.innerHTML = `+${amount}💲`;
   document.body.appendChild(notification);
   
   setTimeout(() => {
@@ -1857,65 +3858,59 @@ let selectedAbilities = new Set(['mineLayer']); // Start with mineLayer
   let backgroundsong, passive, adamMusic;
   let isAdamPlaying = false;
 
-// Function to change background based on game mode
-function updateBackgroundForGameMode(mode) {
-  const app = document.querySelector('.app');
-  
-  // Remove any existing game mode classes
-  app.classList.remove('hardcore-mode', 'freemode-mode');
-  
-  // Apply appropriate class for the game mode
-  if (mode === 'hardcore') {
-    app.classList.add('hardcore-mode');
-    // Full-screen dark red linear gradient
-    document.body.style.background = 'linear-gradient(135deg, #2a0a0a 0%, #1a0505 50%, #0a0202 100%)';
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundAttachment = 'fixed';
-  } else if (mode === 'freemode') {
-    app.classList.add('freemode-mode');
-    // Full-screen dark blue linear gradient
-    document.body.style.background = 'linear-gradient(135deg, #0a2a3a 0%, #051525 50%, #020a15 100%)';
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundAttachment = 'fixed';
-  } else {
-    // Classic mode - dark blue/black
+  // Function to change background based on game mode
+  function updateBackgroundForGameMode(mode) {
+    const app = document.querySelector('.app');
+
     app.classList.remove('hardcore-mode', 'freemode-mode');
-    document.body.style.background = 'linear-gradient(135deg, #071226 0%, #05101a 50%, #02060a 100%)';
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundAttachment = 'fixed';
+    document.body.classList.remove('game-hardcore', 'game-freemode');
+
+    // Fjern den gamle bakgrunnen som kunne synes gjennom canvas.
+    document.body.style.removeProperty('background');
+    document.body.style.removeProperty('background-size');
+    document.body.style.removeProperty('background-attachment');
+
+    app.dataset.mode = mode;
+
+    if (mode === 'hardcore') {
+      app.classList.add('hardcore-mode');
+      document.body.classList.add('game-hardcore');
+    } else if (mode === 'freemode') {
+      app.classList.add('freemode-mode');
+      document.body.classList.add('game-freemode');
+    }
   }
-}
+    
+  // Initialize audio
+  function initAudio() {
+    // Create audio elements with actual file sources
+    backgroundsong = new Audio('backgroundsong.mp3');
+    backgroundsong.loop = true;
+    backgroundsong.volume = 0.1;
+    
+    passive = new Audio('passive.mp3');
+    passive.loop = true;
+    passive.volume = 0.1;
+    
+    adamMusic = new Audio('adam.mp3');
+    adamMusic.loop = true;
+    adamMusic.volume = 0.1;
+    
+    // Music system tracks
+    musicCalm = new Audio('calm.mp3');
+    musicIntense = new Audio('intense.mp3');
+    musicBoss = new Audio('boss.mp3');
+    
+    [musicCalm, musicIntense, musicBoss].forEach(track => {
+      track.loop = true;
+      track.volume = 0;
+    });
+    
+    // Start passive music immediately
+    passive.play();
+  }
 
-// Initialize audio
-function initAudio() {
-  // Create audio elements with actual file sources
-  backgroundsong = new Audio('backgroundsong.mp3');
-  backgroundsong.loop = true;
-  backgroundsong.volume = 0.1;
-  
-  passive = new Audio('passive.mp3');
-  passive.loop = true;
-  passive.volume = 0.1;
-  
-  adamMusic = new Audio('adam.mp3');
-  adamMusic.loop = true;
-  adamMusic.volume = 0.1;
-  
-  // Music system tracks
-  musicCalm = new Audio('calm.mp3');
-  musicIntense = new Audio('intense.mp3');
-  musicBoss = new Audio('boss.mp3');
-  
-  [musicCalm, musicIntense, musicBoss].forEach(track => {
-    track.loop = true;
-    track.volume = 0;
-  });
-  
-  // Start passive music immediately
-  passive.play();
-}
-
-// Play background music
+  // Play background music
   function playbackgroundsong() {
     passive.pause(); // Stop passive music when starting game
     backgroundsong.currentTime = 0;
@@ -2431,7 +4426,7 @@ function initAudio() {
       id: 'pointCollector',
       name: 'Point Collector',
       description: 'Reach 1000 points',
-      icon: '💰',
+      icon: '💲',
       condition: (stats) => stats.score >= 1000,
       reward: '100 XP',
       rarity: 'common',
@@ -3136,14 +5131,34 @@ function initAudio() {
   function showAchievementsPanel() {
     const panel = document.createElement('div');
     panel.className = 'achievements-panel';
-    panel.innerHTML = `
-      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px rgba(126,231,135,0.3);position:relative;padding-bottom:15px;">🏆 ACHIEVEMENTS</h2>
-      <div class="achievements-grid"></div>
-      <div style="display:flex;gap:10px;margin-top:25px;">
-        <button id="closeAchievements" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px 24px;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s ease;box-shadow:0 4px 15px rgba(15,76,117,0.4);letter-spacing:0.5px;text-transform:uppercase;">CLOSE ACHIEVEMENTS</button>
+const unlockedAchievementCount = Object
+  .values(achievements)
+  .filter((achievement) => achievement.unlocked)
+  .length;
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <span class="panel-kicker">PROGRESS ARCHIVE</span>
+        <h2>ACHIEVEMENTS</h2>
       </div>
-    `;
-    
+
+      <button
+        id="closeAchievements"
+        class="panel-close"
+        aria-label="Close achievements"
+      >×</button>
+    </div>
+
+    <div class="panel-summary">
+      <span><strong>${unlockedAchievementCount}</strong> UNLOCKED</span>
+      <span><strong>${Object.keys(achievements).length}</strong> TOTAL</span>
+      <span>RARITY SORT ENABLED</span>
+    </div>
+
+    <div class="achievements-grid"></div>
+  `;
+
     panel.style.cssText = `
       position: fixed;
       top: 50%;
@@ -3302,12 +5317,39 @@ function initAudio() {
   function showBuildingsInfoPanel() {
     const panel = document.createElement('div');
     panel.className = 'buildings-info-panel';
+    const unlockedStructureCount = Object
+      .values(unlockedBuildings)
+      .filter(Boolean)
+      .length;
+
     panel.innerHTML = `
-      <h2 style="text-align:center;margin-bottom:25px;font-size:28px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg, #7ee787, #4dabf7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px rgba(126,231,135,0.3);position:relative;padding-bottom:15px;">● STRUCTURES ●</h2>
-      <div class="buildings-grid"></div>
-      <div style="display:flex;gap:10px;margin-top:25px;">
-        <button id="closeBuildings" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px 24px;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s ease;box-shadow:0 4px 15px rgba(15,76,117,0.4);letter-spacing:0.5px;text-transform:uppercase;">CLOSE</button>
+      <div class="panel-header">
+        <div>
+          <span class="panel-kicker">DEPLOYMENT DATABASE</span>
+          <h2>STRUCTURES</h2>
+        </div>
+
+        <button
+          id="closeBuildings"
+          class="panel-close"
+          aria-label="Close structures"
+        >×</button>
       </div>
+
+      <div class="panel-summary">
+        <span>
+          <strong>${unlockedStructureCount}</strong>
+          / ${Object.keys(BUILDING_UNLOCK_COSTS).length} UNLOCKED
+        </span>
+
+        <span>
+          <strong>${totalGold}</strong> GOLD AVAILABLE
+        </span>
+
+        <span>BUILDER PROTOCOL</span>
+      </div>
+
+      <div class="buildings-grid"></div>
     `;
 
     panel.style.cssText = `
@@ -3342,83 +5384,71 @@ function initAudio() {
 
     // Building data – more engaging descriptions
     const buildingsData = [
-      { // XP Orb Spawner – now first
-        id: 6,
-        name: 'Experience',
-        tagline: 'Instant Knowledge',
-        description: 'Summons an XP orb, touch it to gain raw experience and feel the power.',
-        price: 20,
-        health: 0,      // Not a structure, just an effect
-        special: 'Instantly grants 30 XP (more with upgrades)',
-        unlockCost: BUILDING_UNLOCK_COSTS[6],
-        selectKey: 1,
-        isFire: true    // custom flag for styling
-      },
       {
         id: 1,
-        name: 'THE BULWARK - WALL',
-        tagline: 'powerfull defense',
-        description: 'lol mur',
+        name: 'WALL DEFENSE',
+        tagline: 'Powerful defense',
+        description: 'A defensive wall that blocks enemies.',
         price: 10,
         health: 1000,
-        special: 'Forms indestructible chains when placed close together.',
+        special: 'Forms defensive chains when placed close together.',
         unlockCost: BUILDING_UNLOCK_COSTS[1],
-        selectKey: 2
+        selectKey: 1
       },
       {
-        id: 2,
-        name: 'VITALIS MORTAR',
-        tagline: 'Life from above',
-        description: 'Fires healing shells that flies up in the air and lands close by. Each impact mends your wounds',
-        price: 100,
-        health: 10,
-        special: 'Orbs restore 1 life on contact.',
-        unlockCost: BUILDING_UNLOCK_COSTS[2],
-        selectKey: 9
+        id: 7,
+        name: 'THE BULWARK',
+        tagline: 'Fortified core',
+        description: 'A heavy stone brick with four destructible studs. Blocks enemy movement.',
+        price: 40,
+        health: 2500,
+        special: 'Creates a fortified core surrounded by four walls.',
+        unlockCost: BUILDING_UNLOCK_COSTS[7],
+        selectKey: 2
       },
       {
         id: 3,
         name: 'AUTOCANNON',
         tagline: 'Relentless suppression',
-        description: 'A turret that tracks the nearest threat and unleashes a storm of high‑velocity rounds. Never stops firing.',
-        price: 25,
+        description: 'Tracks the nearest threat and fires high-velocity rounds.',
+        price: 35,
         health: 70,
         special: 'Damage 1 · Fire rate 1.2s',
         unlockCost: BUILDING_UNLOCK_COSTS[3],
-        selectKey: 4
+        selectKey: 3
       },
       {
         id: 4,
         name: 'SHOCKWAVE GENERATOR',
-        tagline: 'Blast Energy',
-        description: 'Charges the air until reality fractures, releasing a devastating pulse that freezes enemies solid and shatters their defences.',
-        price: 75,
+        tagline: 'Blast energy',
+        description: 'Releases a powerful pulse that damages and stuns nearby enemies.',
+        price: 45,
         health: 100,
         special: 'Damage 8 · 3s cooldown · Area damage and stun',
         unlockCost: BUILDING_UNLOCK_COSTS[4],
-        selectKey: 5
+        selectKey: 4
       },
       {
         id: 5,
         name: 'THE GREED ENGINE',
         tagline: 'Wealth from carnage',
-        description: 'A thaumaturgic siphon that extracts raw gold from the ambient death energy. Passive income while you fight.',
-        price: 100,
+        description: 'Extracts gold from ambient death energy while you fight.',
+        price: 75,
         health: 200,
         special: 'Generates 10 gold every 5 seconds.',
         unlockCost: BUILDING_UNLOCK_COSTS[5],
-        selectKey: 8
+        selectKey: 5
       },
       {
-        id: 7,
-        name: 'STONE BRICK',
-        tagline: 'Fortified core',
-        description: 'A heavy stone brick with 200 health and four destructible studs. Blocks enemy movement.',
-        price: 1000,
-        health: 200,
-        special: 'Studs have 50 health each; when all studs are destroyed, the brick crumbles.',
-        unlockCost: BUILDING_UNLOCK_COSTS[7],
-        selectKey: 3
+        id: 2,
+        name: 'VITALIS MORTAR',
+        tagline: 'Life from above',
+        description: 'Fires healing shells that land nearby and restore your health.',
+        price: 95,
+        health: 10,
+        special: 'Orbs restore 1 life on contact.',
+        unlockCost: BUILDING_UNLOCK_COSTS[2],
+        selectKey: 6
       }
     ];
 
@@ -3426,7 +5456,7 @@ function initAudio() {
     for (const b of buildingsData) {
       const isUnlocked = isBuildingUnlocked(b.id);
       const card = document.createElement('div');
-      card.className = 'building-card';
+      card.className = `building-card ${isUnlocked ? 'unlocked' : 'locked'}`;
       card.style.cssText = `
         background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,0,0,0.3));
         border-radius: 20px;
@@ -3438,69 +5468,83 @@ function initAudio() {
         backdrop-filter: blur(4px);
       `;
 
-      // Special fire effect for XP Orb Spawner (type 6)
-      let fireEffect = '';
-      if (b.id === 6) {
-        card.style.background = 'linear-gradient(135deg, rgba(255,80,40,0.2), rgba(255,40,0,0.1))';
-        card.style.border = '1px solid rgba(255,80,40,0.6)';
-        card.style.boxShadow = '0 0 15px rgba(255,40,0,0.3)';
-        fireEffect = '<div style="position:absolute; top:-10px; right:-10px; font-size:28px; opacity:0.6;">🔥</div>';
-      }
-
       // Price badge only if locked
       let priceBadge = '';
       if (!isUnlocked) {
         priceBadge = `
-          <div style="position:absolute; top:12px; right:16px; background:linear-gradient(135deg,#ffd700,#ff8c00); padding:4px 12px; border-radius:30px; font-weight:800; font-size:14px; color:#0a0a0a; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-            ${b.unlockCost}💰
+          <div class="structure-unlock-price">
+            <span>${b.unlockCost}</span>
+            <small>GOLD</small>
           </div>
         `;
       }
 
-      // Stats section – skip for type 6 (XP Orb Spawner)
+      // Building statistics
       let statsHTML = '';
-      if (isUnlocked && b.id !== 6) {
+      if (isUnlocked) {
         statsHTML = `
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; background:rgba(0,0,0,0.4); border-radius:16px; padding:12px; font-size:14px; font-weight:500;">
-            <div><span style="color:#ffd700;">🛡️ PLACEMENT COST</span><br><span style="font-size:18px; font-weight:700;">${b.price}💰</span></div>
-            <div><span style="color:#ff6b6b;">❤️ STRUCTURE HP</span><br><span style="font-size:18px; font-weight:700;">${b.health}</span></div>
-            <div><span style="color:#4dabf7;">⚡ ABILITY</span><br><span style="font-size:14px;">${b.special}</span></div>
-            <div><span style="color:#7ee787;">⌨️ SELECT KEY</span><br><span style="font-size:18px; font-weight:700;">${b.selectKey}</span></div>
-          </div>
-        `;
-      } else if (isUnlocked && b.id === 6) {
-        // Special description for the XP Orb – no stats
-        statsHTML = `
-          <div style="margin-top:16px; background:rgba(255,80,40,0.2); border-radius:16px; padding:12px; text-align:center; border:1px solid rgba(255,80,40,0.4);">
-            <span style="color:#ffaa44;">✨ PLACE ON THE GROUND – INSTANT XP BURST ✨</span><br>
-            <span style="font-size:13px; color:#ffcc88;">Summons a floating XP orb that flies toward you. Grants 30 XP (scales with upgrades).</span>
+          <div class="structure-stats">
+            <div class="structure-stat">
+              <span>DEPLOY COST</span>
+              <strong>${b.price} G</strong>
+            </div>
+
+            <div class="structure-stat">
+              <span>INTEGRITY</span>
+              <strong>${b.health} HP</strong>
+            </div>
+
+            <div class="structure-stat structure-stat-wide">
+              <span>SYSTEM ABILITY</span>
+              <strong>${b.special}</strong>
+            </div>
+
+            <div class="structure-stat">
+              <span>INPUT</span>
+              <strong>KEY ${b.selectKey}</strong>
+            </div>
           </div>
         `;
       }
 
-      // Locked / unlocked status text
+        // Locked / unlocked status text
       let statusText = '';
       if (isUnlocked) {
-        statusText = `<div style="margin-top:12px; text-align:right; color:#7ee787; font-weight:600; letter-spacing:0.5px;">✓ UNLOCKED — READY FOR DEPLOYMENT</div>`;
+        statusText = `
+          <div class="structure-state ready">
+            <span class="state-indicator"></span>
+            READY FOR DEPLOYMENT
+          </div>
+        `;
       } else {
-        statusText = `<div style="margin-top:12px; text-align:right; color:#ffaa66; font-weight:600;">🔒 LOCKED — CLICK TO UNLOCK</div>`;
+        statusText = `
+          <div class="structure-state locked">
+            <span class="state-indicator"></span>
+            LOCKED — SELECT TO UNLOCK
+          </div>
+        `;
       }
 
       card.innerHTML = `
-        ${priceBadge}
-        ${fireEffect}
-        <div style="margin-bottom:8px;">
-          <div style="font-size:24px; font-weight:800; color:#7ee787; letter-spacing:-0.5px;">${b.name}</div>
-          <div style="font-size:14px; color:#4dabf7; font-weight:500; margin-top:2px;">${b.tagline}</div>
+        <div class="structure-card-header">
+          <div>
+            <span class="structure-type">STRUCTURE ${String(b.id).padStart(2, '0')}</span>
+            <h3>${b.name}</h3>
+            <p>${b.tagline}</p>
+          </div>
+
+          ${priceBadge}
         </div>
-        <div style="font-size:15px; line-height:1.5; color:#cbd5e1; margin:12px 0;">${b.description}</div>
+
+        <p class="structure-description">${b.description}</p>
+
         ${statsHTML}
         ${statusText}
       `;
 
       // Hover effect
       card.addEventListener('mouseenter', () => {
-        card.style.transform = 'translateY(-4px)';
+        card.style.transform = 'translateX(3px)';
         card.style.boxShadow = '0 12px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(126,231,135,0.5)';
       });
       card.addEventListener('mouseleave', () => {
@@ -3518,14 +5562,14 @@ function initAudio() {
               showBuildingsInfoPanel(); // refresh
             } else {
               const errorNotif = document.createElement('div');
-              errorNotif.textContent = `Failed to unlock! Need ${b.unlockCost}💰`;
+              errorNotif.textContent = `Failed to unlock! Need ${b.unlockCost}💲`;
               errorNotif.style.cssText = `position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:black; color:red; padding:8px 16px; border-radius:8px; z-index:10003; font-family:'Inter',sans-serif;`;
               document.body.appendChild(errorNotif);
               setTimeout(() => errorNotif.remove(), 1500);
             }
           } else {
             const errorNotif = document.createElement('div');
-            errorNotif.textContent = `Not enough gold! Need ${b.unlockCost}💰 (you have ${totalGold})`;
+            errorNotif.textContent = `Not enough gold! Need ${b.unlockCost}💲 (you have ${totalGold})`;
             errorNotif.style.cssText = `position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:black; color:#ffaa66; padding:8px 16px; border-radius:8px; z-index:10003; font-family:'Inter',sans-serif;`;
             document.body.appendChild(errorNotif);
             setTimeout(() => errorNotif.remove(), 1500);
@@ -3582,17 +5626,34 @@ function initAudio() {
   function showSkinSelector() {
     const panel = document.createElement('div');
     panel.className = 'skin-selector-panel';
+    const unlockedSkinCount = Object
+      .entries(skins)
+      .filter(([skinId, skin]) => skinId === 'default' || skin.unlocked)
+      .length;
+
     panel.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="text-align:center; margin:0; flex:1; font-size:28px; font-weight:800; background:linear-gradient(90deg, #7ee787, #4dabf7); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">👕 SKINS</h2>
-        <button id="closeSkinsTop" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; line-height:1; padding:0 8px;">&times;</button>
+      <div class="panel-header">
+        <div>
+          <span class="panel-kicker">APPEARANCE DATABASE</span>
+          <h2>SKINS</h2>
+        </div>
+
+        <button
+          id="closeSkinsTop"
+          class="panel-close"
+          aria-label="Close skins"
+        >×</button>
       </div>
+
+      <div class="panel-summary">
+        <span><strong>${unlockedSkinCount}</strong> UNLOCKED</span>
+        <span><strong>${Object.keys(skins).length}</strong> TOTAL</span>
+        <span>CURRENT: <strong>${skins[currentSkin].name}</strong></span>
+      </div>
+
       <div class="skins-grid"></div>
-      <div style="display:flex;gap:10px;margin-top:25px;">
-        <button id="closeSkins" class="btn" style="flex:1;background:linear-gradient(135deg,#0f4c75,#3282b8);color:white;border:none;border-radius:12px;padding:16px;font-weight:700;cursor:pointer;">CLOSE</button>
-      </div>
     `;
-    
+
     panel.style.cssText = `
       position: fixed;
       top: 50%;
@@ -3672,7 +5733,7 @@ function initAudio() {
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background: ${skins[currentSkin].trailColor};
+        background: ${skin.trailColor};
         filter: blur(5px);
         transform: translate(-50%, -50%);
       `;
@@ -3716,7 +5777,7 @@ function initAudio() {
         });
         
         card.addEventListener('mouseenter', () => {
-          card.style.transform = 'translateY(-4px)';
+          card.style.transform = 'translateX(3px)';
           card.style.boxShadow = `0 10px 30px ${skin.playerColor}60`;
         });
         
@@ -3759,55 +5820,85 @@ function initAudio() {
   loadEquippedSkin();
 
   // Add achievement and skin buttons to start screen
+  // Add the secondary menu buttons to the cosmic dock
   function addGameButtons() {
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = `
-      position: absolute;
-      bottom: 30px;
-      left: 30px;
-      display: flex;
-      gap: 15px;
-    `;
-    
-    // News button
-    const newsBtn = document.getElementById('newFeatureBtn');
-    if (newsBtn && newsBtn.parentNode) {
-      newsBtn.parentNode.removeChild(newsBtn);
-      buttonContainer.appendChild(newsBtn);
-    }
-    
-    // Achievement button
+    const buttonContainer = document.getElementById('menuDock');
+    if (!buttonContainer) return;
+
     const achievementBtn = document.createElement('button');
     achievementBtn.id = 'achievementBtn';
-    achievementBtn.className = 'start-btn update-log-btn';
-    achievementBtn.innerHTML = '🏆 Achievements';
-    buttonContainer.appendChild(achievementBtn);
-    
-    // Skin button
+    achievementBtn.className = 'menu-dock-btn';
+    achievementBtn.innerHTML = `
+      <span class="dock-icon">◆</span>
+      <span class="dock-copy">
+        <strong>ACHIEVEMENTS</strong>
+        <small>PROGRESS ARCHIVE</small>
+      </span>
+    `;
+
     const skinBtn = document.createElement('button');
     skinBtn.id = 'skinBtn';
-    skinBtn.className = 'start-btn update-log-btn';
-    skinBtn.innerHTML = 'Skins';
-    skinBtn.style.background = 'linear-gradient(135deg, rgba(91, 44, 111, 0.4), rgba(156, 39, 176, 0.4)) !important';
-    skinBtn.style.borderColor = 'rgba(156, 39, 176, 0.3) !important';
-    buttonContainer.appendChild(skinBtn);
-    
-    // === NEW: Buildings Info button ===
+    skinBtn.className = 'menu-dock-btn';
+    skinBtn.innerHTML = `
+      <span class="dock-icon">◈</span>
+      <span class="dock-copy">
+        <strong>SKINS</strong>
+        <small>APPEARANCE</small>
+      </span>
+    `;
+
     const buildingsBtn = document.createElement('button');
     buildingsBtn.id = 'buildingsBtn';
-    buildingsBtn.className = 'start-btn update-log-btn';
-    buildingsBtn.innerHTML = '🏗️ Buildings';
-    buildingsBtn.style.background = 'linear-gradient(135deg, rgba(40, 80, 60, 0.4), rgba(60, 120, 80, 0.4)) !important';
-    buildingsBtn.style.borderColor = 'rgba(126, 231, 135, 0.3) !important';
+    buildingsBtn.className = 'menu-dock-btn';
+    buildingsBtn.innerHTML = `
+      <span class="dock-icon">⬡</span>
+      <span class="dock-copy">
+        <strong>STRUCTURES</strong>
+        <small>DEPLOYMENT DATA</small>
+      </span>
+    `;
+
+    buttonContainer.appendChild(achievementBtn);
+    buttonContainer.appendChild(skinBtn);
     buttonContainer.appendChild(buildingsBtn);
-    
-    document.querySelector('#startScreen').appendChild(buttonContainer);
-    
+
     achievementBtn.addEventListener('click', showAchievementsPanel);
     skinBtn.addEventListener('click', showSkinSelector);
     buildingsBtn.addEventListener('click', showBuildingsInfoPanel);
-  }
 
+    // Controls-popup
+    const controlsBtn = document.getElementById('controlsBtn');
+    const controlsPanel = document.getElementById('controlsPanel');
+    const closeControlsBtn = document.getElementById('closeControlsPanel');
+
+    function openControlsPanel() {
+      controlsPanel.classList.add('open');
+      controlsPanel.setAttribute('aria-hidden', 'false');
+      audioResume();
+    }
+
+    function closeControlsPanel() {
+      controlsPanel.classList.remove('open');
+      controlsPanel.setAttribute('aria-hidden', 'true');
+    }
+
+    controlsBtn.addEventListener('click', openControlsPanel);
+    closeControlsBtn.addEventListener('click', closeControlsPanel);
+
+    // Lukk når man klikker utenfor kortet
+    controlsPanel.addEventListener('click', (event) => {
+      if (event.target === controlsPanel) {
+        closeControlsPanel();
+      }
+    });
+
+    // Lukk med Escape
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && controlsPanel.classList.contains('open')) {
+        closeControlsPanel();
+      }
+    });
+  }
 
   // Replace addAchievementButton call with addGameButtons
   // Find where it says "addAchievementButton();" and replace with "addGameButtons();"
@@ -3890,6 +5981,638 @@ window.addEventListener('keydown', (e) => {
   loadAchievements();
   addGameButtons();
   syncSkinUnlockStatus();
+  initGameMenuAtmosphere();
+
+  function initGameMenuAtmosphere() {
+  const canvas = document.getElementById('menuBackgroundCanvas');
+  const ctx = canvas?.getContext('2d');
+  const statusText = document.getElementById('modeStatusText');
+  const modeCards = [...document.querySelectorAll('.mode-card')];
+
+  if (!canvas || !ctx || !statusText || modeCards.length === 0) return;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let canvasWidth = 0;
+  let canvasHeight = 0;
+  let pixelRatio = 1;
+  let particles = [];
+  let streaks = [];
+  let lastFrame = performance.now();
+  let nextStreak = performance.now() + 700;
+  let dangerLevel = 0;
+
+  const pointer = {
+    x:0.5,
+    y:0.5,
+    targetX:0.5,
+    targetY:0.5
+  };
+
+  const modeInformation = {
+    classicBtn: {
+      text:'CLASSIC PROTOCOL // PURE SURVIVAL // STRUCTURES DISABLED',
+      rgb:'119,143,125'
+    },
+    builderBtn: {
+      text:'BUILDER PROTOCOL // CONSTRUCTION SYSTEMS ONLINE',
+      rgb:'123,112,131'
+    },
+    hardcoreBtn: {
+      text:'HARDCORE PROTOCOL // SINGLE LIFE // EXTREME THREAT',
+      rgb:'147,104,99'
+    },
+    freemodeBtn: {
+      text:'FREEMODE PROTOCOL // LIMITERS DISENGAGED',
+      rgb:'100,127,134'
+    }
+  };
+
+  function createParticle(spawnOutside = false) {
+    const depth = 0.15 + Math.random() * 0.85;
+    const isDebris = Math.random() < 0.18;
+
+    return {
+      x:spawnOutside ? canvasWidth + 20 : Math.random() * canvasWidth,
+      y:Math.random() * canvasHeight,
+      depth,
+      isDebris,
+      size:isDebris ? 1.5 + depth * 3 : 0.7 + depth * 1.7,
+      speed:8 + depth * 28,
+      alpha:0.17 + depth * 0.43,
+      pulse:Math.random() * Math.PI * 2,
+      rotation:Math.random() * Math.PI * 2,
+      rotationSpeed:(Math.random() - 0.5) * 0.8,
+      verticalDrift:(Math.random() - 0.5) * 7
+    };
+  }
+
+  function resizeMenuCanvas() {
+    const bounds = startScreen.getBoundingClientRect();
+
+    canvasWidth = Math.max(1, bounds.width);
+    canvasHeight = Math.max(1, bounds.height);
+    pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.floor(canvasWidth * pixelRatio);
+    canvas.height = Math.floor(canvasHeight * pixelRatio);
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    const particleAmount = Math.min(
+      140,
+      Math.max(75, Math.floor(canvasWidth / 14))
+    );
+
+    particles = Array.from(
+      { length:particleAmount },
+      () => createParticle()
+    );
+  }
+
+  function createEnergyStreak() {
+    streaks.push({
+      x:canvasWidth + 180,
+      y:canvasHeight * (0.1 + Math.random() * 0.75),
+      speed:280 + Math.random() * 260,
+      length:100 + Math.random() * 140,
+      angle:-0.12 + Math.random() * 0.24,
+      life:1,
+      decay:0.32 + Math.random() * 0.28
+    });
+  }
+
+  function drawDistantHorizon(currentTime) {
+    const time = currentTime * 0.00018;
+    const parallaxX = (pointer.x - 0.5) * 45;
+    const parallaxY = (pointer.y - 0.5) * 20;
+
+    /*
+      Samme synlige størrelse og plassering som tidligere.
+      Planetsenteret ligger under skjermen, men planeten er nå helt rund.
+    */
+    const radius = canvasWidth * 0.37;
+    const planetTop = canvasHeight * 0.82;
+    const planetX = canvasWidth * 0.78 + parallaxX;
+    const planetY = planetTop + radius + parallaxY;
+    const cloudOffset = Math.sin(time * 0.7) * radius * 0.025;
+
+    ctx.save();
+
+    // Atmosfærisk bue bak selve planeten
+    ctx.beginPath();
+    ctx.arc(
+      planetX,
+      planetY,
+      radius + 10,
+      Math.PI * 1.08,
+      Math.PI * 1.92
+    );
+    ctx.strokeStyle = 'rgba(106,145,134,0.1)';
+    ctx.lineWidth = 16;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(
+      planetX,
+      planetY,
+      radius + 2,
+      Math.PI * 1.08,
+      Math.PI * 1.92
+    );
+    ctx.strokeStyle = 'rgba(143,174,164,0.42)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Klipp all overflategrafikk til en ekte sirkel
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(planetX, planetY, radius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Kuleformet grunnfarge med lys fra øvre venstre side
+    const planetGradient = ctx.createRadialGradient(
+      planetX - radius * 0.38,
+      planetTop + radius * 0.03,
+      radius * 0.02,
+      planetX,
+      planetTop + radius * 0.3,
+      radius * 0.95
+    );
+
+    planetGradient.addColorStop(0, '#60736b');
+    planetGradient.addColorStop(0.18, '#42564f');
+    planetGradient.addColorStop(0.42, '#263a36');
+    planetGradient.addColorStop(0.7, '#101d1c');
+    planetGradient.addColorStop(1, '#020607');
+
+    ctx.fillStyle = planetGradient;
+    ctx.fillRect(
+      planetX - radius,
+      planetTop,
+      radius * 2,
+      canvasHeight - planetTop
+    );
+
+    // Store kontinent- og stormformer
+    const surfaceMovement = Math.sin(time * 0.4) * radius * 0.012;
+
+    ctx.beginPath();
+    ctx.ellipse(
+      planetX - radius * 0.25 + surfaceMovement,
+      planetTop + radius * 0.1,
+      radius * 0.28,
+      radius * 0.055,
+      -0.12,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = 'rgba(8,20,19,0.36)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(
+      planetX + radius * 0.16 + surfaceMovement,
+      planetTop + radius * 0.17,
+      radius * 0.35,
+      radius * 0.07,
+      0.08,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = 'rgba(6,16,16,0.4)';
+    ctx.fill();
+
+    // Buede skybånd som følger planetens form
+    for (let band = 0; band < 5; band++) {
+      const bandY = planetTop + radius * (0.055 + band * 0.055);
+      const bandWidth = radius * (0.69 + band * 0.1);
+      const bandHeight = radius * (0.075 + band * 0.012);
+      const direction = band % 2 === 0 ? 1 : -1;
+
+      ctx.beginPath();
+      ctx.ellipse(
+        planetX + cloudOffset * direction,
+        bandY,
+        bandWidth,
+        bandHeight,
+        -0.05,
+        Math.PI * 1.06,
+        Math.PI * 1.94
+      );
+
+      ctx.strokeStyle = band % 2 === 0
+        ? 'rgba(149,171,163,0.13)'
+        : 'rgba(24,43,40,0.28)';
+
+      ctx.lineWidth = band % 2 === 0 ? 5 : 8;
+      ctx.stroke();
+    }
+
+    // En tydelig storm gir planeten skala
+    const stormX = planetX - radius * 0.18 + cloudOffset;
+    const stormY = planetTop + radius * 0.18;
+
+    ctx.beginPath();
+    ctx.ellipse(
+      stormX,
+      stormY,
+      radius * 0.075,
+      radius * 0.025,
+      -0.08,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = 'rgba(132,157,148,0.2)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(
+      stormX,
+      stormY,
+      radius * 0.028,
+      radius * 0.01,
+      -0.08,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = 'rgba(5,14,14,0.55)';
+    ctx.fill();
+
+    // Mørk skyggeside gjør kuleformen tydelig
+    const planetShadow = ctx.createLinearGradient(
+      planetX - radius,
+      planetTop,
+      planetX + radius,
+      planetTop
+    );
+
+    planetShadow.addColorStop(0, 'rgba(0,0,0,0.03)');
+    planetShadow.addColorStop(0.42, 'rgba(0,0,0,0.08)');
+    planetShadow.addColorStop(0.72, 'rgba(0,0,0,0.48)');
+    planetShadow.addColorStop(1, 'rgba(0,0,0,0.9)');
+
+    ctx.fillStyle = planetShadow;
+    ctx.fillRect(
+      planetX - radius,
+      planetTop,
+      radius * 2,
+      canvasHeight - planetTop
+    );
+
+    ctx.restore();
+
+    // Skarp øvre kant – dette er den viktigste planetindikatoren
+    ctx.beginPath();
+    ctx.arc(
+      planetX,
+      planetY,
+      radius,
+      Math.PI * 1.08,
+      Math.PI * 1.92
+    );
+    ctx.strokeStyle = `rgba(
+      155,
+      184,
+      174,
+      ${0.35 + Math.sin(time * 2) * 0.025}
+    )`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /*
+      Liten måne over planeten.
+      Denne gir et tydelig størrelsesforhold og gjør motivet
+      umiddelbart gjenkjennelig som en planet.
+    */
+    const moonRadius = Math.min(27, Math.max(13, radius * 0.035));
+    const moonX = planetX - radius * 0.48;
+    const moonY = planetTop - radius * 0.1;
+
+    const moonGradient = ctx.createRadialGradient(
+      moonX - moonRadius * 0.35,
+      moonY - moonRadius * 0.4,
+      1,
+      moonX,
+      moonY,
+      moonRadius
+    );
+
+    moonGradient.addColorStop(0, '#9aa59f');
+    moonGradient.addColorStop(0.35, '#5c6965');
+    moonGradient.addColorStop(1, '#111918');
+
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+    ctx.fillStyle = moonGradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(180,190,185,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawParticles(deltaTime, elapsedTime) {
+    const speedMultiplier = 1 + dangerLevel * 2.8;
+
+    // Glir fra grågrønt til farlig rødt
+    const red = Math.round(157 + (235 - 157) * dangerLevel);
+    const green = Math.round(173 + (58 - 173) * dangerLevel);
+    const blue = Math.round(168 + (50 - 168) * dangerLevel);
+
+    for (const particle of particles) {
+      const verticalDrift = particle.verticalDrift || 0;
+      const rotationSpeed = particle.rotationSpeed || 0;
+
+      particle.x -= particle.speed * speedMultiplier * deltaTime;
+      particle.y += (
+        verticalDrift +
+        Math.sin(elapsedTime * 0.006 + particle.pulse) * dangerLevel * 22
+      ) * deltaTime;
+
+      particle.rotation = (particle.rotation || 0) + rotationSpeed * deltaTime;
+      particle.pulse += deltaTime * (
+        0.6 +
+        particle.depth * 0.8 +
+        dangerLevel * 2
+      );
+
+      if (
+        particle.x < -30 ||
+        particle.y < -30 ||
+        particle.y > canvasHeight + 30
+      ) {
+        Object.assign(particle, createParticle(true));
+      }
+
+      const parallaxMultiplier = 1 + dangerLevel * 0.8;
+      const parallaxX =
+        (pointer.x - 0.5) *
+        particle.depth *
+        48 *
+        parallaxMultiplier;
+
+      const parallaxY =
+        (pointer.y - 0.5) *
+        particle.depth *
+        30 *
+        parallaxMultiplier;
+
+      const pulse = 0.76 + Math.sin(
+        particle.pulse + elapsedTime * 0.00035
+      ) * 0.24;
+
+      ctx.save();
+      ctx.translate(
+        particle.x + parallaxX,
+        particle.y + parallaxY
+      );
+      ctx.rotate(particle.rotation);
+
+      if (particle.isDebris) {
+        ctx.fillStyle = `rgba(
+          ${red},
+          ${green},
+          ${blue},
+          ${particle.alpha * (0.65 + dangerLevel * 0.25)}
+        )`;
+
+        ctx.fillRect(
+          -particle.size * 1.7,
+          -particle.size * 0.35,
+          particle.size * 3.4,
+          particle.size * 0.7
+        );
+      } else {
+        ctx.beginPath();
+
+        ctx.fillStyle = `rgba(
+          ${red},
+          ${green},
+          ${blue},
+          ${particle.alpha * pulse}
+        )`;
+
+        ctx.arc(
+          0,
+          0,
+          particle.size * (1 + dangerLevel * 0.35),
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  function drawEnergyStreaks(deltaTime, currentTime) {
+    const isDangerous = dangerLevel > 0.35;
+
+    if (currentTime >= nextStreak) {
+      createEnergyStreak();
+
+      // Av og til kommer to streker samtidig i Hardcore
+      if (dangerLevel > 0.7 && Math.random() < 0.55) {
+        createEnergyStreak();
+      }
+
+      nextStreak = isDangerous
+        ? currentTime + 350 + Math.random() * 850
+        : currentTime + 1400 + Math.random() * 3200;
+    }
+
+    const speedMultiplier = 1 + dangerLevel * 1.8;
+    const streakRed = Math.round(125 + (255 - 125) * dangerLevel);
+    const streakGreen = Math.round(150 + (45 - 150) * dangerLevel);
+    const streakBlue = Math.round(145 + (38 - 145) * dangerLevel);
+
+    for (let index = streaks.length - 1; index >= 0; index--) {
+      const streak = streaks[index];
+
+      streak.x -= streak.speed * speedMultiplier * deltaTime;
+      streak.y += (
+        streak.speed *
+        streak.angle *
+        speedMultiplier *
+        deltaTime
+      );
+
+      streak.life -= streak.decay * deltaTime;
+
+      const gradient = ctx.createLinearGradient(
+        streak.x,
+        streak.y,
+        streak.x + streak.length,
+        streak.y - streak.length * streak.angle
+      );
+
+      gradient.addColorStop(
+        0,
+        `rgba(${streakRed},${streakGreen},${streakBlue},0)`
+      );
+
+      gradient.addColorStop(
+        1,
+        `rgba(
+          ${streakRed},
+          ${streakGreen},
+          ${streakBlue},
+          ${(0.5 + dangerLevel * 0.35) * streak.life}
+        )`
+      );
+
+      ctx.save();
+
+      if (dangerLevel > 0.4) {
+        ctx.shadowColor = `rgba(255,35,30,${dangerLevel * 0.65})`;
+        ctx.shadowBlur = dangerLevel * 8;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(streak.x, streak.y);
+      ctx.lineTo(
+        streak.x + streak.length * (1 + dangerLevel * 0.35),
+        streak.y - streak.length * streak.angle
+      );
+
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 1.3 + dangerLevel * 1.2;
+      ctx.stroke();
+      ctx.restore();
+
+      if (streak.life <= 0 || streak.x < -streak.length) {
+        streaks.splice(index, 1);
+      }
+    }
+  }
+
+  function renderMenuBackground(currentTime, deltaTime) {
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    drawDistantHorizon(currentTime);
+    drawParticles(deltaTime, currentTime);
+    drawEnergyStreaks(deltaTime, currentTime);
+  }
+
+  function animationFrame(currentTime) {
+    const deltaTime = Math.min((currentTime - lastFrame) / 1000, 0.04);
+    lastFrame = currentTime;
+
+    // Glir gradvis mellom vanlig verdensrom og Hardcore-atmosfære
+    const dangerTarget = startScreen.classList.contains('hardcore-preview') ? 1 : 0;
+    dangerLevel += (dangerTarget - dangerLevel) * Math.min(1, deltaTime * 5);
+
+    pointer.x += (pointer.targetX - pointer.x) * 0.035;
+    pointer.y += (pointer.targetY - pointer.y) * 0.035;
+
+    if (!startScreen.classList.contains('hidden')) {
+      renderMenuBackground(currentTime, reducedMotion ? 0 : deltaTime);
+    }
+
+    if (!reducedMotion) {
+      requestAnimationFrame(animationFrame);
+    }
+  }
+
+  function showModePreview(card) {
+    const information = modeInformation[card.id];
+    if (!information) return;
+
+    modeCards.forEach((modeCard) => {
+      modeCard.classList.toggle('menu-focused', modeCard === card);
+    });
+
+    const isHardcore = card.id === 'hardcoreBtn';
+
+    // Aktiverer rødt verdensrom kun når Hardcore er valgt
+    startScreen.classList.toggle('hardcore-preview', isHardcore);
+    startScreen.style.setProperty('--active-mode-rgb', information.rgb);
+    statusText.textContent = information.text;
+
+    statusText.classList.remove('status-refresh');
+    void statusText.offsetWidth;
+    statusText.classList.add('status-refresh');
+  }
+
+  function clearModePreview() {
+    modeCards.forEach((card) => card.classList.remove('menu-focused'));
+
+    startScreen.classList.remove('hardcore-preview');
+    startScreen.style.setProperty('--active-mode-rgb', '119,143,125');
+    statusText.textContent = 'SELECT A SURVIVAL PROTOCOL';
+  }
+
+  modeCards.forEach((card, index) => {
+    card.addEventListener('mouseenter', () => {
+      showModePreview(card);
+
+      // Spill kun lyd dersom lydsystemet allerede er aktivert
+      if (audioCtx && audioCtx.state === 'running') {
+        sfx(125 + index * 18, 0.035, 0.006, 'sine');
+      }
+    });
+
+    card.addEventListener('mouseleave', () => {
+      if (document.activeElement !== card) {
+        clearModePreview();
+      }
+    });
+
+    card.addEventListener('focus', () => showModePreview(card));
+    card.addEventListener('blur', clearModePreview);
+
+    card.addEventListener('pointerdown', () => {
+      audioResume();
+      sfx(210 + index * 25, 0.055, 0.012, 'sine');
+    });
+
+    // Naviger mellom gamemodes med piltastene
+    card.addEventListener('keydown', (event) => {
+      const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+      const backward = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
+
+      if (!forward && !backward) return;
+
+      event.preventDefault();
+
+      const direction = forward ? 1 : -1;
+      const nextIndex = (index + direction + modeCards.length) % modeCards.length;
+
+      modeCards[nextIndex].focus();
+    });
+  });
+
+  startScreen.addEventListener('pointermove', (event) => {
+    const bounds = startScreen.getBoundingClientRect();
+
+    pointer.targetX = (event.clientX - bounds.left) / bounds.width;
+    pointer.targetY = (event.clientY - bounds.top) / bounds.height;
+  });
+
+  startScreen.addEventListener('pointerleave', () => {
+    pointer.targetX = 0.5;
+    pointer.targetY = 0.5;
+  });
+
+  window.addEventListener('resize', resizeMenuCanvas);
+
+  resizeMenuCanvas();
+
+  if (reducedMotion) {
+    renderMenuBackground(performance.now(), 0);
+  } else {
+    requestAnimationFrame(animationFrame);
+  }
+}
 
   // Update achievement stats in game loop
   function updateAchievementStats() {
@@ -4017,135 +6740,38 @@ window.addEventListener('keydown', (e) => {
     }
 
 
-    // Building selection (number keys 1-9) – reordered mapping
-    if (e.key >= '1' && e.key <= '9') {
-        const keyNum = parseInt(e.key);
-        let newBuilding = null;
-        if (keyNum === 1) newBuilding = 6;      // XP orb spawner
-        else if (keyNum === 2) newBuilding = 1; // Wall
-        else if (keyNum === 3) newBuilding = 7; // Stone brick
-        else if (keyNum === 4) newBuilding = 3; // Cannon Turret
-        else if (keyNum === 5) newBuilding = 4; // Shockwave Emitter
-        else if (keyNum === 8) newBuilding = 5; // Gold Mine
-        else if (keyNum === 9) newBuilding = 2; // Healing Mortar
-        
-        if (newBuilding === null) {
-            // Empty slot – show "no building" message
-            const notif = document.createElement('div');
-            notif.style.cssText = `
-                position: absolute;
-                top: 30%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                text-align: center;
-                z-index: 100;
-                font-family: 'Inter', sans-serif;
-                pointer-events: none;
-                white-space: nowrap;
-                background: rgba(0,0,0,0.5);
-                padding: 6px 12px;
-                border-radius: 8px;
-                color: #9aa4b2;
-            `;
-            notif.textContent = 'No building assigned to this key';
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 1000);
-            return;
-        }
-        
-        // Check if this building type is unlocked
-        if (!isBuildingUnlocked(newBuilding)) {
-            const notif = document.createElement('div');
-            notif.style.cssText = `
-                position: absolute;
-                top: 30%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                text-align: center;
-                z-index: 100;
-                font-family: 'Inter', sans-serif;
-                pointer-events: none;
-                white-space: nowrap;
-                background: rgba(0,0,0,0.7);
-                padding: 8px 16px;
-                border-radius: 8px;
-                color: #ff6b6b;
-                font-weight: bold;
-            `;
-            notif.innerHTML = `
-                <div style="font-size: 14px;">🔒 LOCKED</div>
-                <div style="font-size: 12px;">Unlock in Buildings menu</div>
-            `;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 1500);
-            return;
-        }
-        
-        selectedBuilding = newBuilding;
-        console.log(`Building ${selectedBuilding} selected (key ${keyNum})`);
+    // Building selection
+    if (gameMode !== 'classic' && e.key >= '1' && e.key <= '9') {
+      const key = Number(e.key);
+      const type = ({1:1,2:7,3:3,4:4,5:5,6:2})[key];
 
-        const buildingNames = {
-          1: 'Wall',
-          2: 'Healing Mortar',
-          3: 'Cannon Turret',
-          4: 'Shockwave Emitter',
-          5: 'Gold Mine',
-          6: 'XP Orb Spawner',
-          7: 'Stone Brick'
-        };
-        const name = buildingNames[selectedBuilding];
+      if (!type) {
+        selectedBuilding = 0;
+        showBuildingInfo('NO BUILDING ASSIGNED', 1200);
+        return;
+      }
 
-        // Clear previous timeout and remove old notification
-        if (window.buildingNotifTimeout) {
-            clearTimeout(window.buildingNotifTimeout);
-            window.buildingNotifTimeout = null;
-        }
-        if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
-            window.activeBuildingNotif.remove();
-            window.activeBuildingNotif = null;
-        }
+      if (!isBuildingUnlocked(type)) {
+        selectedBuilding = 0;
+        showBuildingInfo('<span style="color:#ff6b6b">🔒 LOCKED · UNLOCK IN BUILDINGS MENU</span>', 1500);
+        return;
+      }
 
-        // Create new notification
-        const notif = document.createElement('div');
-        notif.style.cssText = `
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 100;
-            font-family: 'Inter', sans-serif;
-            pointer-events: none;
-            white-space: nowrap;
-        `;
-        notif.innerHTML = `
-            <div style="font-size: 12px; color: #9aa4b2; margin-bottom: 4px;">BUILDING SELECTED</div>
-            <div style="font-size: 24px; font-weight: bold; color: #7ee787;">${name}</div>
-            <div style="font-size: 12px; color: #4dabf7; margin-top: 4px;">Key ${keyNum}</div>
-        `;
-        document.body.appendChild(notif);
-        window.activeBuildingNotif = notif;
-
-        window.buildingNotifTimeout = setTimeout(() => {
-            if (window.activeBuildingNotif && window.activeBuildingNotif.parentNode) {
-                window.activeBuildingNotif.remove();
-                window.activeBuildingNotif = null;
-            }
-            window.buildingNotifTimeout = null;
-        }, 2500);
+      selectedBuilding = type;
+      updateBuildingInfo();
     }
-
 
 
     // Pressing '0' selects building type 0
-    if (e.key === '0') {
-        selectedBuilding = 0;
-        console.log('Building 0 selected');
+    if (gameMode !== 'classic' && e.key === '0') {
+      selectedBuilding = 0;
+      clearBuildingInfo();
     }
 
-    // Place building with K key
+    // Place building with K key – disabled in Classic Mode
     if (e.key === 'k' || e.key === 'K') {
         e.preventDefault();
+        if (gameMode === 'classic') return;
         if (!gameStarted || !running || gamePaused) return;
         if (selectedBuilding === 0) {
             console.log('No building selected');
@@ -4168,7 +6794,7 @@ window.addEventListener('keydown', (e) => {
                 font-family: 'Inter', sans-serif;
                 pointer-events: none;
             `;
-            notif.textContent = `🔒 ${buildingNames[selectedBuilding]} is LOCKED! Unlock in Buildings menu.`;
+            notif.textContent = `🔒 ${BUILDING_NAMES[selectedBuilding]} is LOCKED! Unlock in Buildings menu.`;
             document.body.appendChild(notif);
             setTimeout(() => notif.remove(), 2000);
             return;
@@ -4177,89 +6803,14 @@ window.addEventListener('keydown', (e) => {
             console.log(`Building on cooldown (${buildingCooldown.toFixed(1)}s)`);
             return;
         }
-        const cost = buildingCosts[selectedBuilding];
-        if (cost === undefined) return;
+
+        const cost = getBuildingCost(selectedBuilding);
+        
         if (sessionGold < cost) {
-            console.log('Not enough gold');
-            return;
+          showBuildingInfo(`<span style="color:#ff8b7c">NOT ENOUGH GOLD · NEED ${cost}💲</span>`, 1400);
+          return;
         }
 
-
-      
-
-
-
-
-//
-
-
-      if (selectedBuilding === 6) {
-          console.log("XP Orb Spawner – gold:", sessionGold, "required: 35");
-
-          if (sessionGold >= 35) {
-              sessionGold -= 35;
-              updateGoldDisplays();
-
-              // Random position (keep away from edges)
-              const margin = 50;
-              const randX = Math.random() * (W - margin * 2) + margin;
-              const randY = Math.random() * (H - margin * 2) + margin;
-
-              // Create a custom XP orb object
-              const xpOrb = {
-                  x: randX, y: randY, r: 16, type: 'xpBoost', life: 15, float: 0,
-                  colors: { xpBoost: '#00ffaa' },
-                  draw: function(ctx) {
-                      this.float += 0.05;
-                      const floatY = Math.sin(this.float) * 3;
-                      const g = ctx.createRadialGradient(this.x, this.y + floatY, 1, this.x, this.y + floatY, this.r * 3);
-                      g.addColorStop(0, '#00ffaaDD');
-                      g.addColorStop(1, '#00ffaa11');
-                      ctx.fillStyle = g;
-                      ctx.beginPath();
-                      ctx.arc(this.x, this.y + floatY, this.r * 2.5, 0, Math.PI * 2);
-                      ctx.fill();
-                      ctx.beginPath();
-                      ctx.fillStyle = '#00ffaa';
-                      ctx.arc(this.x, this.y + floatY, this.r, 0, Math.PI * 2);
-                      ctx.fill();
-                      ctx.fillStyle = 'white';
-                      ctx.font = 'bold 14px sans-serif';
-                      ctx.textAlign = 'center';
-                      ctx.textBaseline = 'middle';
-                      ctx.fillText('XP', this.x, this.y + floatY);
-                  },
-                  update: function(dt) {
-                      this.life -= dt;
-                      return this.life > 0;
-                  }
-              };
-              upgrades.push(xpOrb);
-              console.log("XP orb spawned at", randX, randY);
-
-              // Effects
-              spawnParticles(randX, randY, '#ffd700', 20, Math.PI * 2, 100);
-              sfx(1000, 0.2, 0.04, 'sine');
-              buildingCooldown = 0.5;
-          } else {
-              console.log("Not enough gold for XP orb (need 35)");
-              const notif = document.createElement('div');
-              notif.textContent = 'Not enough gold! Need 35 gold.';
-              notif.style.cssText = 'position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:black; color:red; padding:5px 10px; border-radius:5px; z-index:10000;';
-              document.body.appendChild(notif);
-              setTimeout(() => notif.remove(), 1500);
-          }
-          return; // important: skip building placement
-      }
-
-
-//
-
-
-
-
-
-        //
         // Create building based on type
         if (selectedBuilding === 7) {
             // ---- STONE BRICK: spawn 4 walls around the cursor ----
@@ -4313,8 +6864,7 @@ window.addEventListener('keydown', (e) => {
             rebuildWallConnections();
 
             // Deduct gold and update display
-            sessionGold -= cost;
-            updateGoldDisplays();
+            finishBuildingPurchase(selectedBuilding, cost);
             buildingCooldown = 0.5;
             sfx(800, 0.1, 0.03, 'sine');
             spawnParticles(coreX, coreY, 'rgba(170,255,170,0.9)', 15, Math.PI*2, 80);
@@ -4330,8 +6880,7 @@ window.addEventListener('keydown', (e) => {
         }
         buildings.push(resolved);
         rebuildWallConnections();
-        sessionGold -= cost;
-        updateGoldDisplays();
+        finishBuildingPurchase(selectedBuilding, cost);
         buildingCooldown = 0.5;
         sfx(800, 0.1, 0.03, 'sine');
         spawnParticles(resolved.x, resolved.y, 'rgba(170,255,170,0.9)', 15, Math.PI*2, 80);    }
@@ -4467,12 +7016,9 @@ window.addEventListener('keydown', (e) => {
               height = 30;
               building = { x, y, type, width, height, color: '#aaffaa', health: 20, maxHealth: 20 };
               break;
-          case 6: 
-            return { type: 6, x, y, temporary: true };
-          case 7: 
-              return null;
-              break;
-      }
+          case 7:
+            return null;
+          }
       // Add unique ID and connections array for walls
       if (type === 1) {
           building.id = nextWallId++;
@@ -4717,15 +7263,55 @@ class HealingOrb {
   let selectedBuilding = 0;         // 0 = none, 1 = first building
   let buildingCooldown = 0;         // seconds until next placement allowed
   let buildingFireRateMod = 1;   // used by strength zone
-  const buildingCosts = {
-    1: 10,   // wall
-    2: 100,  // healing orb cannon
-    3: 25,   // cannon turret
-    4: 75,   // shockwave emitter
-    5: 100,  // gold mine
-    6: 35,   // XP orb spawner
-    7: 50     // central stone brick with studs
+  const BUILDING_BASE_COSTS = {
+    1: 10,  // Wall
+    7: 40,  // Big Brick
+    3: 35,  // Cannon
+    4: 45,  // Shockwave
+    5: 75,  // Greed Engine
+    2: 95   // Mortar
   };
+
+  const BUILDING_KEYS = {1:1,7:2,3:3,4:4,5:5,2:6};
+  const buildingPurchases = {1:0,7:0,3:0,4:0,5:0,2:0};
+  const getBuildingCost = type =>
+    Math.ceil(BUILDING_BASE_COSTS[type] * Math.pow(1.15, buildingPurchases[type]));
+
+  function clearBuildingInfo(){
+    clearTimeout(window.buildingNotifTimeout);
+    window.activeBuildingNotif?.remove();
+    window.activeBuildingNotif = null;
+  }
+
+  function showBuildingInfo(html, duration = 1800){
+    clearBuildingInfo();
+    if (!html) return;
+
+    const notif = document.createElement('div');
+    notif.style.cssText = `position:fixed;top:17%;left:50%;transform:translateX(-50%);z-index:10000;padding:9px 16px;border:1px solid rgba(126,231,135,.3);border-radius:7px;background:rgba(3,9,13,.92);color:#dce8e5;font:700 13px Inter,sans-serif;pointer-events:none`;
+    notif.innerHTML = html;
+    document.body.appendChild(notif);
+    window.activeBuildingNotif = notif;
+
+    window.buildingNotifTimeout = setTimeout(() => {
+      if (window.activeBuildingNotif === notif) clearBuildingInfo();
+    }, duration);
+  }
+
+  function updateBuildingInfo(duration = 1800){
+    if (!selectedBuilding) return clearBuildingInfo();
+    const name = BUILDING_NAMES[selectedBuilding];
+    const cost = getBuildingCost(selectedBuilding);
+    showBuildingInfo(`${name} · <span style="color:#ffd166">${cost}💲</span> · KEY ${BUILDING_KEYS[selectedBuilding]}`, duration);
+  }
+
+  function finishBuildingPurchase(type, cost){
+    sessionGold -= cost;
+    buildingPurchases[type]++;
+    updateGoldDisplays();
+    updateBuildingInfo(1400); // Immediately show the new price
+  }
+
   let recordTimer = 0, echoSpawnTimer = 0, difficulty = 1;
   let fireTimer = 0, autoFireTimer = 0, workerFireTimer = 0;
   let shake = 0;
@@ -4987,14 +7573,6 @@ class HealingOrb {
       }, 300);
     }
   }
-  
-  // Set hardcore mode hardcore starting hardcore stats - COMPACT VERSION
-function setHardcoreStartingStats() {
-  // Worse base stats
-  player.speed = 210;           // -40 speed
-  player.fireRate = 0.6;        // Super slow firing
-  player.damageMultiplier = 0.9; //Lower damage multiplier
-}
 
   // Update upgrade chances over time
   function updateUpgradeChances(dt) {
@@ -13993,8 +16571,16 @@ class MegaCreeperBoss {
       this.speed = 40;
       this.maxSpeed = 350; // Capped at 350 even in endless mode
       this.age = 0;
-      this.health = 3;
-      this.maxHealth = 3;
+      this.baseHealth = 3;
+      this.hardcoreScale = gameMode === 'hardcore' ? 1 + upgradesGathered * 0.05 : 1;
+      this.health = this.maxHealth = this.baseHealth * this.hardcoreScale;
+      // Every normal red gets one Slim partner in Hardcore
+      if (gameMode === 'hardcore') {
+        const angle = Math.random() * Math.PI * 2;
+        const slimX = spawnX + Math.cos(angle) * 24;
+        const slimY = spawnY + Math.sin(angle) * 24;
+        setTimeout(() => { if (running) echoes.push(new Slim(slimX, slimY)); }, 0);
+      }
       this.hitTimer = 0;
       this.collisionDamage = 1;
       this.rocketDamage = 0;
@@ -14016,9 +16602,20 @@ class MegaCreeperBoss {
     }
     
     update(dt){
-      if (this.frozen) return true;
-      
-      this.age += dt;
+    // +5% max health per collected upgrade in Hardcore
+    if (gameMode === 'hardcore') {
+      const scale = 1 + upgradesGathered * 0.05;
+
+      if (scale !== this.hardcoreScale) {
+        const newMaxHealth = this.baseHealth * scale;
+        this.health += newMaxHealth - this.maxHealth;
+        this.maxHealth = newMaxHealth;
+        this.hardcoreScale = scale;
+      }
+    }
+
+    if (this.frozen) return true;
+    this.age += dt;
       this.hitTimer -= dt;
       this.rocketDamageTimer += dt;
       this.knockbackTimer -= dt;
@@ -14729,9 +17326,7 @@ class MegaCreeperBoss {
         
   // Set initial lives based on game mode
   if (gameMode === 'hardcore') {
-    player.lives = 1;
-    // Apply hardcore starting stats
-    setHardcoreStartingStats();
+    player.lives = 1; // Normal stats, but only one life
   } else if (gameMode === 'freemode') {
     player.lives = 8;
     // Give 3 random upgrades in freemode
@@ -14764,6 +17359,8 @@ class MegaCreeperBoss {
     buildings.length = 0;
     selectedBuilding = 0;
     buildingCooldown = 0;
+    for (const type in buildingPurchases) buildingPurchases[type] = 0;
+    clearBuildingInfo();
     timeAlive = 0; score = 0; difficulty = 1; shake = 0;
     echoesKilled = 0; upgradesGathered = 0; bossesKilled = 0; megaBossActive = false;
     recordTimer = 0; echoSpawnTimer = 0; fireTimer = 0; autoFireTimer = 0; workerFireTimer = 0; bossSpawnTimer = 0;
@@ -14885,8 +17482,11 @@ class MegaCreeperBoss {
 
   // Start game
   function startGame(mode){
-    updateBackgroundForGameMode(mode);
     gameMode = mode;
+    updateBackgroundForGameMode(mode);
+
+    document.body.classList.add('game-active');
+    window.scrollTo(0, 0);
     
     // First, reset the game immediately to clear any existing XP orbs
     resetGame();
@@ -14961,9 +17561,10 @@ class MegaCreeperBoss {
   });
 
   classicBtn.addEventListener('click', () => { startGame('classic'); });
+  builderBtn.addEventListener('click', () => { startGame('builder'); });
   hardcoreBtn.addEventListener('click', () => { startGame('hardcore'); });
   freemodeBtn.addEventListener('click', () => { startGame('freemode'); });
-  
+
   restartFromDeath.addEventListener('click', () => { 
   location.reload();
 });
@@ -15146,7 +17747,7 @@ class MegaCreeperBoss {
       } else if (flankerLevel === 6) {
         canActivate = (bulletCounter % 2 === 0);
       } else if (flankerLevel === 7) {
-        canActivate = (bulletCounter % 2 === 0);
+        canActivate = true;
       }
 
       if (canActivate) {
@@ -15160,14 +17761,14 @@ class MegaCreeperBoss {
           flankerLevel === 4 ? 7 :
           flankerLevel === 5 ? 10 :
           flankerLevel === 6 ? 13 :
-          flankerLevel === 7 ? 18 : 0;
+          flankerLevel === 7 ? 13 : 0;
         
         // FIXED: Proper spread angle based on level
         flankerAngle = 
           flankerLevel === 1 ? Math.PI / 12 :  // 15 degrees
-          flankerLevel === 2 ? Math.PI / 10 :   // 20 degrees
-          flankerLevel === 3 ? Math.PI / 9 :   // 22.5 degrees
-          flankerLevel === 4 ? Math.PI / 6 :   
+          flankerLevel === 2 ? Math.PI / 9 :   // 20 degrees
+          flankerLevel === 3 ? Math.PI / 8 :   // 22.5 degrees
+          flankerLevel === 4 ? Math.PI / 5 :   
           flankerLevel === 5 ? Math.PI / 4 :   
           flankerLevel === 6 ? Math.PI / 2.5 : // ~72 degrees
           Math.PI / 2;                         // 90 degrees
@@ -15238,65 +17839,102 @@ class MegaCreeperBoss {
       spawnParticles(muzzleX, muzzleY, 'rgba(255,150,0,0.9)', 15, Math.PI/6, 100);
     }
       if (isFlanker && flankerLevel > 0) {
-        const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
+    const baseBackwardAngle = Math.atan2(aim.y, aim.x) + Math.PI; // 180 degrees opposite
+    
+    if (flankerLevel === 7) {
+      // Level 7: Fire 10 bullets in a full backward circle
+      for (let i = 0; i < flankerBullets; i++) {
+        const angle = baseBackwardAngle + (i / flankerBullets) * Math.PI * 2;
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
         
-        // Level 6 and 7: Fire in FULL CIRCLE (360 degrees)
-        if (flankerLevel >= 6) {
-          for (let i = 0; i < flankerBullets; i++) {
-            const angle = (i / flankerBullets) * Math.PI * 2;
-            const dx = Math.cos(angle);
-            const dy = Math.sin(angle);
-            
-            bullets.push({
+        const bullet = { 
+          x: player.x + dx*player.r*1.6, 
+          y: player.y + dy*player.r*1.6, 
+          dx, dy, 
+          t:0, 
+          life: player.bulletLife * 0.8,
+          speed: player.bulletSpeed * 0.9,
+          size: player.bulletSize * 0.8,
+          willExplode: false,
+          damage: 0.8 * player.damageMultiplier,
+          flanker: true,
+          color: '#74c0fc'
+        };
+        
+        bullets.push(bullet);
+      }
+    } else if (flankerLevel === 4) {
+      // Level 4: Fire 4 bullets in a backward cross pattern
+      const angles = [
+        baseBackwardAngle, // Straight back
+        baseBackwardAngle + Math.PI/4, // Back-left diagonal
+        baseBackwardAngle - Math.PI/4, // Back-right diagonal
+        baseBackwardAngle + Math.PI/2  // Perpendicular back
+      ];
+      for (let i = 0; i < Math.min(flankerBullets, angles.length); i++) {
+        const dx = Math.cos(angles[i]);
+        const dy = Math.sin(angles[i]);
+        
+        const bullet = { 
+          x: player.x + dx*player.r*1.6, 
+          y: player.y + dy*player.r*1.6, 
+          dx, dy, 
+          t:0, 
+          life: player.bulletLife,
+          speed: player.bulletSpeed,
+          size: player.bulletSize,
+          willExplode: false,
+          damage: 1 * player.damageMultiplier,
+          flanker: true,
+          color: '#74c0fc'
+        };
+        
+        bullets.push(bullet);
+      }
+    } else {
+      // Levels 1-6: Fire backward bullets evenly spaced over the total flankerAngle
+      if (flankerBullets === 1) {
+          // Single bullet, no spread
+          const bulletAngle = baseBackwardAngle;
+          const dx = Math.cos(bulletAngle);
+          const dy = Math.sin(bulletAngle);
+          bullets.push({
               x: player.x + dx * player.r * 1.6,
               y: player.y + dy * player.r * 1.6,
               dx, dy, t: 0,
-              life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
-              speed: Math.min(player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1), MAX_FLANKER_SPEED),
-              size: Math.min(player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1), MAX_FLANKER_SIZE),
+              life: player.bulletLife,
+              speed: player.bulletSpeed,
+              size: player.bulletSize,
               willExplode: false,
-              damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
+              damage: 1 * player.damageMultiplier,
               flanker: true,
               color: '#74c0fc'
-            });
-          }
-        } else {
-          // Levels 1-5: Fire BACKWARDS ONLY (spread arc behind player)
-          let totalSpread;
-          if (flankerLevel === 1) totalSpread = Math.PI / 6;      // 30 degrees
-          else if (flankerLevel === 2) totalSpread = Math.PI / 5; // 36 degrees
-          else if (flankerLevel === 3) totalSpread = Math.PI / 4; // 45 degrees (wider spread)
-          else if (flankerLevel === 4) totalSpread = Math.PI / 3; // 60 degrees (FIXED - 7 bullets)
-          else if (flankerLevel === 5) totalSpread = Math.PI / 2.2; // ~82 degrees (wider spread)
-          else totalSpread = Math.PI / 2; // 90 degrees default
-          
-          const startAngle = baseBackwardAngle - totalSpread / 2;
-          
+          });
+      } else {
+          const totalSpread = flankerAngle;      // treat flankerAngle as total spread
+          const step = totalSpread / (flankerBullets - 1);
+          const startAngle = -totalSpread / 2;   // centre the fan
           for (let i = 0; i < flankerBullets; i++) {
-            let angle;
-            if (flankerBullets === 1) {
-              angle = baseBackwardAngle;
-            } else {
-              angle = startAngle + (i / (flankerBullets - 1)) * totalSpread;
+              const bulletAngle = baseBackwardAngle + startAngle + i * step;
+              const dx = Math.cos(bulletAngle);
+              const dy = Math.sin(bulletAngle);
+              bullets.push({
+                  x: player.x + dx * player.r * 1.6,
+                  y: player.y + dy * player.r * 1.6,
+                  dx, dy, t: 0,
+                  life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
+                  speed: player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1),
+                  size: player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1),
+                  willExplode: false,
+                  damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
+                  flanker: true,
+                  color: '#74c0fc'
+              });
             }
-            const dx = Math.cos(angle);
-            const dy = Math.sin(angle);
-            
-            bullets.push({
-              x: player.x + dx * player.r * 1.6,
-              y: player.y + dy * player.r * 1.6,
-              dx, dy, t: 0,
-              life: player.bulletLife * (flankerLevel >= 5 ? 1.2 : 1),
-              speed: Math.min(player.bulletSpeed * (flankerLevel >= 6 ? 1.1 : 1), MAX_FLANKER_SPEED),
-              size: Math.min(player.bulletSize * (flankerLevel >= 5 ? 1.2 : 1), MAX_FLANKER_SIZE),
-              willExplode: false,
-              damage: 1 * player.damageMultiplier * (flankerLevel >= 6 ? 1.2 : 1),
-              flanker: true,
-              color: '#74c0fc'
-            });
           }
         }
-      }
+      }  
 
     const spread = player.spread * (1 + Math.min(1.5, (difficulty-1)/2));
     const angleOffset = rand(-spread/2, spread/2);
@@ -15470,8 +18108,11 @@ function showUpgradeMenu() {
 
   // Get ALL available upgrades (not filtered by rarity first)
   const allAvailableUpgrades = [];
-  const upgradesToRemove = ['autodash'];
-  
+  const upgradesToRemove = [
+    'autodash',
+    ...(gameMode === 'classic' ? BUILDING_ONLY_UPGRADES : [])
+  ];  
+
   for (const stat in player.stats) {
     // Skip shield regen if shield is level 0
     if (stat === 'shieldRegen' && player.stats.shield.level === 0) continue;
@@ -15581,39 +18222,29 @@ function showUpgradeMenu() {
   window.currentUpgradeOptions = selectedUpgrades;
 
   // Create upgrade options
-  selectedUpgrades.forEach(type => {
-    const isMaxed = player.stats[type].level >= player.stats[type].max;
-    const rarity = player.stats[type].rarity;
-    const option = document.createElement('div');
-    option.className = `upgrade-option ${isMaxed ? 'maxed' : ''} rarity-${rarity}`;
-    
-    // Special handling for bonus upgrades when everything is maxed
-    let levelText = '';
-    let description = '';
-    
-    if (isMaxed && player.stats[type].level >= player.stats[type].max) {
-      // This is a bonus upgrade beyond max level
-      levelText = 'MAX+';
-      description = getBonusUpgradeDescription(type);
-    } else {
-      levelText = `${player.stats[type].level}/${player.stats[type].max}`;
-      description = getUpgradeDescription(type);
-    }
-    
-    option.innerHTML = `
-      <div class="upgrade-title">${getUpgradeTitle(type)} 
-        <span>${levelText} <span class="upgrade-rarity rarity-${rarity}">${rarity.toUpperCase()}</span></span>
+  selectedUpgrades.forEach((type,index)=>{
+    const stat=player.stats[type],isMaxed=stat.level>=stat.max,rarity=stat.rarity;
+    const option=document.createElement('div');
+    option.className=`upgrade-option ${isMaxed?'maxed':''} rarity-${rarity}`;
+    option.style.setProperty('--deal-delay',`${index*70}ms`);
+
+    const levelText=isMaxed?'MAX+':`${stat.level}/${stat.max}`;
+    const description=isMaxed?getBonusUpgradeDescription(type):getUpgradeDescription(type);
+
+    option.innerHTML=`
+      <div class="upgrade-art">
+        <span class="upgrade-glyph">${getUpgradeGlyph(type)}</span>
+        <span class="upgrade-number">0${index+1}</span>
       </div>
+      <div class="upgrade-meta">
+        <span class="upgrade-rarity">${rarity}</span>
+        <span>${levelText}</span>
+      </div>
+      <div class="upgrade-title">${getUpgradeTitle(type)}</div>
       <div class="upgrade-desc">${description}</div>
-    `;
+      <div class="upgrade-pick">${isMaxed?'TAKE BONUS':'CHOOSE CARD'}<span>›</span></div>`;
 
-    if (!isMaxed) {
-      option.addEventListener('click', () => selectUpgrade(type));
-    } else if (player.stats[type].level >= player.stats[type].max) {
-      // Allow clicking on maxed bonus upgrades for special rewards
-      option.addEventListener('click', () => selectBonusUpgrade(type));
-    }
-
+    option.onclick=()=>isMaxed?selectBonusUpgrade(type):selectUpgrade(type);
     upgradeOptions.appendChild(option);
   });
 
@@ -15675,58 +18306,60 @@ function selectBonusUpgrade(type) {
   }
 }
 
-  function getUpgradeTitle(type){
-    const titles = {
-      fireRate: 'Rapid Fire',
-      bulletSpeed: 'Hyper Velocity',
-      movement: 'Agility Boost',
-      knockback: 'Recoil Dampener',
-      bulletSize: 'Heavy Caliber',
-      bulletLife: 'Extended Range',
-      xpBoost: 'XP Magnet',
-      extraLife: 'Extra Life',
-      workers: 'Mini Bot',
-      ghost: 'Ghost Summoner',
-      holyLife: 'Holy Life',
-      killBoost: 'Kill Boost',
-      boomerang: 'Boomerang',
-      fire: 'Fire Pulse',
-      shotgun: 'Shotgun',
-      shield: 'Shield',
-      shieldRegen: 'Shield Regen',
-      health: 'Health',
-      damage: 'Damage Boost',
-      sprint: 'Sprint',
-      rocket: 'Heat Seeking Rocket',
-      powerBullet: 'Power Bullet',
-      knockbackBullets: 'Knockback Bullets',
-      workerCollector: 'Worker Collector',
-      flanker: 'Flanker',
-      shockwave: 'Shockwave',
-      guards: 'Guards',
-      freeze: 'Freeze',
-      lastResort: 'Last Resort',
-      music: 'Battle Nerve',
-      damageZone: 'Damage Zone',
-      minigun: 'Minigun',
-      saferSpaces: 'Safer Spaces',
-      mineLayer: 'Mine Layer',
-      mineCount: 'Mine Capacity',
-      cooldownRefresh: ' Dangerous situations',
-      reflectiveMirror: 'Mirror Shield',
-      lightningStrike: 'Lightning Strike',
-      fireBullet: 'Burning bullet',
-      inferno: 'Inferno Beam',
+function getUpgradeGlyph(type){
+  const glyphs={
+    fireRate:'⌁',bulletSpeed:'➤',movement:'◇',knockback:'◀',knockbackBullets:'◀',
+    bulletSize:'●',bulletLife:'∞',xpBoost:'✦',extraLife:'♥',health:'✚',
+    workers:'⚙',workerCollector:'⊕',ghost:'◌',holyLife:'✚',killBoost:'↑',
+    boomerang:'↶',fire:'♨',fireBullet:'♨',inferno:'☀',shotgun:'⋰',
+    shield:'⬡',shieldRegen:'⟳',damage:'✧',sprint:'»',rocket:'➶',
+    powerBullet:'◆',flanker:'↯',shockwave:'◉',guards:'⚔',freeze:'❄',
+    lastResort:'☄',music:'♫',damageZone:'◎',minigun:'≋',
+    saferSpaces:'⬢',mineLayer:'◆',mineCount:'◆',cooldownRefresh:'⟳',
+    reflectiveMirror:'◫',lightningStrike:'ϟ',teleport:'⌁',
+    turretPlanter:'♜',fortress:'▰',missileBarrage:'➶',tesla:'ϟ',sparky:'ϟ'
+  };
+  return glyphs[type]||'✦';
+}
 
-      teleport: 'Blink',
-      turretPlanter: 'Growth Turret',
-      fortress: 'Fortress',
-      missileBarrage: 'Missile Barrage',
-      tesla: 'Tesla Coil',
-      sparky: 'Sparky',
-    };
-    return titles[type];
-  }
+function getUpgradeTitle(type){
+  const titles={
+    fireRate:'Rapid Fire',bulletSpeed:'Hyper Velocity',movement:'Agility Boost',
+    knockback:'Recoil Dampener',bulletSize:'Heavy Caliber',bulletLife:'Extended Range',
+    xpBoost:'XP Magnet',extraLife:'Extra Life',workers:'Mini Bot',
+    ghost:'Ghost Summoner',holyLife:'Holy Life',killBoost:'Kill Boost',
+    boomerang:'Boomerang',fire:'Fire Pulse',shotgun:'Shotgun',
+    shield:'Shield',shieldRegen:'Shield Regen',health:'Health',
+    damage:'Damage Boost',sprint:'Sprint',rocket:'Heat Seeking Rocket',
+    powerBullet:'Power Bullet',knockbackBullets:'Knockback Bullets',
+    workerCollector:'Worker Collector',flanker:'Flanker',shockwave:'Shockwave',
+    guards:'Guards',freeze:'Freeze',lastResort:'Last Resort',
+    music:'Battle Nerve',damageZone:'Damage Zone',minigun:'Minigun',
+    saferSpaces:'Safer Spaces',mineLayer:'Mine Layer',mineCount:'Mine Capacity',
+    cooldownRefresh:'Dangerous Situations',reflectiveMirror:'Mirror Shield',
+    lightningStrike:'Lightning Strike',fireBullet:'Burning Bullet',
+    inferno:'Inferno Beam',teleport:'Blink',turretPlanter:'Growth Turret',
+    fortress:'Fortress',missileBarrage:'Missile Barrage',
+    tesla:'Tesla Coil',sparky:'Sparky'
+  };
+  return titles[type]||type;
+}
+
+function getUpgradeGlyph(type){
+  const glyphs={
+    fireRate:'⌁',bulletSpeed:'➤',movement:'◇',knockback:'◀',knockbackBullets:'◀',
+    bulletSize:'●',bulletLife:'∞',xpBoost:'✦',extraLife:'♥',health:'✚',
+    workers:'⚙',ghost:'◌',holyLife:'✚',killBoost:'↑',boomerang:'↶',
+    fire:'♨',fireBullet:'♨',inferno:'☀',shotgun:'⋰',shield:'⬡',
+    shieldRegen:'⟳',damage:'✧',sprint:'»',rocket:'➶',powerBullet:'◆',
+    shockwave:'◉',guards:'⚔',freeze:'❄',lastResort:'☄',music:'♫',
+    damageZone:'◎',minigun:'≋',saferSpaces:'⬢',mineLayer:'◆',
+    mineCount:'◆',cooldownRefresh:'⟳',reflectiveMirror:'◫',
+    lightningStrike:'ϟ',teleport:'⌁',turretPlanter:'♜',
+    fortress:'▰',missileBarrage:'➶',tesla:'ϟ',sparky:'ϟ'
+  };
+  return glyphs[type]||'✦';
+}
 
   function getUpgradeDescription(type){
     const descs = {
@@ -16101,12 +18734,17 @@ function selectBonusUpgrade(type) {
         }
         
         // In hardcore mode, skip extra life and shield upgrades
-        if (gameMode === 'hardcore' && 
-            (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
-          continue;
-        }
-        
-        if (player.stats[stat].level < player.stats[stat].max) {
+        if (gameMode === 'hardcore' &&
+          (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
+        continue;
+      }
+
+      // Classic skal ikke kunne finne byggeoppgraderinger på bakken
+      if (gameMode === 'classic' && BUILDING_ONLY_UPGRADES.includes(stat)) {
+        continue;
+      }
+
+      if (player.stats[stat].level < player.stats[stat].max) {
           availableTypes.push(stat);
         }
       }
@@ -17498,11 +20136,16 @@ for (const b of buildings) {
         }
         
         // In hardcore mode, skip extra life and shield upgrades
-        if (gameMode === 'hardcore' && 
+        if (gameMode === 'hardcore' &&
             (stat === 'extraLife' || stat === 'shield' || stat === 'health' || stat === 'holyLife')) {
           continue;
         }
-        
+
+        // Classic skal ikke kunne finne byggeoppgraderinger på bakken
+        if (gameMode === 'classic' && BUILDING_ONLY_UPGRADES.includes(stat)) {
+          continue;
+        }
+
         if (player.stats[stat].level < player.stats[stat].max) {
           availableTypes.push(stat);
         }
@@ -17697,51 +20340,232 @@ if (b.growth) {
     shake = Math.max(0, shake - dt*18);
   }
 
-  // rendering
-  function render(){
-    const playerColor = skins[currentSkin].playerColor;
-    const trailColor = skins[currentSkin].trailColor;
-    const sx = (Math.random()-0.5)*shake, sy = (Math.random()-0.5)*shake;
-    ctx.save(); ctx.translate(sx, sy);
+// rendering
+function arenaHash(seed) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
 
-    if (bossSpawnEffect) {
-      const progress = 1 - (bossSpawnEffect.timer / bossSpawnEffect.maxTimer);
-      const size = 200 + progress * 200;
-      const alpha = 0.8 * (1 - progress);
-      
-      ctx.fillStyle = `rgba(255,0,0,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(bossSpawnEffect.x, bossSpawnEffect.y, size, 0, Math.PI*2);
-      ctx.fill();
-    }
+function arenaPanelPath(x, y, width, height, radius = 12) {
+  const right = x + width;
+  const bottom = y + height;
 
-    ctx.clearRect(0,0,W,H);
-    // Reposition boss health bar to canvas top centre
-    const canvasRect = canvas.getBoundingClientRect();
-    bossHealth.style.top = (canvasRect.top + 10) + 'px'; // 10px gap
-    bossHealth.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
-    bossHealth.style.transform = 'translateX(-50%)';
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(right - radius, y);
+  ctx.quadraticCurveTo(right, y, right, y + radius);
+  ctx.lineTo(right, bottom - radius);
+  ctx.quadraticCurveTo(right, bottom, right - radius, bottom);
+  ctx.lineTo(x + radius, bottom);
+  ctx.quadraticCurveTo(x, bottom, x, bottom - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
 
-    // Reposition ability cooldown bar to canvas bottom centre
-    abilityCooldown.style.top = (canvasRect.bottom - 30) + 'px'; // 30px above canvas bottom
-    abilityCooldown.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
-    abilityCooldown.style.transform = 'translate(-50%, -100%)';
+function drawArenaBackground(currentTime) {
+  const time = currentTime * 0.001;
+  const isHardcore = gameMode === 'hardcore';
+  const isFreemode = gameMode === 'freemode';
+  const isBuilder = gameMode === 'builder';
+
+  const palette = isHardcore
+    ? {
+        top: '#170306',
+        bottom: '#040507',
+        nebula: '145, 18, 25',
+        stars: '255, 125, 110',
+        grid: 'rgba(255, 82, 82, 0.13)'
+      }
+    : isFreemode
+      ? {
+          top: '#040916',
+          bottom: '#020508',
+          nebula: '34, 70, 135',
+          stars: '115, 180, 255',
+          grid: 'rgba(91, 155, 205, 0.1)'
+        }
+      : isBuilder
+        ? {
+            top: '#0b0711',
+            bottom: '#030508',
+            nebula: '86, 57, 105',
+            stars: '181, 142, 205',
+            grid: 'rgba(139, 111, 157, 0.1)'
+          }
+        : {
+            top: '#061014',
+            bottom: '#020507',
+            nebula: '37, 91, 84',
+            stars: '132, 196, 181',
+            grid: 'rgba(93, 148, 136, 0.1)'
+          };
+
+  const movementSpeed = isHardcore ? 3.2 : 1;
+
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Opaque background prevents the page behind the canvas from showing through.
+  const baseGradient = ctx.createLinearGradient(0, -80, W, H + 80);
+  baseGradient.addColorStop(0, palette.top);
+  baseGradient.addColorStop(1, palette.bottom);
+
+  ctx.fillStyle = baseGradient;
+  ctx.fillRect(-80, -80, W + 160, H + 160);
+
+  // Slow moving nebula clouds.
+  const nebulaX = W * 0.72 + Math.sin(time * 0.12 * movementSpeed) * 90;
+  const nebulaY = H * 0.27 + Math.cos(time * 0.09 * movementSpeed) * 55;
+  const nebula = ctx.createRadialGradient(
+    nebulaX,
+    nebulaY,
+    20,
+    nebulaX,
+    nebulaY,
+    W * 0.55
+  );
+
+  nebula.addColorStop(0, `rgba(${palette.nebula}, ${isHardcore ? 0.3 : 0.14})`);
+  nebula.addColorStop(0.45, `rgba(${palette.nebula}, 0.06)`);
+  nebula.addColorStop(1, `rgba(${palette.nebula}, 0)`);
+
+  ctx.fillStyle = nebula;
+  ctx.fillRect(-80, -80, W + 160, H + 160);
+
+  // Moving stars with several depth levels.
+  for (let index = 0; index < 105; index++) {
+    const depth = 0.25 + arenaHash(index + 40) * 0.9;
+    const travel = time * (3 + depth * 9) * movementSpeed;
+    const starX = (
+      arenaHash(index * 2 + 1) * (W + 80) + travel
+    ) % (W + 80) - 40;
+
+    const starY =
+      arenaHash(index * 2 + 2) * H +
+      Math.sin(time * 0.35 + index) * depth * 2;
+
+    const starSize = 0.45 + depth * 1.15;
+    const starAlpha =
+      0.18 +
+      depth * 0.42 +
+      Math.sin(time * 1.4 + index) * 0.08;
+
+    ctx.fillStyle = `rgba(${palette.stars}, ${Math.max(0.08, starAlpha)})`;
+    ctx.beginPath();
+    ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Fast danger streaks. Hardcore gets more and faster streaks.
+  const streakAmount = isHardcore ? 10 : 3;
+  const streakSpeed = isHardcore ? 320 : 85;
+
+  ctx.lineCap = 'round';
+
+  for (let index = 0; index < streakAmount; index++) {
+    const travel = (
+      time * streakSpeed + index * 310
+    ) % (W + 500);
+
+    const streakX = W + 240 - travel;
+    const streakY = 70 + ((index * 173) % Math.max(100, H - 140));
+
+    ctx.strokeStyle = `rgba(${palette.stars}, ${isHardcore ? 0.17 : 0.08})`;
+    ctx.lineWidth = isHardcore ? 1.5 : 1;
+    ctx.beginPath();
+    ctx.moveTo(streakX, streakY);
+    ctx.lineTo(
+      streakX - (isHardcore ? 105 : 65),
+      streakY + (isHardcore ? 28 : 15)
+    );
+    ctx.stroke();
+  }
+
+  // Subtle moving tactical grid.
+  const gridSize = 50;
+  const gridSpeedX = isHardcore ? 26 : 6;
+  const gridSpeedY = isHardcore ? 15 : 3;
+  const gridOffsetX = (time * gridSpeedX) % gridSize;
+  const gridOffsetY = (time * gridSpeedY) % gridSize;
+
+  ctx.strokeStyle = palette.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+
+  for (
+    let x = -gridSize + gridOffsetX;
+    x < W + gridSize;
+    x += gridSize
+  ) {
+    ctx.moveTo(x, -60);
+    ctx.lineTo(x, H + 60);
+  }
+
+  for (
+    let y = -gridSize + gridOffsetY;
+    y < H + gridSize;
+    y += gridSize
+  ) {
+    ctx.moveTo(-60, y);
+    ctx.lineTo(W + 60, y);
+  }
+
+  ctx.stroke();
+
+  // Dark vignette keeps the centre readable.
+  const vignette = ctx.createRadialGradient(
+    W * 0.5,
+    H * 0.48,
+    W * 0.16,
+    W * 0.5,
+    H * 0.48,
+    W * 0.72
+  );
+
+  vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vignette.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
+
+  ctx.fillStyle = vignette;
+  ctx.fillRect(-80, -80, W + 160, H + 160);
+
+  ctx.restore();
+}
+
+function render(){
+  const playerColor = skins[currentSkin].playerColor;
+  const trailColor = skins[currentSkin].trailColor;
+  const sx = (Math.random()-0.5)*shake;
+  const sy = (Math.random()-0.5)*shake;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  ctx.clearRect(-80, -80, W + 160, H + 160);
+  drawArenaBackground(performance.now());
+
+  if (bossSpawnEffect) {
+    const progress = 1 - (bossSpawnEffect.timer / bossSpawnEffect.maxTimer);
+    const size = 200 + progress * 200;
+    const alpha = 0.8 * (1 - progress);
     
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1;
-    const gridSize = 50;
-    for (let x = 0; x < W; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, H);
-      ctx.stroke();
-    }
-    for (let y = 0; y < H; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-      ctx.stroke();
-    }
+    ctx.fillStyle = `rgba(255,0,0,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(bossSpawnEffect.x, bossSpawnEffect.y, size, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Reposition boss health bar to canvas top centre
+  const canvasRect = canvas.getBoundingClientRect();
+  bossHealth.style.top = (canvasRect.top + 10) + 'px';
+  bossHealth.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+  bossHealth.style.transform = 'translateX(-50%)';
+
+  // Reposition ability cooldown bar to canvas bottom centre
+  abilityCooldown.style.top = (canvasRect.bottom - 30) + 'px';
+  abilityCooldown.style.left = (canvasRect.left + canvasRect.width/2) + 'px';
+  abilityCooldown.style.transform = 'translate(-50%, -100%)';
 
     // Draw lightning strikes
     for (const lightning of lightningStrikes) {
@@ -18999,16 +21823,31 @@ for (const b of buildings) {
     ctx.fillStyle = 'rgba(255,255,255,0.1)';
     ctx.font = '12px sans-serif';
     const abilityNames = {
+      mineLayer: 'MINE LAYER',
+      minelayer: 'MINE LAYER',
       tripleShot: 'TRIPLE SHOT',
       shockwave: 'SHOCKWAVE',
       guards: 'GUARDS',
       freeze: 'FREEZE',
       lastResort: 'LAST RESORT',
       damageZone: 'DAMAGE ZONE',
-      saferSpaces: 'SAFER SPACES'
+      saferSpaces: 'SAFER SPACES',
+      teleport: 'TELEPORT',
+      turretPlanter: 'TURRET PLANTER',
+      fortress: 'FORTRESS',
+      missileBarrage: 'MISSILE BARRAGE',
+      tesla: 'TESLA',
+      sparky: 'SPARKY'
     };
-    ctx.fillText(`ABILITY: ${abilityNames[emergencyAbility]}`, 10, H - 140);
 
+    const activeAbilityName =
+      abilityNames[emergencyAbility] ||
+      emergencyAbility
+        .replace(/([A-Z])/g, ' $1')
+        .trim()
+        .toUpperCase();
+
+    ctx.fillText(`ABILITY: ${activeAbilityName}`, 10, H - 140);
     
 
 
@@ -19053,64 +21892,153 @@ for (const b of buildings) {
       ctx.beginPath();
       ctx.fillStyle = p.col || 'rgba(255,255,255,0.9)';
       ctx.globalAlpha = Math.max(0, p.life / 1.2);
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
       ctx.globalAlpha = 1;
     }
 
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'; 
-    ctx.fillRect(10,10,280,86);
-    ctx.fillStyle = '#fff'; 
-    ctx.font = '14px sans-serif'; 
-    ctx.fillText('Score: ' + score, 22, 30);
-    ctx.fillText('Echoes: ' + echoes.length, 22, 50);
-    ctx.fillText('Level: ' + playerLevel, 22, 70);
-    ctx.fillText('Lives: ' + player.lives, 22, 90);
-    
-    if (!maxLevelReached) {
-      const xpPercent = playerXP / xpToNextLevel;
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(W - 210, 20, 200, 12);
-      ctx.fillStyle = '#7ee787';
-      ctx.fillRect(W - 210, 20, 200 * xpPercent, 12);
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(W - 210, 20, 200, 12);
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('XP: ' + playerXP + '/' + xpToNextLevel, W - 205, 30);
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(W - 210, 20, 200, 12);
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(W - 210, 20, 200, 12);
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(W - 210, 20, 200, 12);
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('MAX LEVEL REACHED', W - 205, 30);
+    // HUD skal ikke flyttes av screen shake eller arve textAlign fra fiender.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    const hudAccent =
+      gameMode === 'hardcore' ? '#ff6464' :
+      gameMode === 'freemode' ? '#65aef3' :
+      gameMode === 'builder' ? '#a78ac0' :
+      '#79b8a2';
+
+    // Venstre telemetry-panel.
+    const statsX = 18;
+    const statsY = 18;
+    const statsWidth = 268;
+    const statsHeight = 112;
+
+    arenaPanelPath(statsX, statsY, statsWidth, statsHeight, 12);
+    ctx.fillStyle = 'rgba(3, 9, 13, 0.86)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(145, 175, 169, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = hudAccent;
+    ctx.fillRect(statsX, statsY + 12, 3, statsHeight - 24);
+
+    ctx.fillStyle = 'rgba(205, 222, 218, 0.58)';
+    ctx.font = '700 10px Inter, sans-serif';
+    ctx.fillText('ARENA TELEMETRY // LIVE', statsX + 16, statsY + 22);
+
+    const statItems = [
+      { label: 'SCORE', value: score, x: statsX + 16, y: statsY + 48 },
+      { label: 'ECHOES', value: echoes.length, x: statsX + 142, y: statsY + 48 },
+      { label: 'LEVEL', value: playerLevel, x: statsX + 16, y: statsY + 84 },
+      { label: 'LIVES', value: player.lives, x: statsX + 142, y: statsY + 84 }
+    ];
+
+    for (const item of statItems) {
+      ctx.fillStyle = 'rgba(173, 194, 190, 0.55)';
+      ctx.font = '700 9px Inter, sans-serif';
+      ctx.fillText(item.label, item.x, item.y);
+
+      ctx.fillStyle = '#e7efed';
+      ctx.font = '700 17px Inter, sans-serif';
+      ctx.fillText(String(item.value), item.x, item.y + 19);
     }
-    
+
+    // Høyre signal- og XP-panel.
+    const xpPanelX = W - 286;
+    const xpPanelY = 18;
+    const xpPanelWidth = 268;
+    const xpPanelHeight = 106;
+    const xpPercent = maxLevelReached
+      ? 1
+      : Math.min(1, Math.max(0, playerXP / xpToNextLevel));
+
+    arenaPanelPath(
+      xpPanelX,
+      xpPanelY,
+      xpPanelWidth,
+      xpPanelHeight,
+      12
+    );
+
+    ctx.fillStyle = 'rgba(3, 9, 13, 0.86)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(145, 175, 169, 0.2)';
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(205, 222, 218, 0.58)';
+    ctx.font = '700 10px Inter, sans-serif';
+    ctx.fillText(
+      maxLevelReached ? 'SIGNAL LEVEL // MAXIMUM' : `SIGNAL LEVEL // ${playerLevel}`,
+      xpPanelX + 14,
+      xpPanelY + 23
+    );
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#dce8e5';
+    ctx.fillText(
+      maxLevelReached ? 'MAX LEVEL' : `${playerXP} / ${xpToNextLevel} XP`,
+      xpPanelX + xpPanelWidth - 14,
+      xpPanelY + 23
+    );
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    ctx.fillRect(xpPanelX + 14, xpPanelY + 38, xpPanelWidth - 28, 9);
+
+    ctx.fillStyle = maxLevelReached ? '#d5bd62' : hudAccent;
+    ctx.fillRect(
+      xpPanelX + 14,
+      xpPanelY + 38,
+      (xpPanelWidth - 28) * xpPercent,
+      9
+    );
+
     if (player.autoFireToggle) {
-      const autoFirePercent = autoFireTimer / player.fireRate;
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(W - 210, 40, 200, 8);
-      ctx.fillStyle = '#74c0fc';
-      ctx.fillRect(W - 210, 40, 200 * autoFirePercent, 8);
+      const autoFirePercent = Math.min(
+        1,
+        Math.max(0, autoFireTimer / player.fireRate)
+      );
+
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.fillRect(xpPanelX + 14, xpPanelY + 59, xpPanelWidth - 28, 4);
+
+      ctx.fillStyle = '#69a9c9';
+      ctx.fillRect(
+        xpPanelX + 14,
+        xpPanelY + 59,
+        (xpPanelWidth - 28) * autoFirePercent,
+        4
+      );
     }
-    
-    if (player.maxWorkers > 0) {
-        ctx.fillStyle = '#63e6be';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('Bots: ' + player.workers.length, W - 210, 65);
-    }
-    
+
+    const statusParts = [];
+
     if (pendingUpgrades > 0 && !maxLevelReached) {
-      ctx.fillStyle = 'rgba(126,231,135,0.8)';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Upgrades: ' + pendingUpgrades, W - 210, 85);
+      statusParts.push(`${pendingUpgrades} UPGRADE READY`);
     }
-    
+
+    if (player.maxWorkers > 0) {
+      statusParts.push(`${player.workers.length} BOTS`);
+    }
+
+    if (player.autoFireToggle) {
+      statusParts.push('AUTO-FIRE');
+    }
+
+    ctx.fillStyle = statusParts.length > 0
+      ? hudAccent
+      : 'rgba(173, 194, 190, 0.45)';
+
+    ctx.font = '700 10px Inter, sans-serif';
+    ctx.fillText(
+      statusParts.join(' // ') || 'ARENA LINK STABLE',
+      xpPanelX + 14,
+      xpPanelY + 87
+    );
+
     if (endlessMode) {
       ctx.fillStyle = 'rgba(255,100,100,0.8)';
       ctx.font = '12px sans-serif';
