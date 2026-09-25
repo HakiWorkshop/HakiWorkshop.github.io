@@ -33,7 +33,7 @@
     .monster-category-heading h3{margin:0;font-size:clamp(1.55rem,3vw,2.3rem);letter-spacing:-.045em}
     .monster-category-heading>span{padding-bottom:4px;color:#65717d;font:700 9px/1.3 "Courier New",monospace;letter-spacing:.14em;text-transform:uppercase}
     .monster-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-    .monster-card{--card-accent:var(--monster-color);position:relative;display:grid;grid-template-rows:148px 1fr;min-height:378px;overflow:hidden;border:1px solid rgba(var(--monster-rgb),.25);background:linear-gradient(145deg,rgba(var(--monster-rgb),.07),rgba(5,13,23,.98) 52%);clip-path:polygon(0 12px,12px 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);transition:transform .2s ease,border-color .2s ease,background .2s ease}
+    .monster-card{--card-accent:var(--monster-color);position:relative;display:grid;grid-template-rows:176px 1fr;min-height:406px;overflow:hidden;border:1px solid rgba(var(--monster-rgb),.25);background:linear-gradient(145deg,rgba(var(--monster-rgb),.07),rgba(5,13,23,.98) 52%);clip-path:polygon(0 12px,12px 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);transition:transform .2s ease,border-color .2s ease,background .2s ease}
     .monster-card:hover{transform:translateY(-3px);border-color:rgba(var(--monster-rgb),.58);background:linear-gradient(145deg,rgba(var(--monster-rgb),.13),rgba(5,13,23,.98) 52%)}
     .monster-card:after{content:"";position:absolute;top:0;right:0;width:62px;height:1px;background:var(--card-accent);box-shadow:0 0 12px rgba(var(--monster-rgb),.55)}
     .monster-portrait{position:relative;display:grid;place-items:center;overflow:hidden;border-bottom:1px solid rgba(var(--monster-rgb),.2);background:radial-gradient(circle at 50% 46%,rgba(var(--monster-rgb),.16),transparent 52%),linear-gradient(180deg,rgba(1,5,10,.15),rgba(0,0,0,.25))}
@@ -62,15 +62,39 @@
     .monster-mechanic b{color:var(--card-accent);font:700 8px/1 "Courier New",monospace;letter-spacing:.12em;text-transform:uppercase}
     .monster-subnote{margin:-37px 0 72px;padding:16px 18px;border-top:1px solid rgba(121,216,255,.2);border-bottom:1px solid var(--line);color:#7f8d97;background:linear-gradient(90deg,rgba(121,216,255,.05),transparent 75%);font-size:11px;line-height:1.6}
     .monster-subnote strong{color:#79d8ff;font:700 9px/1.2 "Courier New",monospace;letter-spacing:.15em;text-transform:uppercase}
+
+    /* fiender.png atlas -------------------------------------------------
+       The image is read as a 7-column × 4-row sheet in signal order:
+       row 1 Regulars, rows 2-3 Elites, rows 3-4 Bosses.
+       SVG art remains as an automatic fallback if fiender.png is missing. */
+    .monster-sprite,.monster-fallback{position:absolute;inset:0}
+    .monster-sprite{
+      display:none;
+      background-image:url("fiender.png");
+      background-repeat:no-repeat;
+      background-size:700% 400%;
+      background-position:var(--sprite-x,0%) var(--sprite-y,0%);
+      filter:drop-shadow(0 9px 16px rgba(0,0,0,.5));
+      transform:scale(1.015);
+      transform-origin:center;
+      transition:transform .25s ease,filter .25s ease;
+    }
+    .fiender-atlas-ready .monster-sprite{display:block}
+    .fiender-atlas-ready .monster-fallback{display:none}
+    .monster-fallback{display:grid;place-items:center}
+    .monster-fallback .monster-art{width:100%;height:100%;max-width:250px}
+    .fiender-atlas-ready .monster-portrait:before{opacity:.36}
+    .monster-card:hover .monster-sprite{transform:scale(1.055);filter:drop-shadow(0 12px 20px rgba(0,0,0,.58))}
+
     @media(max-width:980px){.monster-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:840px){.monster-intro{grid-template-columns:1fr;gap:16px}}
-    @media(max-width:620px){.monster-archive{width:min(100% - 24px,1180px)}.monster-grid{grid-template-columns:1fr}.monster-card{grid-template-rows:155px 1fr;min-height:0}.monster-category-heading{align-items:start;flex-direction:column;gap:9px}.monster-category-heading>span{padding-bottom:0}.monster-subnote{margin:-37px 0 62px}}
+    @media(max-width:620px){.monster-archive{width:min(100% - 24px,1180px)}.monster-grid{grid-template-columns:1fr}.monster-card{grid-template-rows:176px 1fr;min-height:0}.monster-category-heading{align-items:start;flex-direction:column;gap:9px}.monster-category-heading>span{padding-bottom:0}.monster-subnote{margin:-37px 0 62px}}
     @media(prefers-reduced-motion:reduce){.monster-card,.monster-art{transition:none}.monster-card:hover{transform:none}}
   </style>
 </head>
 <body>
   <main>
-    <header class="hero"><div class="hero-grid" aria-hidden="true"></div><div class="hero-inner"><p class="eyebrow"><i></i>EchoSwap data archive</p><h1><span>ITEM</span> FIELD MANUAL</h1><p class="intro">A current V.48 reference for obtainable upgrades, emergency abilities, Evolution combo cards, boss artifacts and the hostile signal roster in <strong>EchoSwap — Amplified Arena</strong>.</p><div class="signal-line"><span>LIVE BALANCE SNAPSHOT</span><span>SOURCE BUILD 23.09.2026</span><span>AUDITED 23.09.2026</span><span>ITEMS + EVOLUTIONS + SIGNALS</span></div></div></header>
+    <header class="hero"><div class="hero-grid" aria-hidden="true"></div><div class="hero-inner"><p class="eyebrow"><i></i>EchoSwap data archive</p><h1><span>ITEM</span> FIELD MANUAL</h1><p class="intro">A current V.48 reference for obtainable upgrades, emergency abilities, Evolution combo cards, boss artifacts and the hostile signal roster in <strong>EchoSwap — Amplified Arena</strong>.</p><div class="signal-line"><span>LIVE BALANCE SNAPSHOT</span><span>SOURCE BUILD 25.09.2026</span><span>AUDITED 25.09.2026</span><span>ITEMS + EVOLUTIONS + SIGNALS</span></div></div></header>
     <nav class="rarity-nav" aria-label="Jump to archive section"><a class="nav-base" href="#rarity-base">Base</a><a class="nav-common" href="#rarity-common">Common</a><a class="nav-rare" href="#rarity-rare">Rare</a><a class="nav-legendary" href="#rarity-legendary">Legendary</a><a class="nav-mythical" href="#rarity-mythical">Mythical</a><a class="nav-evolution" href="#rarity-evolution">Evolution</a><a class="nav-artifact" href="#rarity-artifact">Artifact</a><a class="nav-monsters" href="#monster-archive">Monsters</a></nav>
     <section class="reading-key"><div><p class="section-kicker">READING THE ARCHIVE</p><h2>One card. Every level.</h2></div><p>Repeated effects apply once per level unless a card lists a different value for each level. Choosing an emergency ability replaces the one currently equipped. Structure upgrades appear in Builder Mode and Freemode; Builder-only artifacts are marked separately. Random endless-mode bosses do not award a Boss Cache. Evolution combo cards only become eligible when every listed requirement is met; a completed recipe is guaranteed in the next Boss Cache and each Evolution can be taken once per game. Scroll to the bottom for the complete hostile monster index.</p></section>
     <div class="rarity-legend" aria-label="Item rarity colors"><span class="legend-base"><i></i>Base</span><span class="legend-common"><i></i>Common</span><span class="legend-rare"><i></i>Rare</span><span class="legend-legendary"><i></i>Legendary</span><span class="legend-mythical"><i></i>Mythical</span><span class="legend-evolution"><i></i>Evolution combo</span><span class="legend-artifact"><i></i>Artifact</span></div>
@@ -88,16 +112,16 @@
       ["Extended Range","∞","common",2,"Keeps bullets alive longer and extends Builder structure range.",["L1 · +50% bullet lifetime and structure range.","L2 · +50% bullet lifetime and further structure range."]],
       ["XP Magnet","✦","common",4,"Improves XP value, orb lifetime and collection range.",["L1 · Orbs last 6 seconds longer and grant +17% XP.","L2 · Another +12% XP, for +29% total.","L3 · Pulls every XP orb within 850 range and reaches +39% total XP.","L4 · Every 6th orb triggers Resonance and summons a Bound Wraith."]],
       ["Damage Boost","✧","common",5,"Raises the damage dealt by standard bullets.",["L1 · +25% damage.","L2 · +25% damage.","L3 · +30% damage.","L4 · +40% damage.","L5 · +50% damage."]],
-      ["Flanker","↯","common",5,"Adds rear-facing bolts to the main firing cycle.",["L1 · Every 3rd shot fires 1 rear bolt at 70% damage.","L2 · Every 3rd shot fires 2 bolts in a 24° fan at 65% damage.","L3 · Every 2nd shot fires 2 bolts in a 30° fan at 70% damage.","L4 · Every 2nd shot fires 3 faster bolts in a 45° fan at 70% damage.","L5 · Rear Lock fires 4 bolts every 2nd shot in a 55° fan at 75% damage; rear bolts gently home toward nearby enemies."]] ,
+      ["Flanker","↯","common",5,"Adds rear-facing bolts to the main firing cycle.",["L1 · Every 3rd shot fires 1 rear bolt at 73% damage.","L2 · Every 3rd shot fires 2 rear bolts in a 24° fan at 68% damage.","L3 · Every 2nd shot fires 2 rear bolts in a 30° fan at 73% damage.","L4 · Every 2nd shot fires 3 faster rear bolts in a 45° fan at 73% damage.","L5 · Rear Lock fires 4 faster bolts every 2nd shot in a 55° fan at 79% damage and targets enemies behind you."]],
       ["Extra Life","♥","rare",1,"Provides a large one-time survivability increase.",["Gain 4 additional lives."],["Unavailable in Hardcore"]],
-      ["Kill Boost","↑","rare",3,"Grants a temporary movement burst after a kill.",["L1 · +40% speed for 3 seconds.","L2 · +50% speed for 4 seconds.","L3 · +60% speed for 5 seconds."]],
-      ["Shotgun","⋰","rare",5,"Adds a short-range forward pellet volley.",["L1 · Every 3rd shot fires 2 short-range pellets at 65% damage.","L2 · Every 3rd shot fires 3 wider pellets at 65% damage.","L3 · Every 2nd shot fires 4 pellets at 70% damage.","L4 · Every 2nd shot fires 5 wide pellets at 75% damage.","L5 · Fires 6 wide pellets with every shot at 80% damage."]],
+      ["Kill Boost","↑","rare",3,"Grants a temporary movement burst after a kill.",["L1 · +40% speed for 3 seconds after a kill.","L2 · +50% speed for 5 seconds after a kill.","L3 · +60% speed for 6 seconds after a kill."]],
+      ["Shotgun","⋰","rare",5,"Adds a short-range forward pellet volley.",["L1 · Every 3rd shot fires 2 short-range pellets at 68% damage.","L2 · Every 3rd shot fires 3 wider pellets at 68% damage.","L3 · Every 2nd shot fires 4 pellets at 73% damage.","L4 · Every 2nd shot fires 5 wide pellets at 78% damage.","L5 · Breach Volley fires 6 wide pellets with every shot at 83% damage."]],
       ["Shield","⬡","rare",3,"Adds shield points that absorb incoming damage.",["L1 · Gain 3 shield points.","L2 · Increase maximum shield to 5.","L3 · Increase maximum shield to 6."],["Unavailable in Hardcore"]],
-      ["Sprint","»","rare",3,"Boosts movement and heals while you are not shooting.",["L1 · +50% speed; heal 1 HP every 15 seconds, up to 10 HP.","L2 · +75% speed; heal 1 HP every 10 seconds, up to 10 HP.","L3 · +100% speed; heal 1 HP every 8 seconds, up to 100 HP."]],
+      ["Sprint","»","rare",3,"Boosts movement while you are not shooting and accelerates emergency cooldown recovery.",["L1 · +50% movement speed while not shooting; emergency cooldown recovers 2× faster while sprinting.","L2 · +75% movement speed while not shooting; emergency cooldown recovers 2× faster while sprinting.","L3 · +100% movement speed while not shooting; emergency cooldown recovers 2× faster while sprinting."]],
       ["Power Bullet","◆","rare",3,"Periodically fires a slower, heavier projectile that can hit extra targets.",["L1 · Every 4th bullet deals 2× damage, travels at half speed and can hit up to 3 enemies.","L2 · Every 3rd bullet deals 3× damage and can hit up to 4 enemies.","L3 · Every 2nd bullet deals 4× damage and can hit up to 5 enemies."]],
       ["Knockback Bullets","◀","rare",4,"Pushes enemies away when your bullets connect.",["L1 · Bullets push enemies back.","L2 · Pushes enemies a greater distance.","L3 · Adds a small area knockback around the hit.","L4 · Nearby enemies hit by the area effect are also frozen for 0.5 seconds."]],
       ["Worker Collector","⊕","rare",3,"Deploys a bot dedicated to collecting XP orbs.",["L1 · Deploy a Collector Bot.","L2 · +50% movement speed and +50% XP gained from collected orbs.","L3 · Adds a slow auto-aim weapon that fires every 0.75 seconds."]],
-      ["Minigun","≋","rare",5,"Adds an independent stream of compact tracer rounds.",["L1 · Fire every 0.40 seconds at 30% damage.","L2 · Fire every 0.28 seconds at 32% damage with improved accuracy.","L3 · Fire every 0.20 seconds at 34% damage with improved accuracy.","L4 · Fire every 0.14 seconds at 36% damage with improved accuracy.","L5 · Overdrive fires every 0.09 seconds at 38% damage with tight accuracy."]],
+      ["Minigun","≋","rare",5,"Adds an independent stream of compact tracer rounds.",["L1 · Fire every 0.28 seconds at 31% bullet damage.","L2 · Fire every 0.20 seconds at 33% damage with improved accuracy.","L3 · Fire every 0.14 seconds at 35% damage with improved accuracy.","L4 · Fire every 0.10 seconds at 37% damage with improved accuracy.","L5 · Overdrive fires every 0.07 seconds at 40% damage with tight accuracy."]],
       ["Dangerous Situations","⟳","rare",1,"Links incoming health damage to your emergency system.",["Taking health damage instantly refreshes the emergency ability cooldown."]],
       ["Mirror Shield","◫","rare",3,"Reflects a portion of hostile projectiles around the player.",["L1 · 30% reflect chance; reflected bullets deal normal damage.","L2 · 50% reflect chance; reflected bullets deal 1.5× damage.","L3 · 60% reflect chance; reflected bullets deal 2× damage and pierce up to 3 enemies."]],
       ["Blink","⌁","rare",1,"A quick repositioning emergency ability.",["Blink 150 units in your movement direction, or toward the cursor; base cooldown: 4 seconds."],["Emergency ability"]],
@@ -108,39 +132,44 @@
       ["Sentinel Drones","⚙","legendary",4,"Deploys orbiting drones that automatically fire at enemies.",["L1 · Deploy 2 Sentinel Drones.","L2 · Deploy 2 more drones and increase their fire rate.","L3 · Deploy 2 more drones and increase fire rate again.","L4 · Deploy 4 more drones and reach maximum fire rate."]],
       ["Ghost Summoner","◌","legendary",3,"Killed enemies can return as temporary allied Bound Wraiths.",["L1 · 20% summon chance; maximum 4 active.","L2 · 30% chance; maximum 6; longer lifetime and +25% damage.","L3 · 40% chance; maximum 8; faster attacks and +50% damage."]],
       ["Holy Life","✚","legendary",1,"Massively amplifies the lives already held.",["Triple your current lives."],["Unavailable in Hardcore"]],
-      ["Boomerang","↶","legendary",3,"Gives standard bullets a chance to return after traveling outward.",["L1 · 20% return chance.","L2 · 50% return chance.","L3 · 100% return chance."]],
+      ["Boomerang","↶","legendary",2,"Turns a portion of standard shots into homing return projectiles with a damaging return blast.",["L1 · 20% chance for a shot to become a homing boomerang; it can hit each enemy once outbound and once on the return leg.","L2 · 40% chance; stronger homing and return speed; return hits create a larger splash explosion. Boomerang size is independent of Heavy Caliber."]],
       ["Shield Regen","⟳","legendary",2,"Restores shield after avoiding damage and eventually adds overcharge capacity.",["L1 · After 5 seconds without damage, restore 1 Shield every 2.5 seconds.","L2 · Start regenerating after 3 seconds, restore 1 Shield every 1.5 seconds and gain 1 extra shield capacity."],["Requires Shield"]],
       ["Hunter Missile","➶","legendary",1,"Adds homing splash damage to the standard firing cycle.",["Each shot has a 50% chance to launch a homing missile."]],
       ["Freeze","❄","legendary",1,"A global crowd-control emergency ability.",["Freeze every enemy for 3 seconds; base cooldown: 20 seconds.","Swapping emergency ability while Freeze is active immediately releases frozen enemies."],["Emergency ability"]],
-      ["Rift Field","◎","legendary",2,"Creates a damaging pressure field around the player.",["L1 · 115 radius; pulses every 0.48 seconds; inner area deals 50% more damage and repels regular enemies.","L2 · 145 radius; pulses every 0.36 seconds with higher damage and stronger crowd control. Boss damage remains reduced."]],
+      ["Rift Field","◎","legendary",2,"Creates a damaging pressure field around the player.",["L1 · 115 radius; pulses every 0.48 seconds; the inner 52% deals 50% more damage and strongly repels regular enemies.","L2 · 175 radius; pulses every 0.26 seconds with higher base damage; the inner 52% deals 80% more damage and crowd control is stronger. Boss damage remains reduced."]],
       ["Safer Spaces","⬢","legendary",1,"A defensive emergency ability that follows the player.",["Deploy a 5-integrity circular shield for 10 seconds; enemy bullets and regular enemies consume integrity; base cooldown: 20 seconds."],["Emergency ability"]],
       ["Burning Bullet","♨","legendary",3,"Standard player bullets inflict damage over time.",["L1 · Burn for 3 seconds at 0.2 damage per tick.","L2 · Burn for 6 seconds at 0.5 damage per tick.","L3 · Burn for 10 seconds at 1 damage per tick."]],
-      ["Inferno Beam","☀","legendary",1,"Locks a growing beam onto the nearest enemy.",["The beam ramps through 0.1 → 0.5 → 2.5 → 12.5 damage stages, lasting 3s, 3s and 5s before reaching maximum power; resets when the target changes."],["Replaces emergency ability"]],
+      ["Inferno Beam","☀","legendary",1,"Locks a continuous passive beam onto the nearest valid enemy and ramps damage while the lock is maintained.",["The beam ramps through 0.1 → 0.5 → 2.5 → 12.5 damage stages, lasting 3s, 3s and 5s before reaching maximum power; resets when the target changes."],[]],
       ["Missile Barrage","➶","legendary",1,"A high-burst homing emergency ability.",["Launch 12 staggered, high-damage homing missiles; base cooldown: 30 seconds."],["Emergency ability"]],
       ["Fortified Foundations","▣","legendary",1,"Strengthens every structure in Builder Mode and Freemode.",["Increase maximum health of every structure by 25%."],["Builder / Freemode"]],
       ["Mobile Foundry","⚙","legendary",1,"Turns Drone Foundries into faster, larger production hubs.",["Drone Foundries build drones 30% faster and hold 2 additional drones, but Foundries have 20% less health."],["Builder / Freemode","Requires Drone Foundry"]],
       ["Overcharged Grid","⌗","legendary",1,"Overcharges structures linked to multiple Grid Barriers.",["Structures linked to at least 2 Grid Barriers gain +15% damage, +15% fire rate and +10% range."],["Builder / Freemode","Requires Grid Barrier"]],
       ["Drone Vanguard","✦","legendary",1,"Upgrades the combat drones produced by Drone Foundries.",["Drone Foundry drones gain 2 HP, +55% damage, +30% fire rate, +25% speed and +15% range."],["Builder / Freemode","Requires Drone Foundry"]],
       ["Anchor Artillery","⌖","legendary",1,"Adds a tracking cannon to the Tether Anchor.",["The Tether Anchor fires a homing tracking bolt every 1.68 seconds."],["Builder / Freemode","Requires Tether Anchor"]],
-      ["Internal Combustion","♨","mythical",2,"Stores bullet damage as heat before releasing a delayed detonation.",["L1 · Store 30% of damage as heat; after 0.6 seconds without another hit, detonate up to 250% of one normal bullet's damage.","L2 · Store 45% of damage up to 400%; the detonation also splashes 50% of stored heat to nearby enemies."]],
+      ["Internal Combustion","♨","mythical",2,"Stores a portion of hit damage as heat, then detonates it after a short gap in incoming hits.",["L1 · Store 35% of bullet damage as heat; after 0.7 seconds without another hit, detonate up to 300% of one normal bullet's damage.","L2 · Store 55% of damage up to 500%; the detonation splashes 60% of stored heat to nearby enemies with distance falloff."]],
       ["Shockwave","◉","mythical",1,"An expanding electrical emergency ability that damages and freezes enemies.",["Release an expanding shockwave with a 25-second cooldown.","The current V.48 radius is 20% smaller than the previous version; damage still scales upward with enemies killed."],["Emergency ability"]],
       ["Guards","⚔","mythical",1,"Deploys a defensive ring of persistent orbiting combat drones.",["Deploy Guards with 1 HP each; they now remain active until destroyed.","The emergency ability becomes available again 10 seconds after the final active Guard falls."],["Emergency ability"]],
       ["Lightning Strike","ϟ","mythical",2,"Adds chain lightning to the standard firing cycle.",["L1 · Every 4th shot fires lightning that chains through up to 5 targets, dealing 10% less damage per chain.","L2 · Adds a stronger crackling impact effect; Extended Range adds 3 chain targets and 50 jump range per level."]],
-      ["Tesla Coil","ϟ","mythical",1,"A map-wide electrical emergency ability.",["Infinite reach: the discharge can hit enemies anywhere on the map.","Deals 40% of each target's maximum health as damage, capped at 8 damage per target."],["Emergency ability"]],
+      ["Tesla Coil","ϟ","mythical",1,"A map-wide electrical emergency ability.",["Infinite reach: the discharge hits every enemy currently on the map.","Deals 40% of each target's maximum health as damage, capped at 8 damage per target.","Base cooldown: 8.5 seconds when targets are present."],["Emergency ability"]],
       ["Sparky","ϟ","mythical",1,"A charged piercing electrical emergency ability.",["Charge for 2 seconds, then fire toward the strongest enemy.","The shock-pinecone projectile deals 300 damage and pierces through targets.","Base cooldown: 40 seconds."],["Emergency ability"]],
-      ["Vulcano","♨","mythical",1,"Turns the arena around the player into a recurring volcanic hazard.",["Every 6 seconds, fire 6 piercing lava shots.","Impacts leave burning fire pools that slow enemies caught inside."],["Emergency ability"]],
-      ["Tornado","◌","mythical",1,"Creates a powerful crowd-control vortex around its active area.",["Pull and spin enemies for 3 seconds, controlling dense groups and opening space around the player."],["Emergency ability"]],
+      ["Vulcano","♨","mythical",1,"Periodically turns player fire into piercing lava shots and lingering slowing fire pools.",["Every 6 seconds, fire 6 piercing lava shots.","Lava shots burn enemies and leave 4-second slowing lava pools at their endpoints."],[]],
+      ["Tornado","◌","rare",1,"Creates a powerful emergency vortex that pulls and spins nearby enemies.",["Pull nearby enemies into a spinning vortex for 3 seconds.","Base cooldown: 9 seconds."],["Emergency ability"]],
       ["Arc Singularity","ϟ","mythical",1,"Transforms the Arc Coil into a continuous close-range electrical field.",["Arc Coil loses its reload cooldown and continuously arcs to every nearby enemy.","The singularity has 25% less range and deals 40% less damage than the normal Arc Coil."],["Builder / Freemode","Requires Arc Coil"]],
       ["Tidal Refrain","≋","mythical",1,"Adds a physical water wave to the player's firing cycle.",["Every 3rd player bullet carries a tidal wave that drags every enemy it hits toward the edge of the arena."]],
       ["Overcharged Ammunition","◆","mythical",1,"Supercharges every standard player bullet.",["All player bullets deal 60% more damage."]],
       ["Haunting Trajectory","☾","mythical",1,"Turns missed player shots into temporary allies.",["Every player bullet that misses spawns a short-lived Slim Ghost at its endpoint.","Maximum 15 active ghosts."]],
-      ["Stormglass","ϟ","evolution",1,"Turns reflected fire into chained lightning.",["REQUIREMENT · Mirror Shield II + Lightning Strike I.","EFFECT · Every reflected shot triggers a lightning chain.","LIMIT · Lightning can trigger at most once every 0.7 seconds."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Stormglass","✧","evolution",1,"Turns reflected fire into chained lightning.",["REQUIREMENT · Mirror Shield II + Lightning Strike I.","EFFECT · Reflected enemy shots trigger a chain lightning strike at the reflection point.","LIMIT · The lightning trigger can occur at most once every 0.7 seconds."],["Evolution","Combo card","Boss Cache","Unique"]],
       ["Droneguard","⚙","evolution",1,"Fuses a maxed Sentinel Drone formation into five heavier piercing guardians.",["REQUIREMENT · Sentinel Drones IV (max) + Power Bullet I.","EFFECT · Sentinel Drones merge two-by-two into 5 larger drones.","EFFECT · The merged drones fire 50% slower, deal 3× damage and pierce enemies."],["Evolution","Combo card","Boss Cache","Unique"]],
-      ["Rift Vortex","◎","evolution",1,"Combines Tornado control with a fully developed Rift Field.",["REQUIREMENT · Rift Field II + Tornado I.","EFFECT · Tornado pulls enemies through the Rift Field.","EFFECT · When the interaction resolves, Rift Field releases one extra pulse at 60% damage."],["Evolution","Combo card","Boss Cache","Unique"]],
-      ["Broken Orbit","↶","evolution",1,"Makes heavy Power Bullets retrace their Boomerang route for a second hit.",["REQUIREMENT · Boomerang II + Power Bullet II.","EFFECT · Power Bullets return along their Boomerang path and can hit enemies again for 35% damage.","LIMIT · The return does not add or refresh projectile range."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Rift Vortex","◎","evolution",1,"Combines Tornado control with a fully developed Rift Field.",["REQUIREMENT · Rift Field II + Tornado I.","EFFECT · When a Tornado expires, it tears open one extra Rift Field pulse at its final position."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Broken Orbit","↶","evolution",1,"Amplifies Power Bullet boomerang returns into harder second-leg hits and larger return explosions.",["REQUIREMENT · Boomerang II (max) + Power Bullet II or higher.","EFFECT · Returning Power Boomerangs deal 35% more return-hit damage.","EFFECT · Their return explosions become 35% larger."],["Evolution","Combo card","Boss Cache","Unique"]],
       ["Hypershield","⬡","evolution",1,"Turns a fully developed shield and mirror system into total projectile reflection while protected.",["REQUIREMENT · Shield III (max) + Mirror Shield III (max).","EFFECT · While your Shield is up, hostile bullets have a 100% reflection chance."],["Evolution","Combo card","Boss Cache","Unique"]],
       ["Lazer Blast","━","evolution",1,"Converts maximum projectile speed and range into a piercing map-wide laser attached to every shot.",["REQUIREMENT · Extended Range II (max) + Hyper Velocity III (max).","EFFECT · Every player bullet also fires a piercing laser across the map.","EFFECT · The laser deals the current bullet's damage to every enemy it hits."],["Evolution","Combo card","Boss Cache","Unique"]],
-      ["Experience Hauler","✦","evolution",1,"Upgrades the XP collection engine and strengthens momentum chains.",["REQUIREMENT · XP Magnet IV (max) + Worker Collector I or higher.","EFFECT · XP received is increased by 5%.","EFFECT · XP combos last 1 second longer.","EFFECT · XP momentum speed strength increases from +2.5% to +3% per orb."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Experience Hauler","✦","evolution",1,"Upgrades the XP collection engine and strengthens momentum chains.",["REQUIREMENT · XP Magnet IV (max) + Worker Collector I or higher.","EFFECT · Gain 5% more XP from all sources.","EFFECT · XP combos last 1 second longer.","EFFECT · Each orb adds 3% momentum speed instead of 2.5%, still capped at +40%."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Velocity Chamber","➤","evolution",1,"Removes the normal Power Bullet speed penalty and converts max velocity into denser rail shots.",["REQUIREMENT · Hyper Velocity III (max) + Power Bullet III (max).","EFFECT · Power Bullets no longer lose speed or effective range.","EFFECT · Power Bullets gain extra speed, lifetime and one additional hit."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Internal Focus","☀","evolution",1,"Links a maxed Internal Combustion system to Inferno Beam for repeated focused detonations.",["REQUIREMENT · Internal Combustion II (max) + Inferno Beam I.","EFFECT · Inferno Beam feeds additional heat into Internal Combustion.","EFFECT · Holding the beam on one target long enough triggers repeated combustion bursts."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Missile Command","➶","evolution",1,"Turns a maxed Sentinel Drone formation into a coordinated micro-missile battery.",["REQUIREMENT · Sentinel Drones IV (max) + Hunter Missile I.","EFFECT · Sentinel Drones gain micro-missile support.","EFFECT · Every 10th combined Sentinel shot launches a homing missile from the firing drone."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Static Burn","ϟ","evolution",1,"Combines maximum chain lightning and maximum burning ammunition into a hotter spreading electrical burn.",["REQUIREMENT · Lightning Strike II (max) + Burning Bullet III (max).","EFFECT · Lightning always applies a strong burn.","EFFECT · Hitting an already burning enemy with lightning deals 35% bonus damage, gains extra chains and spreads a stronger burn."],["Evolution","Combo card","Boss Cache","Unique"]],
+      ["Overkill Cannon","●","evolution",1,"Turns maxed Heavy Caliber and Power Bullet into oversized star-forged cannon rounds.",["REQUIREMENT · Heavy Caliber II (max) + Power Bullet III (max).","EFFECT · Power Bullets become larger and gain additional piercing capacity.","EFFECT · A killing hit creates a small overkill blast around the defeated enemy."],["Evolution","Combo card","Boss Cache","Unique"]],
       ["Bounce","↯","artifact",1,"Redirects successful bullet hits toward another target.",["After a hit, redirect the same bullet toward the next closest enemy. Remaining range is not refreshed."],["Boss drop","Unique"]],
       ["Camo","◌","artifact",1,"Temporarily hides the player from regular Red Echoes.",["Using your emergency ability prevents regular Red Echoes from finding you for 4.2 seconds."],["Boss drop","Unique"]],
       ["Ghost Master","☠","artifact",1,"Turns emergency ability use into a random ghost summon.",["Summon 0–8 Ghosts: 30% Slim Ghost, 50% Red Ghost and 20% Boss Ghost."],["Boss drop","Unique"]],
@@ -161,7 +190,7 @@
       if(rarity==="evolution")return "Black-and-white Evolution combo card. It only becomes eligible after every listed requirement is met. A fulfilled recipe is guaranteed in the next Boss Cache; each Evolution can be taken once per game. If no Evolution qualifies, the cache keeps its existing 50/50 behavior.";
       if(rarity==="artifact")return tags.includes("Builder only")?"Obtained from a Boss Cache in Builder Mode. Artifacts are unique, cannot be stacked and remain active for the rest of the run.":"Obtained from a Boss Cache. Random endless-mode boss spawns do not award artifacts. Artifacts are unique, cannot be stacked and remain active for the rest of the run.";
       if(tags.includes("Starting ability"))return "Available at the start of every run. Equipping another emergency ability replaces it for the current run.";
-      if(tags.includes("Emergency ability"))return "Equipping this power replaces the emergency ability currently in use. Only one emergency ability can be equipped at a time.";
+      if(tags.includes("Emergency ability")||tags.includes("Replaces emergency ability"))return "Equipping this power replaces the emergency ability currently in use. Only one emergency ability can be equipped at a time.";
       if(tags.includes("Builder / Freemode"))return "This structure upgrade appears in Builder Mode and Freemode. Some paths require the corresponding building to be unlocked.";
       if(tags.includes("Builder only"))return "This upgrade only appears in Builder Mode. It is awarded from a Boss Cache and cannot be stacked.";
       return max>1?`This upgrade can be collected ${max} times. The list above shows exactly what the next level adds.`:"This is a one-time upgrade. Collecting it immediately unlocks its full effect for the current run.";
@@ -422,6 +451,35 @@
       }
     };
 
+
+    /* ===================== FIENDER.PNG PORTRAITS =====================
+       fiender.png must sit beside index.html.
+       Each key points to one square/cell in the 7 × 4 atlas. */
+    const FIENDER_ATLAS={
+      src:'fiender.png',
+      columns:7,
+      rows:4,
+      index:{
+        echo:0,slim:1,bow:2,bomber:3,tank:4,witch:5,sniper:6,
+        armored:7,dark:8,heavy:9,heavySlim:10,stalker:11,abyssal:12,crimson:13,
+        squid:14,scarab:15,thorn:16,manta:17,golem:18,warden:19,bastion:20,
+        worm:21,sovereign:22,anchor:23,drone:24,clone:25
+      }
+    };
+    const fienderSprite=(kind)=>{
+      const index=FIENDER_ATLAS.index[kind];
+      if(index===undefined)return '';
+      const col=index%FIENDER_ATLAS.columns;
+      const row=Math.floor(index/FIENDER_ATLAS.columns);
+      const x=FIENDER_ATLAS.columns<=1?0:(col/(FIENDER_ATLAS.columns-1))*100;
+      const y=FIENDER_ATLAS.rows<=1?0:(row/(FIENDER_ATLAS.rows-1))*100;
+      return '<div class="monster-sprite" aria-hidden="true" style="--sprite-x:'+x.toFixed(4)+'%;--sprite-y:'+y.toFixed(4)+'%"></div>';
+    };
+    const fienderProbe=new Image();
+    fienderProbe.onload=()=>document.documentElement.classList.add('fiender-atlas-ready');
+    fienderProbe.onerror=()=>document.documentElement.classList.add('fiender-atlas-missing');
+    fienderProbe.src=FIENDER_ATLAS.src;
+
     const monsterCategoryInfo={
       regulars:{title:'Regulars',kicker:'01 // BASE PRESSURE',description:'The core hostile signals that shape the normal survival loop.'},
       elites:{title:'Elites',kicker:'02 // ESCALATED SIGNALS',description:'Armoured, heavy and post-final forms built to break familiar habits.'},
@@ -430,7 +488,7 @@
     const monsterTypeLabel={regulars:'REGULAR SIGNAL',elites:'ELITE SIGNAL',bosses:'BOSS SIGNAL'};
     const monsterCard=(monster,index)=>{
       return '<article class="monster-card" style="--monster-accent:'+esc(monster.accent)+'">'+
-        '<div class="monster-portrait">'+monsterArt(monster.art)+'<span class="monster-index">SIG '+String(index).padStart(2,'0')+'</span><span class="monster-tier">'+esc(monster.tier)+'</span></div>'+
+        '<div class="monster-portrait">'+fienderSprite(monster.art)+'<div class="monster-fallback">'+monsterArt(monster.art)+'</div><span class="monster-index">SIG '+String(index).padStart(2,'0')+'</span><span class="monster-tier">'+esc(monster.tier)+'</span></div>'+
         '<div class="monster-copy"><div class="monster-meta"><span>'+esc(monster.meta)+'</span><span>'+monsterTypeLabel[monster.category]+'</span></div>'+
         '<h4>'+esc(monster.name)+'</h4><p class="monster-alias">'+esc(monster.alias)+'</p><p>'+esc(monster.summary)+'</p>'+
         '<div class="monster-traits">'+monster.traits.map(trait=>'<span>'+esc(trait)+'</span>').join('')+'</div>'+
@@ -441,8 +499,8 @@
       const categories=['regulars','elites','bosses'];
       return '<section class="monster-archive" id="monster-archive">'+
         '<div class="monster-intro"><div><p class="section-kicker">SIGNAL INDEX // HOSTILE ROSTER</p><h2>Every creature in the arena.</h2></div>'+
-        '<p>The item archive ends here. Below it, every hostile class in the current EchoSwap build is mapped into three field categories. The three Sovereign support units are filed with Bosses because they only exist as part of that encounter.</p></div>'+
-        '<div class="monster-telemetry"><span>HOSTILE ROSTER</span><span><b>'+monsters.length+'</b> SIGNALS MAPPED</span><span><b>03</b> FIELD CATEGORIES</span><span>DRAWN FROM BUILD 23.09.2026</span></div>'+
+        '<p>The item archive ends here. Below it, every hostile class in the current EchoSwap build is mapped into three field categories. Portraits are taken from the local fiender.png atlas; the original vector drawings remain as a fallback if the image is unavailable. The three Sovereign support units are filed with Bosses because they only exist as part of that encounter.</p></div>'+
+        '<div class="monster-telemetry"><span>HOSTILE ROSTER</span><span><b>'+monsters.length+'</b> SIGNALS MAPPED</span><span><b>03</b> FIELD CATEGORIES</span><span>DRAWN FROM BUILD 25.09.2026</span></div>'+
         categories.map(category=>{
           const info=monsterCategoryInfo[category];
           const group=monsters.filter(monster=>monster.category===category);
